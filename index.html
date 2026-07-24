@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f4f46">
+  <meta name="description" content="Leichtgewichtiger digitaler Punkteblock für Wizard mit 70 Karten.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Wizard Punkte">
+
+  <title>Wizard – Digitaler Punkteblock</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+
+  <script defer src="js/game-logic.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <noscript>
+    <div class="noscript-message">Diese Anwendung benötigt JavaScript.</div>
+  </noscript>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Digitaler Punkteblock</p>
+        <h1>Wizard</h1>
+      </div>
+      <span class="version-badge">Version 1.0</span>
+    </header>
+
+    <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
+
+    <main id="app" class="app-main">
+      <section id="screen-home" class="screen" aria-labelledby="home-title">
+        <div class="hero-card">
+          <h2 id="home-title">Bereit für eine Partie?</h2>
+          <p>Ein Gerät verwaltet Ansagen, Sonderkarten, Stiche und Punkte.</p>
+
+          <div class="stacked-actions">
+            <button id="btn-new-game" class="button button-primary" type="button">Neues Spiel</button>
+            <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Spiel fortsetzen</button>
+          </div>
+
+          <p id="saved-game-summary" class="saved-summary" hidden></p>
+        </div>
+
+        <section class="panel compact-panel" aria-labelledby="backup-title">
+          <div class="panel-heading">
+            <div>
+              <h3 id="backup-title">Sicherung und Verwaltung</h3>
+              <p>Spielstand sichern, übertragen oder vollständig löschen.</p>
+            </div>
+          </div>
+
+          <div id="saved-game-tools" class="management-actions">
+            <button id="btn-export-game" class="button button-secondary" type="button" disabled>Spielstand exportieren</button>
+            <button id="btn-import-game" class="button button-secondary" type="button">Spielstand importieren</button>
+            <button id="btn-delete-game" class="button button-danger" type="button" disabled>Gespeichertes Spiel löschen</button>
+          </div>
+          <input id="import-file-input" type="file" accept="application/json,.json" hidden>
+          <p class="field-help">Export und Import verwenden eine kleine JSON-Datei. Beim Import wird ein vorhandener Spielstand erst nach Bestätigung ersetzt.</p>
+        </section>
+      </section>
+
+      <section id="screen-setup" class="screen" aria-labelledby="setup-title" hidden>
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Neues Spiel</p>
+            <h2 id="setup-title">Partie einrichten</h2>
+          </div>
+          <button id="btn-setup-home" class="button button-ghost button-small" type="button">Startseite</button>
+        </div>
+
+        <form id="setup-form" novalidate>
+          <section class="panel" aria-labelledby="players-title">
+            <div class="panel-heading">
+              <div>
+                <h3 id="players-title">Spieler und Sitzreihenfolge</h3>
+                <p>Die Reihenfolge entspricht der Sitzordnung am Tisch.</p>
+              </div>
+              <span id="player-count-badge" class="count-badge">3 / 6</span>
+            </div>
+
+            <div id="player-list" class="player-list"></div>
+            <button id="btn-add-player" class="button button-secondary full-width" type="button">Spieler hinzufügen</button>
+          </section>
+
+          <section class="panel" aria-labelledby="roles-title">
+            <h3 id="roles-title">Kartengeber und Startspieler</h3>
+            <label class="field-label" for="dealer-select">Kartengeber in Runde 1</label>
+            <select id="dealer-select" class="select-input"></select>
+
+            <div class="info-row">
+              <span>Startspieler in Runde 1</span>
+              <strong id="starting-player-name">–</strong>
+            </div>
+            <p class="field-help">Der Startspieler sitzt direkt nach dem Kartengeber.</p>
+          </section>
+
+          <section class="panel" aria-labelledby="rounds-title">
+            <h3 id="rounds-title">Rundenzahl</h3>
+            <div class="stepper" aria-label="Rundenzahl einstellen">
+              <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Rundenzahl verringern">−</button>
+              <input id="rounds-input" class="stepper-input" type="number" inputmode="numeric" min="1" step="1" aria-label="Rundenzahl">
+              <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Rundenzahl erhöhen">+</button>
+            </div>
+
+            <div class="round-meta">
+              <p>Wizard-Standard: <strong id="standard-rounds-value">–</strong></p>
+              <p>Maximum mit 70 Karten: <strong id="maximum-rounds-value">–</strong></p>
+            </div>
+            <p id="rounds-message" class="status-message" aria-live="polite"></p>
+          </section>
+
+          <section class="panel summary-panel" aria-labelledby="summary-title">
+            <h3 id="summary-title">Zusammenfassung</h3>
+            <dl class="summary-list">
+              <div><dt>Spieler</dt><dd id="summary-player-count">3</dd></div>
+              <div><dt>Runden</dt><dd id="summary-round-count">20</dd></div>
+              <div><dt>Kartengeber</dt><dd id="summary-dealer">–</dd></div>
+              <div><dt>Startspieler</dt><dd id="summary-starter">–</dd></div>
+            </dl>
+            <p id="summary-seat-order" class="seat-order">Sitzreihenfolge: –</p>
+          </section>
+
+          <div id="form-errors" class="form-errors" role="alert" aria-live="assertive" hidden></div>
+          <button class="button button-primary full-width" type="submit">Spiel starten</button>
+        </form>
+      </section>
+
+      <section id="screen-game" class="screen" aria-labelledby="game-title" hidden>
+        <div class="screen-heading">
+          <div>
+            <p id="game-phase-label" class="eyebrow">Ansagen</p>
+            <h2 id="game-title">Runde 1 von 20</h2>
+          </div>
+          <button id="btn-game-home" class="button button-ghost button-small" type="button">Startseite</button>
+        </div>
+
+        <section class="panel compact-panel" aria-label="Rollen dieser Runde">
+          <div class="role-grid">
+            <div><span>Kartengeber</span><strong id="game-dealer">–</strong></div>
+            <div><span>Startspieler</span><strong id="game-starter">–</strong></div>
+          </div>
+        </section>
+
+        <div id="game-content" class="game-content"></div>
+      </section>
+
+      <section id="screen-finished" class="screen" aria-labelledby="finished-title" hidden>
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Partie beendet</p>
+            <h2 id="finished-title">Endergebnis</h2>
+          </div>
+          <button id="btn-finished-home" class="button button-ghost button-small" type="button">Startseite</button>
+        </div>
+
+        <section class="panel">
+          <div id="winner-summary" class="winner-summary"></div>
+          <p id="final-game-meta" class="final-game-meta"></p>
+          <div id="final-ranking" class="ranking-list" aria-label="Abschlusstabelle"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="history-title">
+          <h3 id="history-title">Punkteverlauf</h3>
+          <p>Rundenpunkte und abschließende Gesamtpunktzahl aller Spieler.</p>
+          <div id="final-score-history" class="history-scroll"></div>
+        </section>
+
+        <div class="round-actions">
+          <button id="btn-review-last-round" class="button button-secondary" type="button">Letzte Runde ansehen</button>
+          <button id="btn-finished-new-game" class="button button-primary" type="button">Neues Spiel</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>70 Karten · 3–6 Spieler · lokal gespeichert</span>
+    </footer>
+  </div>
+
+  <dialog id="round-one-dialog" class="app-dialog">
+    <div class="dialog-content">
+      <p class="dialog-icon" aria-hidden="true">🃏</p>
+      <h2>Hinweis für Runde 1</h2>
+      <p><strong>Karte nicht anschauen!</strong></p>
+      <p>Haltet eure Karte an die Stirn, sodass nur die anderen Spieler sie sehen können.</p>
+      <button id="btn-confirm-round-one-hint" class="button button-primary full-width" type="button">Verstanden</button>
+    </div>
+  </dialog>
+
+  <dialog id="cloud-dialog" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div>
+          <p id="cloud-dialog-kicker" class="eyebrow">Wolke</p>
+          <h2>Ansage verändern</h2>
+        </div>
+        <button id="btn-close-cloud-dialog" class="button button-ghost button-small" type="button">Schließen</button>
+      </div>
+      <p id="cloud-dialog-help" class="dialog-help">Wähle den betroffenen Spieler.</p>
+      <div id="cloud-player-options" class="choice-grid"></div>
+      <div id="cloud-change-options" class="choice-grid two-columns" hidden>
+        <button id="btn-cloud-minus" class="button button-secondary" type="button">Ansage −1</button>
+        <button id="btn-cloud-plus" class="button button-secondary" type="button">Ansage +1</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="edit-round-dialog" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Korrektur</p>
+          <h2>Runde bearbeiten</h2>
+        </div>
+        <button id="btn-close-edit-dialog" class="button button-ghost button-small" type="button">Schließen</button>
+      </div>
+      <p>Welcher Bereich soll korrigiert werden?</p>
+      <div class="stacked-actions">
+        <button id="btn-edit-bids" class="button button-secondary" type="button">Ansagen bearbeiten</button>
+        <button id="btn-edit-specials" class="button button-secondary" type="button">Sonderkarten bearbeiten</button>
+        <button id="btn-edit-tricks" class="button button-secondary" type="button">Stiche bearbeiten</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

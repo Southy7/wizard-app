@@ -1,0 +1,1838 @@
+(function bootstrapWizardApp() {
+  "use strict";
+
+  const Logic = window.WizardGameLogic;
+  const Storage = window.WizardStorage;
+
+  if (!Logic || !Storage) {
+    console.error("Die Anwendungsabhängigkeiten konnten nicht geladen werden.");
+    return;
+  }
+
+  const elements = {};
+  let state = null;
+  let toastTimeout = null;
+  let cloudDialogContext = null;
+
+  document.addEventListener("DOMContentLoaded", init);
+
+  function init() {
+    cacheElements();
+    bindEvents();
+    refreshHomeScreen();
+    updateStorageWarning();
+    showScreen("home");
+    registerServiceWorker();
+    requestPersistentStorage();
+  }
+
+  function cacheElements() {
+    const ids = [
+      "screen-home", "screen-setup", "screen-game", "screen-finished",
+      "btn-new-game", "btn-continue-game", "saved-game-summary", "saved-game-tools",
+      "btn-export-game", "btn-import-game", "import-file-input", "btn-delete-game", "storage-warning",
+      "btn-setup-home", "setup-form", "player-list", "player-count-badge",
+      "btn-add-player", "dealer-select", "starting-player-name",
+      "btn-rounds-minus", "rounds-input", "btn-rounds-plus",
+      "standard-rounds-value", "maximum-rounds-value", "rounds-message",
+      "summary-player-count", "summary-round-count", "summary-dealer",
+      "summary-starter", "summary-seat-order", "form-errors",
+      "btn-game-home", "game-phase-label", "game-title", "game-dealer",
+      "game-starter", "game-content", "btn-finished-home",
+      "winner-summary", "final-ranking", "final-game-meta", "final-score-history", "btn-review-last-round",
+      "btn-finished-new-game", "round-one-dialog", "btn-confirm-round-one-hint",
+      "cloud-dialog", "cloud-dialog-kicker", "cloud-dialog-help",
+      "cloud-player-options", "cloud-change-options", "btn-cloud-minus",
+      "btn-cloud-plus", "btn-close-cloud-dialog", "edit-round-dialog",
+      "btn-close-edit-dialog", "btn-edit-bids", "btn-edit-specials",
+      "btn-edit-tricks", "toast"
+    ];
+
+    for (const id of ids) {
+      elements[id] = document.getElementById(id);
+    }
+  }
+
+  function bindEvents() {
+    elements["btn-new-game"].addEventListener("click", () => startNewGame(false));
+    elements["btn-continue-game"].addEventListener("click", continueGame);
+    elements["btn-export-game"].addEventListener("click", exportGame);
+    elements["btn-import-game"].addEventListener("click", () => elements["import-file-input"].click());
+    elements["import-file-input"].addEventListener("change", importGameFromFile);
+    elements["btn-delete-game"].addEventListener("click", deleteSavedGame);
+    elements["btn-setup-home"].addEventListener("click", goHome);
+    elements["btn-game-home"].addEventListener("click", goHome);
+    elements["btn-finished-home"].addEventListener("click", goHome);
+    elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
+    elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
+    elements["btn-add-player"].addEventListener("click", addPlayer);
+    elements["dealer-select"].addEventListener("change", updateDealer);
+    elements["btn-rounds-minus"].addEventListener("click", () => changeRounds(-1));
+    elements["btn-rounds-plus"].addEventListener("click", () => changeRounds(1));
+    elements["rounds-input"].addEventListener("change", commitRoundInput);
+    elements["rounds-input"].addEventListener("blur", commitRoundInput);
+    elements["setup-form"].addEventListener("submit", submitSetup);
+
+    elements["btn-confirm-round-one-hint"].addEventListener("click", confirmRoundOneHint);
+    elements["round-one-dialog"].addEventListener("cancel", (event) => event.preventDefault());
+
+    elements["btn-close-cloud-dialog"].addEventListener("click", closeCloudDialog);
+    elements["btn-cloud-minus"].addEventListener("click", () => commitCloudChange(-1));
+    elements["btn-cloud-plus"].addEventListener("click", () => commitCloudChange(1));
+
+    elements["btn-close-edit-dialog"].addEventListener("click", () => closeDialog(elements["edit-round-dialog"]));
+    elements["btn-edit-bids"].addEventListener("click", () => beginRoundEdit("bids"));
+    elements["btn-edit-specials"].addEventListener("click", () => beginRoundEdit("play"));
+    elements["btn-edit-tricks"].addEventListener("click", () => beginRoundEdit("tricks"));
+  }
+
+  function startNewGame(forceReplace) {
+    if (!forceReplace && Storage.hasSavedGame()) {
+      const shouldReplace = window.confirm(
+        "Es ist bereits ein Spiel gespeichert. Beim Starten eines neuen Spiels wird der bisherige Spielstand ersetzt. Fortfahren?"
+      );
+      if (!shouldReplace) return;
+    }
+
+    state = Logic.createInitialGameState();
+    persistState();
+    renderSetup();
+    showScreen("setup");
+  }
+
+  function continueGame() {
+    const savedState = Storage.loadGame();
+
+    if (!savedState) {
+      showToast("Es wurde kein gültiger Spielstand gefunden.");
+      refreshHomeScreen();
+      return;
+    }
+
+    state = hydrateState(savedState);
+    persistState();
+
+    if (state.status === "completed") {
+      renderFinished();
+      showScreen("finished");
+      return;
+    }
+
+    if (state.status === "running") {
+      renderGame();
+      showScreen("game");
+      maybeShowRoundOneHint();
+      return;
+    }
+
+    renderSetup();
+    showScreen("setup");
+  }
+
+  function hydrateState(savedState) {
+    const rawPlayers = Array.isArray(savedState.players)
+      ? savedState.players.slice(0, Logic.MAX_PLAYERS)
+      : [];
+
+    const sanitizedPlayers = rawPlayers.map((player, index) => ({
+      id: typeof player?.id === "string" && player.id ? player.id : Logic.createPlayer(index).id,
+      name: typeof player?.name === "string" ? player.name.slice(0, 30) : "",
+      seatPosition: index
+    }));
+
+    while (sanitizedPlayers.length < Logic.MIN_PLAYERS) {
+      sanitizedPlayers.push(Logic.createPlayer(sanitizedPlayers.length));
+    }
+
+    const players = Logic.normalizeSeatPositions(sanitizedPlayers);
+    const playerCount = players.length;
+    const totalCards = Logic.TOTAL_CARDS;
+    const firstDealerId = players.some((player) => player.id === savedState.firstDealerId)
+      ? savedState.firstDealerId
+      : players[0].id;
+    const totalRounds = Logic.clampRoundCount(savedState.totalRounds, playerCount, totalCards);
+    const currentRound = Math.min(Math.max(Number.parseInt(savedState.currentRound, 10) || 1, 1), totalRounds);
+
+    const hydrated = {
+      ...Logic.createInitialGameState(playerCount),
+      ...savedState,
+      version: "1.0",
+      schemaVersion: 3,
+      totalCards,
+      players,
+      firstDealerId,
+      totalRounds,
+      currentRound,
+      roundOneHintConfirmed: Boolean(savedState.roundOneHintConfirmed),
+      rounds: []
+    };
+
+    const rawRounds = Array.isArray(savedState.rounds) ? savedState.rounds : [];
+    hydrated.rounds = rawRounds
+      .filter((round) => Number.isInteger(Number(round?.number)))
+      .map((round) => hydrateRound(round, players, firstDealerId))
+      .filter((round) => round.number >= 1 && round.number <= totalRounds)
+      .sort((a, b) => a.number - b.number);
+
+    if (hydrated.status === "running" && !hydrated.rounds.some((round) => round.number === currentRound)) {
+      hydrated.rounds.push(Logic.createRound(players, firstDealerId, currentRound));
+      hydrated.rounds.sort((a, b) => a.number - b.number);
+    }
+
+    if (!["setup", "running", "completed"].includes(hydrated.status)) {
+      hydrated.status = hydrated.rounds.length > 0 ? "running" : "setup";
+    }
+
+    return hydrated;
+  }
+
+  function hydrateRound(rawRound, players, firstDealerId) {
+    const roundNumber = Math.max(1, Number.parseInt(rawRound?.number, 10) || 1);
+    const base = Logic.createRound(players, firstDealerId, roundNumber);
+    const allowedPhases = new Set(["bids", "play", "tricks", "result"]);
+    const playerResults = {};
+
+    for (const player of players) {
+      const rawResult = rawRound?.playerResults?.[player.id] ?? {};
+      playerResults[player.id] = {
+        originalBid: Math.max(0, Number.parseInt(rawResult.originalBid, 10) || 0),
+        currentBid: Math.max(0, Number.parseInt(rawResult.currentBid, 10) || 0),
+        tricks: Math.max(0, Number.parseInt(rawResult.tricks, 10) || 0),
+        roundPoints: Number.isFinite(Number(rawResult.roundPoints)) ? Number(rawResult.roundPoints) : null
+      };
+    }
+
+    const rawCards = rawRound?.specialCards ?? {};
+    const round = {
+      ...base,
+      ...rawRound,
+      number: roundNumber,
+      dealerId: Logic.getDealerForRound(players, firstDealerId, roundNumber)?.id ?? null,
+      startingPlayerId: Logic.getStartingPlayerForRound(players, firstDealerId, roundNumber)?.id ?? null,
+      phase: allowedPhases.has(rawRound?.phase) ? rawRound.phase : "bids",
+      playerResults,
+      specialCards: {
+        cloud: hydrateCloud(rawCards.cloud),
+        bomb: { active: Boolean(rawCards.bomb?.active) },
+        witch: {
+          active: Boolean(rawCards.witch?.active),
+          secondEffect: ["cloud", "bomb"].includes(rawCards.witch?.secondEffect)
+            ? rawCards.witch.secondEffect
+            : null
+        },
+        secondCloud: hydrateCloud(rawCards.secondCloud),
+        secondBomb: { active: Boolean(rawCards.secondBomb?.active) }
+      },
+      completed: Boolean(rawRound?.completed),
+      completedAt: typeof rawRound?.completedAt === "string" ? rawRound.completedAt : null
+    };
+
+    normalizeSpecialDependencies(round);
+    if (!round.completed && round.phase === "result") {
+      round.phase = "tricks";
+    }
+
+    let recalculated = Logic.recalculateCurrentBids(round, players);
+
+    if (recalculated.completed) {
+      recalculated = Logic.calculateRoundPoints(recalculated, players);
+      recalculated.phase = "result";
+    }
+
+    return recalculated;
+  }
+
+  function hydrateCloud(rawCloud) {
+    return {
+      active: Boolean(rawCloud?.active),
+      playerId: typeof rawCloud?.playerId === "string" ? rawCloud.playerId : null,
+      change: rawCloud?.change === -1 ? -1 : rawCloud?.change === 1 ? 1 : 0,
+      suppressedByBomb: Boolean(rawCloud?.suppressedByBomb)
+    };
+  }
+
+  function normalizeSpecialDependencies(round) {
+    const cards = round.specialCards;
+
+    if (!cards.cloud.active) {
+      Object.assign(cards.cloud, { playerId: null, change: 0, suppressedByBomb: false });
+      if (cards.witch.secondEffect === "cloud") {
+        cards.witch.secondEffect = null;
+        Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+      }
+    }
+
+    if (!cards.bomb.active && cards.witch.secondEffect === "bomb") {
+      cards.witch.secondEffect = null;
+      cards.secondBomb.active = false;
+    }
+
+    if (!cards.witch.active) {
+      cards.witch.secondEffect = null;
+      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+      cards.secondBomb.active = false;
+    }
+
+    if (cards.witch.secondEffect === "cloud" && !cards.secondCloud.active) {
+      cards.witch.secondEffect = null;
+    }
+
+    if (cards.witch.secondEffect === "bomb" && !cards.secondBomb.active) {
+      cards.witch.secondEffect = null;
+    }
+
+    if (cards.witch.secondEffect !== "cloud") {
+      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    }
+
+    if (cards.witch.secondEffect !== "bomb") {
+      cards.secondBomb.active = false;
+    }
+
+    normalizeSuppressedClouds(round);
+  }
+
+  function normalizeSuppressedClouds(round) {
+    const bombs = Logic.getActiveBombCount(round);
+    const cloudKeys = ["cloud", "secondCloud"];
+    let used = 0;
+
+    for (const key of cloudKeys) {
+      const cloud = round.specialCards[key];
+      if (!cloud.active) {
+        cloud.suppressedByBomb = false;
+        continue;
+      }
+
+      if (cloud.suppressedByBomb && used < bombs) {
+        used += 1;
+      } else if (cloud.suppressedByBomb) {
+        cloud.suppressedByBomb = false;
+      }
+    }
+  }
+
+  function goHome() {
+    persistState();
+    refreshHomeScreen();
+    showScreen("home");
+  }
+
+  function showScreen(name) {
+    const screens = {
+      home: elements["screen-home"],
+      setup: elements["screen-setup"],
+      game: elements["screen-game"],
+      finished: elements["screen-finished"]
+    };
+
+    Object.entries(screens).forEach(([screenName, screenElement]) => {
+      screenElement.hidden = screenName !== name;
+    });
+
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function refreshHomeScreen() {
+    const savedState = Storage.loadGame();
+    const continueButton = elements["btn-continue-game"];
+    const summary = elements["saved-game-summary"];
+
+    if (!savedState) {
+      continueButton.disabled = true;
+      elements["btn-export-game"].disabled = true;
+      elements["btn-delete-game"].disabled = !Storage.hasStoredData?.();
+      summary.hidden = true;
+      summary.textContent = "";
+      updateStorageWarning();
+      return;
+    }
+
+    const playerCount = savedState.players?.length ?? 0;
+    let statusText = "Einrichtung begonnen";
+
+    if (savedState.status === "running") {
+      const round = savedState.currentRound ?? 1;
+      statusText = `Runde ${round} von ${savedState.totalRounds}`;
+    } else if (savedState.status === "completed") {
+      statusText = "Partie beendet";
+    }
+
+    continueButton.disabled = false;
+    elements["btn-export-game"].disabled = false;
+    elements["btn-delete-game"].disabled = false;
+    summary.hidden = false;
+    summary.textContent = `${statusText} · ${playerCount} Spieler`;
+    updateStorageWarning();
+  }
+
+  function updateStorageWarning(message = "") {
+    const warning = elements["storage-warning"];
+    if (!warning) return;
+
+    const storageError = Storage.getLastError?.();
+    const text = message || storageError || (!Storage.isStorageAvailable()
+      ? "Der Browser stellt keinen dauerhaften lokalen Speicher bereit. Änderungen können beim Schließen verloren gehen."
+      : "");
+
+    warning.textContent = text;
+    warning.hidden = !text;
+  }
+
+  function exportGame() {
+    const savedState = Storage.loadGame();
+    if (!savedState) {
+      showToast("Es ist kein Spielstand zum Exportieren vorhanden.");
+      refreshHomeScreen();
+      return;
+    }
+
+    const payload = {
+      exportFormat: "wizard-punkte-app",
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      gameState: savedState
+    };
+
+    try {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      anchor.href = url;
+      anchor.download = `wizard-spielstand-${date}.json`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      showToast("Spielstand wurde exportiert.");
+    } catch (error) {
+      console.error("Export fehlgeschlagen:", error);
+      updateStorageWarning("Der Spielstand konnte nicht exportiert werden.");
+    }
+  }
+
+  async function importGameFromFile(event) {
+    const input = event.target;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+
+    if (file.size > 2_000_000) {
+      showToast("Die Importdatei ist ungewöhnlich groß und wurde abgelehnt.");
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const candidate = parsed?.exportFormat === "wizard-punkte-app" ? parsed.gameState : parsed;
+
+      if (!candidate || candidate.version !== "1.0" || !Array.isArray(candidate.players)) {
+        throw new Error("Die Datei ist kein gültiger Wizard-Spielstand der Version 1.0.");
+      }
+
+      if (candidate.players.length < Logic.MIN_PLAYERS || candidate.players.length > Logic.MAX_PLAYERS) {
+        throw new Error(`Der Spielstand muss ${Logic.MIN_PLAYERS} bis ${Logic.MAX_PLAYERS} Spieler enthalten.`);
+      }
+
+      const shouldReplace = !Storage.hasSavedGame() || window.confirm(
+        "Der vorhandene Spielstand wird durch den importierten Spielstand ersetzt. Fortfahren?"
+      );
+      if (!shouldReplace) return;
+
+      const importedState = hydrateState(candidate);
+      if (!Storage.saveGame(importedState)) {
+        throw new Error("Der importierte Spielstand konnte nicht lokal gespeichert werden.");
+      }
+
+      state = importedState;
+      refreshHomeScreen();
+      showToast("Spielstand wurde erfolgreich importiert.");
+    } catch (error) {
+      console.error("Import fehlgeschlagen:", error);
+      showToast(error instanceof Error ? error.message : "Die Importdatei konnte nicht gelesen werden.");
+    }
+  }
+
+  function deleteSavedGame() {
+    if (!Storage.hasStoredData?.()) return;
+
+    const shouldDelete = window.confirm(
+      "Gespeichertes Spiel vollständig löschen? Diese Aktion kann nur über eine zuvor exportierte Sicherungsdatei rückgängig gemacht werden."
+    );
+    if (!shouldDelete) return;
+
+    if (!Storage.deleteGame()) {
+      updateStorageWarning("Der gespeicherte Spielstand konnte nicht gelöscht werden.");
+      return;
+    }
+
+    state = null;
+    refreshHomeScreen();
+    showToast("Gespeichertes Spiel wurde gelöscht.");
+  }
+
+  function renderSetup() {
+    ensureState();
+    renderPlayerList();
+    renderDealerSelect();
+    renderRoundControls();
+    renderSummary();
+    clearFormErrors();
+  }
+
+  function renderPlayerList() {
+    const playerList = elements["player-list"];
+    const duplicateIds = Logic.getDuplicateNameIds(state.players);
+    playerList.innerHTML = "";
+
+    state.players.forEach((player, index) => {
+      const row = document.createElement("div");
+      row.className = "player-row";
+      row.dataset.playerId = player.id;
+
+      const inputWrap = document.createElement("div");
+      inputWrap.className = "player-input-wrap";
+
+      const label = document.createElement("label");
+      label.className = "player-label";
+      label.htmlFor = `player-name-${player.id}`;
+      label.textContent = `Sitzplatz ${index + 1}`;
+
+      const input = document.createElement("input");
+      input.id = `player-name-${player.id}`;
+      input.className = "text-input";
+      input.type = "text";
+      input.maxLength = 30;
+      input.autocomplete = "off";
+      input.placeholder = `Spieler ${index + 1}`;
+      input.value = player.name;
+      input.setAttribute("aria-invalid", String(!player.name.trim()));
+      input.addEventListener("input", (event) => updatePlayerName(player.id, event.target.value));
+
+      const duplicateHint = document.createElement("span");
+      duplicateHint.className = "duplicate-hint";
+      duplicateHint.textContent = duplicateIds.has(player.id) ? "Name wird mehrfach verwendet." : "";
+
+      inputWrap.append(label, input, duplicateHint);
+
+      const actions = document.createElement("div");
+      actions.className = "player-actions";
+
+      const moveUp = createIconButton("↑", `Spieler ${index + 1} nach oben verschieben`, index === 0);
+      moveUp.addEventListener("click", () => reorderPlayer(player.id, "up"));
+
+      const moveDown = createIconButton("↓", `Spieler ${index + 1} nach unten verschieben`, index === state.players.length - 1);
+      moveDown.addEventListener("click", () => reorderPlayer(player.id, "down"));
+
+      const remove = createIconButton("×", `Spieler ${index + 1} entfernen`, state.players.length <= Logic.MIN_PLAYERS, true);
+      remove.addEventListener("click", () => removePlayer(player.id));
+
+      actions.append(moveUp, moveDown, remove);
+      row.append(inputWrap, actions);
+      playerList.append(row);
+    });
+
+    elements["player-count-badge"].textContent = `${state.players.length} / ${Logic.MAX_PLAYERS}`;
+    elements["btn-add-player"].disabled = state.players.length >= Logic.MAX_PLAYERS;
+  }
+
+  function createIconButton(text, label, disabled = false, danger = false) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `icon-button${danger ? " danger" : ""}`;
+    button.textContent = text;
+    button.disabled = disabled;
+    button.setAttribute("aria-label", label);
+    return button;
+  }
+
+  function updatePlayerName(playerId, name) {
+    const player = state.players.find((entry) => entry.id === playerId);
+    if (!player) return;
+
+    player.name = name;
+    persistState();
+    renderDealerSelect();
+    renderSummary();
+    updateDuplicateHints();
+  }
+
+  function updateDuplicateHints() {
+    const duplicateIds = Logic.getDuplicateNameIds(state.players);
+
+    document.querySelectorAll(".player-row").forEach((row) => {
+      const playerId = row.dataset.playerId;
+      const player = state.players.find((entry) => entry.id === playerId);
+      const input = row.querySelector(".text-input");
+      const hint = row.querySelector(".duplicate-hint");
+
+      if (input && player) input.setAttribute("aria-invalid", String(!player.name.trim()));
+      if (hint) hint.textContent = duplicateIds.has(playerId) ? "Name wird mehrfach verwendet." : "";
+    });
+  }
+
+  function addPlayer() {
+    if (state.players.length >= Logic.MAX_PLAYERS) return;
+
+    state.players.push(Logic.createPlayer(state.players.length));
+    resetRoundsToStandard();
+    persistState();
+    renderSetup();
+    focusLastPlayerInput();
+    showToast(`Rundenzahl auf den Wizard-Standard für ${state.players.length} Spieler gesetzt.`);
+  }
+
+  function removePlayer(playerId) {
+    if (state.players.length <= Logic.MIN_PLAYERS) return;
+
+    const removedWasDealer = state.firstDealerId === playerId;
+    state.players = Logic.normalizeSeatPositions(state.players.filter((player) => player.id !== playerId));
+
+    if (removedWasDealer || !state.players.some((player) => player.id === state.firstDealerId)) {
+      state.firstDealerId = state.players[0].id;
+    }
+
+    resetRoundsToStandard();
+    persistState();
+    renderSetup();
+    showToast(`Rundenzahl auf den Wizard-Standard für ${state.players.length} Spieler gesetzt.`);
+  }
+
+  function reorderPlayer(playerId, direction) {
+    state.players = Logic.movePlayer(state.players, playerId, direction);
+    persistState();
+    renderSetup();
+  }
+
+  function focusLastPlayerInput() {
+    requestAnimationFrame(() => {
+      const lastPlayer = state.players[state.players.length - 1];
+      document.getElementById(`player-name-${lastPlayer.id}`)?.focus();
+    });
+  }
+
+  function renderDealerSelect() {
+    const select = elements["dealer-select"];
+    const previousValue = state.firstDealerId;
+    select.innerHTML = "";
+
+    state.players.forEach((player, index) => {
+      const option = document.createElement("option");
+      option.value = player.id;
+      option.textContent = getPlayerDisplayName(player, index);
+      select.append(option);
+    });
+
+    if (state.players.some((player) => player.id === previousValue)) {
+      select.value = previousValue;
+    } else if (state.players[0]) {
+      state.firstDealerId = state.players[0].id;
+      select.value = state.firstDealerId;
+    }
+
+    const starter = Logic.getStartingPlayerForRound(state.players, state.firstDealerId, 1);
+    elements["starting-player-name"].textContent = starter ? getPlayerDisplayNameById(starter.id) : "–";
+  }
+
+  function updateDealer(event) {
+    state.firstDealerId = event.target.value;
+    persistState();
+    renderDealerSelect();
+    renderSummary();
+  }
+
+  function renderRoundControls(message = "") {
+    const playerCount = state.players.length;
+    const standard = Logic.getStandardRounds(playerCount);
+    const maximum = Logic.getMaximumRounds(playerCount, state.totalCards);
+
+    state.totalRounds = Logic.clampRoundCount(state.totalRounds, playerCount, state.totalCards);
+    elements["rounds-input"].value = String(state.totalRounds);
+    elements["rounds-input"].max = String(maximum);
+    elements["standard-rounds-value"].textContent = `${standard} Runden`;
+    elements["maximum-rounds-value"].textContent = `${maximum} Runden`;
+    elements["btn-rounds-minus"].disabled = state.totalRounds <= 1;
+    elements["btn-rounds-plus"].disabled = state.totalRounds >= maximum;
+    elements["rounds-message"].textContent = message;
+  }
+
+  function changeRounds(delta) {
+    state.totalRounds = Logic.clampRoundCount(state.totalRounds + delta, state.players.length, state.totalCards);
+    persistState();
+    renderRoundControls();
+    renderSummary();
+  }
+
+  function commitRoundInput() {
+    const maximum = Logic.getMaximumRounds(state.players.length, state.totalCards);
+    const entered = Number.parseInt(elements["rounds-input"].value, 10);
+    const corrected = Logic.clampRoundCount(entered, state.players.length, state.totalCards);
+    const wasCorrected = entered !== corrected;
+
+    state.totalRounds = corrected;
+    persistState();
+    renderRoundControls(wasCorrected ? `Zulässig sind 1 bis ${maximum} Runden. Der Wert wurde angepasst.` : "");
+    renderSummary();
+  }
+
+  function resetRoundsToStandard() {
+    state.totalRounds = Logic.getStandardRounds(state.players.length);
+  }
+
+  function renderSummary() {
+    const dealer = state.players.find((player) => player.id === state.firstDealerId);
+    const starter = Logic.getStartingPlayerForRound(state.players, state.firstDealerId, 1);
+
+    elements["summary-player-count"].textContent = String(state.players.length);
+    elements["summary-round-count"].textContent = String(state.totalRounds);
+    elements["summary-dealer"].textContent = dealer ? getPlayerDisplayNameById(dealer.id) : "–";
+    elements["summary-starter"].textContent = starter ? getPlayerDisplayNameById(starter.id) : "–";
+    elements["summary-seat-order"].textContent = `Sitzreihenfolge: ${state.players
+      .map((player) => getPlayerDisplayNameById(player.id))
+      .join(" → ")}`;
+  }
+
+  function submitSetup(event) {
+    event.preventDefault();
+    commitRoundInput();
+
+    const errors = Logic.validateSetup(state);
+    if (errors.length > 0) {
+      showFormErrors(errors);
+      focusFirstInvalidField();
+      return;
+    }
+
+    clearFormErrors();
+    state.status = "running";
+    state.currentRound = 1;
+    state.roundOneHintConfirmed = false;
+    state.rounds = [Logic.createRound(state.players, state.firstDealerId, 1)];
+    persistState();
+    renderGame();
+    showScreen("game");
+    maybeShowRoundOneHint();
+  }
+
+  function showFormErrors(errors) {
+    const container = elements["form-errors"];
+    container.innerHTML = "";
+    const list = document.createElement("ul");
+
+    errors.forEach((error) => {
+      const item = document.createElement("li");
+      item.textContent = error;
+      list.append(item);
+    });
+
+    container.append(list);
+    container.hidden = false;
+  }
+
+  function clearFormErrors() {
+    elements["form-errors"].hidden = true;
+    elements["form-errors"].innerHTML = "";
+  }
+
+  function focusFirstInvalidField() {
+    const invalidNameInput = [...document.querySelectorAll(".text-input")]
+      .find((input) => !input.value.trim());
+
+    if (invalidNameInput) {
+      invalidNameInput.focus();
+      return;
+    }
+
+    elements["dealer-select"].focus();
+  }
+
+  function renderGame() {
+    ensureState();
+    let round = ensureCurrentRound();
+    round = Logic.recalculateCurrentBids(round, state.players);
+    replaceRound(round);
+
+    elements["game-title"].textContent = `Runde ${round.number} von ${state.totalRounds}`;
+    elements["game-dealer"].textContent = getPlayerDisplayNameById(round.dealerId);
+    elements["game-starter"].textContent = getPlayerDisplayNameById(round.startingPlayerId);
+
+    const labels = {
+      bids: "Ansagen",
+      play: "Sonderkarten",
+      tricks: "Stiche",
+      result: "Rundenergebnis"
+    };
+    elements["game-phase-label"].textContent = labels[round.phase] ?? "Laufendes Spiel";
+
+    if (round.phase === "bids") renderBids(round);
+    else if (round.phase === "play") renderPlay(round);
+    else if (round.phase === "tricks") renderTricks(round);
+    else renderRoundResult(round);
+  }
+
+  function renderBids(round) {
+    const panel = createPanel("Ansagen", "Die Eingabe beginnt beim Startspieler. Die Ansagesumme darf nicht der Rundennummer entsprechen.");
+    const list = document.createElement("div");
+    list.className = "entry-list";
+
+    const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
+    const totals = Logic.calculateTotalPoints(state.rounds, state.players);
+    order.forEach((player, index) => {
+      const result = round.playerResults[player.id];
+      list.append(createValueEntry({
+        name: getPlayerDisplayNameById(player.id),
+        meta: index === 0 ? "Beginnt mit der Ansage" : "",
+        total: totals[player.id],
+        value: result.originalBid,
+        min: 0,
+        max: round.number,
+        onChange: (next) => updateBid(round.number, player.id, next)
+      }));
+    });
+
+    const sum = Logic.getBidSum(round);
+    const difference = Logic.getBidDifference(round);
+    const validSum = Logic.isBidSumValid(round);
+    const specialErrors = Logic.getSpecialCardErrors(round, state.players);
+
+    const summary = document.createElement("div");
+    summary.className = "phase-summary";
+    summary.append(createStatusCard(
+      validSum ? "success" : "error",
+      `Summe der Ansagen: ${sum}`,
+      validSum
+        ? `Abweichung zur Runde: ${formatSigned(difference)}. Die Ansagesumme ist zulässig.`
+        : "Die Summe entspricht der Rundennummer. Mindestens eine Ansage muss geändert werden."
+    ));
+
+    if (specialErrors.length > 0) {
+      summary.append(createStatusCard("error", "Sonderkarten prüfen", specialErrors.join(" ")));
+    }
+
+    const confirm = createButton("Ansagen bestätigen", "button-primary full-width", () => confirmBids(round.number));
+    confirm.disabled = !validSum || specialErrors.length > 0;
+
+    panel.append(list, summary, confirm);
+    elements["game-content"].replaceChildren(panel);
+  }
+
+  function updateBid(roundNumber, playerId, nextValue) {
+    let round = getRound(roundNumber);
+    if (!round) return;
+
+    const result = round.playerResults[playerId];
+    result.originalBid = Math.min(Math.max(nextValue, 0), round.number);
+    result.roundPoints = null;
+    round.completed = false;
+    round.completedAt = null;
+    round = Logic.recalculateCurrentBids(round, state.players);
+    replaceRound(round);
+    persistState();
+    renderGame();
+  }
+
+  function confirmBids(roundNumber) {
+    let round = getRound(roundNumber);
+    if (!round || !Logic.isBidSumValid(round)) return;
+
+    round = Logic.recalculateCurrentBids(round, state.players);
+    const errors = Logic.getSpecialCardErrors(round, state.players);
+    if (errors.length > 0) {
+      showToast(errors[0]);
+      return;
+    }
+
+    round.phase = "play";
+    replaceRound(round);
+    persistState();
+    renderGame();
+  }
+
+  function renderPlay(round) {
+    const bidsPanel = createPanel("Aktuelle Ansagen");
+    bidsPanel.append(createBidOverview(round));
+
+    const specialPanel = createPanel("Sonderkarten", "Nur Wolke, Bombe und Hexe verändern die Punkteverwaltung.");
+    const cards = round.specialCards;
+    const grid = document.createElement("div");
+    grid.className = "special-card-grid";
+
+    const cloudButton = createSpecialButton("☁ Wolke", cards.cloud.active, cards.cloud.active ? "bereits erfasst" : "einmal verwendbar");
+    cloudButton.disabled = cards.cloud.active;
+    cloudButton.addEventListener("click", () => openCloudDialog("cloud"));
+
+    const bombButton = createSpecialButton("💣 Bombe", cards.bomb.active, cards.bomb.active ? "Stich entfällt" : "einmal verwendbar");
+    bombButton.disabled = cards.bomb.active;
+    bombButton.addEventListener("click", activateBomb);
+
+    const witchButton = createSpecialButton("🧙 Hexe", cards.witch.active, cards.witch.active ? "zweite Karte möglich" : "einmal verwendbar");
+    witchButton.disabled = cards.witch.active;
+    witchButton.addEventListener("click", activateWitch);
+
+    grid.append(cloudButton, bombButton, witchButton);
+    specialPanel.append(grid);
+
+    appendPrimarySpecialDetails(specialPanel, round);
+
+    if (cards.witch.active) {
+      specialPanel.append(createSecondEffectSection(round));
+    }
+
+    const bombCount = Logic.getActiveBombCount(round);
+    const cloudEvents = Logic.getCloudEvents(round);
+    if (bombCount > 0 && cloudEvents.length > 0) {
+      specialPanel.append(createCombinationSection(round));
+    }
+
+    const errors = Logic.getSpecialCardErrors(round, state.players);
+    if (errors.length > 0) {
+      specialPanel.append(createStatusCard("error", "Eingaben prüfen", errors.join(" ")));
+    } else {
+      specialPanel.append(createStatusCard(
+        "success",
+        `${bombCount} Bombenstich${bombCount === 1 ? "" : "e"}`,
+        `Am Rundenende müssen insgesamt ${Logic.getExpectedTrickCount(round)} Stiche verteilt sein.`
+      ));
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "round-actions";
+    actions.append(
+      createButton("Ansagen bearbeiten", "button-secondary", () => setRoundPhase("bids")),
+      createButton("Stiche eintragen", "button-primary", () => setRoundPhase("tricks"), errors.length > 0)
+    );
+    specialPanel.append(actions);
+
+    elements["game-content"].replaceChildren(bidsPanel, specialPanel);
+  }
+
+  function createBidOverview(round) {
+    const table = document.createElement("div");
+    table.className = "score-table";
+
+    const header = document.createElement("div");
+    header.className = "score-row header";
+    header.innerHTML = "<span>Spieler</span><span class=\"number\">Ansage</span><span></span><span></span>";
+    table.append(header);
+
+    state.players.forEach((player) => {
+      const result = round.playerResults[player.id];
+      const row = document.createElement("div");
+      row.className = "score-row";
+
+      const name = document.createElement("span");
+      name.textContent = getPlayerDisplayNameById(player.id);
+
+      const bid = document.createElement("span");
+      bid.className = `number${result.currentBid !== result.originalBid ? " changed-bid" : ""}`;
+      bid.textContent = String(result.currentBid);
+      if (result.currentBid !== result.originalBid) {
+        bid.title = `Ursprünglich ${result.originalBid}`;
+      }
+
+      row.append(name, bid, document.createElement("span"), document.createElement("span"));
+      table.append(row);
+    });
+
+    return table;
+  }
+
+  function appendPrimarySpecialDetails(container, round) {
+    const cards = round.specialCards;
+
+    if (cards.cloud.active) {
+      container.append(createSpecialDetail(
+        `Wolke: ${describeCloud(cards.cloud)}`,
+        [
+          { label: "Ändern", action: () => openCloudDialog("cloud") },
+          { label: "Rückgängig", action: undoCloud, danger: true }
+        ]
+      ));
+    }
+
+    if (cards.bomb.active) {
+      container.append(createSpecialDetail(
+        "Bombe: Ein Stich wird an niemanden vergeben.",
+        [{ label: "Rückgängig", action: undoBomb, danger: true }]
+      ));
+    }
+
+    if (cards.witch.active) {
+      container.append(createSpecialDetail(
+        "Hexe: Eine bereits gespielte Sonderkarte kann erneut ausgespielt werden.",
+        [{ label: "Rückgängig", action: undoWitch, danger: true }]
+      ));
+    }
+  }
+
+  function createSecondEffectSection(round) {
+    const cards = round.specialCards;
+    const wrap = document.createElement("div");
+    wrap.className = "second-effect-wrap";
+
+    const label = document.createElement("p");
+    label.className = "second-effect-label";
+    label.textContent = "Durch die Hexe erneut ausgespielt:";
+
+    const grid = document.createElement("div");
+    grid.className = "second-effect-grid";
+
+    const secondCloudActive = cards.witch.secondEffect === "cloud" && cards.secondCloud.active;
+    const secondBombActive = cards.witch.secondEffect === "bomb" && cards.secondBomb.active;
+
+    const secondCloud = createSpecialButton("2. Wolke", secondCloudActive, secondCloudActive ? "ausgewählt" : "");
+    secondCloud.disabled = !cards.cloud.active || Boolean(cards.witch.secondEffect);
+    secondCloud.addEventListener("click", () => openCloudDialog("secondCloud"));
+
+    const or = document.createElement("span");
+    or.className = "or-label";
+    or.textContent = "ODER";
+
+    const secondBomb = createSpecialButton("2. Bombe", secondBombActive, secondBombActive ? "ausgewählt" : "");
+    secondBomb.disabled = !cards.bomb.active || Boolean(cards.witch.secondEffect);
+    secondBomb.addEventListener("click", activateSecondBomb);
+
+    grid.append(secondCloud, or, secondBomb);
+    wrap.append(label, grid);
+
+    if (secondCloudActive) {
+      wrap.append(createSpecialDetail(
+        `2. Wolke: ${describeCloud(cards.secondCloud)}`,
+        [
+          { label: "Ändern", action: () => openCloudDialog("secondCloud") },
+          { label: "Auswahl zurücksetzen", action: undoSecondEffect, danger: true }
+        ]
+      ));
+    }
+
+    if (secondBombActive) {
+      wrap.append(createSpecialDetail(
+        "2. Bombe: Ein weiterer Stich wird an niemanden vergeben.",
+        [{ label: "Auswahl zurücksetzen", action: undoSecondEffect, danger: true }]
+      ));
+    }
+
+    return wrap;
+  }
+
+  function createCombinationSection(round) {
+    const wrap = document.createElement("div");
+    wrap.className = "combination-list";
+
+    const title = document.createElement("h4");
+    title.textContent = "Wolke und Bombe im selben Stich";
+    wrap.append(title);
+
+    Logic.getCloudEvents(round).forEach((event) => {
+      const label = document.createElement("label");
+      label.className = "toggle-row";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = Boolean(event.suppressedByBomb);
+      checkbox.addEventListener("change", () => toggleCloudSuppression(event.key, checkbox.checked));
+
+      const text = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = event.key === "cloud" ? "1. Wolke zusammen mit Bombe" : "2. Wolke zusammen mit Bombe";
+      const help = document.createElement("span");
+      help.textContent = "Dann entfällt die Ansageänderung dieser Wolke.";
+      text.append(strong, help);
+
+      label.append(checkbox, text);
+      wrap.append(label);
+    });
+
+    return wrap;
+  }
+
+  function activateBomb() {
+    const round = getCurrentRound();
+    round.specialCards.bomb.active = true;
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function undoBomb() {
+    const round = getCurrentRound();
+    round.specialCards.bomb.active = false;
+
+    if (round.specialCards.witch.secondEffect === "bomb") {
+      round.specialCards.witch.secondEffect = null;
+      round.specialCards.secondBomb.active = false;
+    }
+
+    normalizeSuppressedClouds(round);
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function activateWitch() {
+    const round = getCurrentRound();
+    round.specialCards.witch.active = true;
+    replaceRound(round);
+    persistState();
+    renderGame();
+  }
+
+  function undoWitch() {
+    const round = getCurrentRound();
+    round.specialCards.witch.active = false;
+    round.specialCards.witch.secondEffect = null;
+    Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    round.specialCards.secondBomb.active = false;
+    normalizeSuppressedClouds(round);
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function activateSecondBomb() {
+    const round = getCurrentRound();
+    if (!round.specialCards.witch.active || !round.specialCards.bomb.active || round.specialCards.witch.secondEffect) return;
+
+    round.specialCards.witch.secondEffect = "bomb";
+    round.specialCards.secondBomb.active = true;
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function undoSecondEffect() {
+    const round = getCurrentRound();
+    round.specialCards.witch.secondEffect = null;
+    Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    round.specialCards.secondBomb.active = false;
+    normalizeSuppressedClouds(round);
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function undoCloud() {
+    const round = getCurrentRound();
+    Object.assign(round.specialCards.cloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+
+    if (round.specialCards.witch.secondEffect === "cloud") {
+      round.specialCards.witch.secondEffect = null;
+      Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    }
+
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function toggleCloudSuppression(key, checked) {
+    const round = getCurrentRound();
+    const previous = round.specialCards[key].suppressedByBomb;
+    round.specialCards[key].suppressedByBomb = checked;
+
+    const errors = Logic.getSpecialCardErrors(round, state.players);
+    if (errors.length > 0) {
+      round.specialCards[key].suppressedByBomb = previous;
+      showToast(errors[0]);
+      renderGame();
+      return;
+    }
+
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function openCloudDialog(key) {
+    const round = getCurrentRound();
+    if (!round) return;
+
+    if (key === "secondCloud" && (!round.specialCards.witch.active || !round.specialCards.cloud.active)) {
+      showToast("Die zweite Wolke benötigt Hexe und erste Wolke.");
+      return;
+    }
+
+    cloudDialogContext = { key, playerId: null };
+    elements["cloud-dialog-kicker"].textContent = key === "cloud" ? "Wolke" : "2. Wolke durch Hexe";
+    elements["cloud-dialog-help"].textContent = "Wähle den betroffenen Spieler.";
+    elements["cloud-change-options"].hidden = true;
+    renderCloudPlayerOptions(round);
+    openDialog(elements["cloud-dialog"]);
+  }
+
+  function renderCloudPlayerOptions(round) {
+    const container = elements["cloud-player-options"];
+    container.innerHTML = "";
+    const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
+
+    order.forEach((player) => {
+      const button = createButton(getPlayerDisplayNameById(player.id), "button-secondary choice-button", () => selectCloudPlayer(player.id));
+      if (cloudDialogContext?.playerId === player.id) button.classList.add("selected");
+      container.append(button);
+    });
+  }
+
+  function selectCloudPlayer(playerId) {
+    const round = getCurrentRound();
+    if (!round || !cloudDialogContext) return;
+
+    cloudDialogContext.playerId = playerId;
+    renderCloudPlayerOptions(round);
+    elements["cloud-change-options"].hidden = false;
+
+    const before = getBidBeforeCloud(round, cloudDialogContext.key, playerId);
+    elements["cloud-dialog-help"].textContent = `${getPlayerDisplayNameById(playerId)} hat vor dieser Wolke die Ansage ${before}.`;
+    elements["btn-cloud-minus"].disabled = before <= 0;
+  }
+
+  function getBidBeforeCloud(round, key, playerId) {
+    let bid = Number(round.playerResults[playerId]?.originalBid) || 0;
+
+    if (key === "secondCloud") {
+      const first = round.specialCards.cloud;
+      if (first.active && !first.suppressedByBomb && first.playerId === playerId) {
+        bid += first.change;
+      }
+    }
+
+    return bid;
+  }
+
+  function commitCloudChange(change) {
+    if (!cloudDialogContext?.playerId) return;
+
+    const round = getCurrentRound();
+    const key = cloudDialogContext.key;
+    const cloud = round.specialCards[key];
+    const previousRound = deepClone(round);
+
+    Object.assign(cloud, {
+      active: true,
+      playerId: cloudDialogContext.playerId,
+      change,
+      suppressedByBomb: false
+    });
+
+    if (key === "secondCloud") {
+      round.specialCards.witch.secondEffect = "cloud";
+      round.specialCards.secondBomb.active = false;
+    }
+
+    const errors = Logic.getSpecialCardErrors(round, state.players);
+    if (errors.length > 0) {
+      replaceRound(previousRound);
+      showToast(errors[0]);
+      return;
+    }
+
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    closeCloudDialog();
+    renderGame();
+  }
+
+  function closeCloudDialog() {
+    cloudDialogContext = null;
+    closeDialog(elements["cloud-dialog"]);
+  }
+
+  function describeCloud(cloud) {
+    const player = getPlayerDisplayNameById(cloud.playerId);
+    const direction = cloud.change > 0 ? "+1" : "−1";
+    const suppressed = cloud.suppressedByBomb ? " · Wirkung durch Bombe entfallen" : "";
+    return `${player} ${direction}${suppressed}`;
+  }
+
+  function setRoundPhase(phase) {
+    const round = getCurrentRound();
+    if (!round) return;
+
+    if (phase === "tricks") {
+      const errors = Logic.getSpecialCardErrors(round, state.players);
+      if (errors.length > 0) {
+        showToast(errors[0]);
+        return;
+      }
+    }
+
+    round.phase = phase;
+    round.completed = false;
+    round.completedAt = null;
+    clearRoundPoints(round);
+    state.status = "running";
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function renderTricks(round) {
+    const panel = createPanel("Stiche eintragen", "Trage für jeden Spieler nur die endgültige Stichzahl dieser Runde ein.");
+    const list = document.createElement("div");
+    list.className = "entry-list";
+
+    state.players.forEach((player) => {
+      const result = round.playerResults[player.id];
+      const bidMeta = result.currentBid === result.originalBid
+        ? `Ansage: ${result.currentBid}`
+        : `Ansage: ${result.currentBid} · ursprünglich ${result.originalBid}`;
+
+      list.append(createValueEntry({
+        name: getPlayerDisplayNameById(player.id),
+        meta: bidMeta,
+        value: result.tricks,
+        min: 0,
+        max: round.number,
+        onChange: (next) => updateTricks(round.number, player.id, next)
+      }));
+    });
+
+    const validation = Logic.validateTrickSum(round);
+    let message;
+    if (validation.valid) {
+      message = createStatusCard("success", "Alle Stiche sind vollständig verteilt.", `${validation.actual} von ${validation.expected} Stichen eingetragen.`);
+    } else if (validation.difference < 0) {
+      const missing = Math.abs(validation.difference);
+      message = createStatusCard("error", `${missing} Stich${missing === 1 ? " fehlt" : "e fehlen"}.`, `${validation.actual} eingetragen, ${validation.expected} erwartet.`);
+    } else {
+      const excess = validation.difference;
+      message = createStatusCard("error", `${excess} Stich${excess === 1 ? " ist" : "e sind"} zu viel.`, `${validation.actual} eingetragen, ${validation.expected} erwartet.`);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "round-actions";
+    actions.append(
+      createButton("Zurück zu Sonderkarten", "button-secondary", () => setRoundPhase("play")),
+      createButton("Runde abschließen", "button-primary", completeRound, !validation.valid)
+    );
+
+    panel.append(list, message, actions);
+    elements["game-content"].replaceChildren(panel);
+  }
+
+  function updateTricks(roundNumber, playerId, nextValue) {
+    const round = getRound(roundNumber);
+    if (!round) return;
+
+    round.playerResults[playerId].tricks = Math.min(Math.max(nextValue, 0), round.number);
+    round.playerResults[playerId].roundPoints = null;
+    round.completed = false;
+    round.completedAt = null;
+    replaceRound(round);
+    persistState();
+    renderGame();
+  }
+
+  function completeRound() {
+    let round = getCurrentRound();
+    if (!round) return;
+
+    const specialErrors = Logic.getSpecialCardErrors(round, state.players);
+    const tricks = Logic.validateTrickSum(round);
+
+    if (specialErrors.length > 0) {
+      showToast(specialErrors[0]);
+      return;
+    }
+
+    if (!tricks.valid) {
+      showToast("Die Stichsumme stimmt noch nicht.");
+      return;
+    }
+
+    round = Logic.calculateRoundPoints(round, state.players);
+    round.completed = true;
+    round.completedAt = new Date().toISOString();
+    round.phase = "result";
+    replaceRound(round);
+    persistState();
+    renderGame();
+  }
+
+  function renderRoundResult(round) {
+    const panel = createPanel(`Ergebnis Runde ${round.number}`, "Rundenpunkte und aktuelle Gesamtpunktzahl nach dieser Runde.");
+    const totals = Logic.calculateTotalPoints(state.rounds, state.players);
+    const tableWrap = document.createElement("div");
+    tableWrap.className = "score-table-scroll";
+    const table = document.createElement("div");
+    table.className = "score-table five-columns";
+
+    const header = document.createElement("div");
+    header.className = "score-row header";
+    header.innerHTML = '<span>Spieler</span><span class="number">Ansage</span><span class="number">Stiche</span><span class="number">Runde</span><span class="number">Gesamt</span>';
+    table.append(header);
+
+    state.players.forEach((player) => {
+      const result = round.playerResults[player.id];
+      const row = document.createElement("div");
+      row.className = "score-row";
+
+      const name = document.createElement("span");
+      name.className = "score-player";
+      const nameStrong = document.createElement("strong");
+      nameStrong.textContent = getPlayerDisplayNameById(player.id);
+      name.append(nameStrong);
+
+      const bid = numberCell(result.currentBid, result.currentBid !== result.originalBid ? "changed-bid" : "");
+      const tricks = numberCell(result.tricks);
+      const points = numberCell(formatSigned(result.roundPoints), result.roundPoints >= 0 ? "positive" : "negative");
+      const total = numberCell(totals[player.id], "total-points");
+      bid.dataset.label = "Ansage";
+      tricks.dataset.label = "Stiche";
+      points.dataset.label = "Runde";
+      total.dataset.label = "Gesamt";
+
+      row.append(name, bid, tricks, points, total);
+      table.append(row);
+    });
+    tableWrap.append(table);
+
+    const actions = document.createElement("div");
+    actions.className = "round-actions";
+    actions.append(createButton("Runde bearbeiten", "button-secondary", openEditRoundDialog));
+
+    const isLastRound = round.number >= state.totalRounds;
+    actions.append(createButton(
+      isLastRound ? "Spiel beenden" : "Nächste Runde",
+      "button-primary",
+      isLastRound ? finishGame : goToNextRound
+    ));
+
+    panel.append(tableWrap, actions);
+    elements["game-content"].replaceChildren(panel);
+  }
+
+  function openEditRoundDialog() {
+    openDialog(elements["edit-round-dialog"]);
+  }
+
+  function beginRoundEdit(phase) {
+    closeDialog(elements["edit-round-dialog"]);
+    const round = getCurrentRound();
+    if (!round) return;
+
+    round.completed = false;
+    round.completedAt = null;
+    round.phase = phase;
+    clearRoundPoints(round);
+    state.status = "running";
+    replaceRound(Logic.recalculateCurrentBids(round, state.players));
+    persistState();
+    renderGame();
+  }
+
+  function clearRoundPoints(round) {
+    Object.values(round.playerResults).forEach((result) => {
+      result.roundPoints = null;
+    });
+  }
+
+  function goToNextRound() {
+    const current = getCurrentRound();
+    if (!current?.completed) return;
+
+    const nextNumber = current.number + 1;
+    if (nextNumber > state.totalRounds) {
+      finishGame();
+      return;
+    }
+
+    state.currentRound = nextNumber;
+    if (!getRound(nextNumber)) {
+      state.rounds.push(Logic.createRound(state.players, state.firstDealerId, nextNumber));
+      state.rounds.sort((a, b) => a.number - b.number);
+    }
+
+    state.status = "running";
+    persistState();
+    renderGame();
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function finishGame() {
+    const round = getCurrentRound();
+    if (!round?.completed || round.number < state.totalRounds) return;
+
+    state.status = "completed";
+    persistState();
+    renderFinished();
+    showScreen("finished");
+  }
+
+  function renderFinished() {
+    ensureState();
+    const completedRounds = state.rounds.filter((round) => round.completed).sort((a, b) => a.number - b.number);
+    const totals = Logic.calculateTotalPoints(completedRounds, state.players);
+    const ranking = [...state.players]
+      .map((player) => ({ player, points: totals[player.id] }))
+      .sort((a, b) => b.points - a.points);
+
+    const topScore = ranking[0]?.points ?? 0;
+    const winners = ranking.filter((entry) => entry.points === topScore);
+    const winnerNames = winners.map((entry) => getPlayerDisplayNameById(entry.player.id)).join(" und ");
+
+    elements["winner-summary"].replaceChildren();
+    const winnerStrong = document.createElement("strong");
+    winnerStrong.textContent = winners.length > 1 ? `Gleichstand: ${winnerNames}` : `${winnerNames} gewinnt!`;
+    const winnerPoints = document.createElement("span");
+    winnerPoints.textContent = `${topScore} Punkte`;
+    elements["winner-summary"].append(winnerStrong, winnerPoints);
+
+    elements["final-game-meta"].textContent = `${state.players.length} Spieler · ${completedRounds.length} Runden · Sitzreihenfolge beibehalten`;
+
+    const list = elements["final-ranking"];
+    list.replaceChildren();
+    let displayedPosition = 0;
+    let previousPoints = null;
+
+    ranking.forEach((entry, index) => {
+      if (entry.points !== previousPoints) displayedPosition = index + 1;
+      previousPoints = entry.points;
+
+      const row = document.createElement("div");
+      row.className = "ranking-row";
+
+      const position = document.createElement("span");
+      position.className = "ranking-position";
+      position.textContent = String(displayedPosition);
+
+      const name = document.createElement("span");
+      name.className = "ranking-name";
+      name.textContent = getPlayerDisplayNameById(entry.player.id);
+
+      const points = document.createElement("span");
+      points.className = "ranking-points";
+      points.textContent = `${entry.points} Punkte`;
+
+      row.append(position, name, points);
+      list.append(row);
+    });
+
+    renderFinalScoreHistory(completedRounds, totals);
+  }
+
+  function renderFinalScoreHistory(completedRounds, totals) {
+    const container = elements["final-score-history"];
+    container.replaceChildren();
+
+    const table = document.createElement("table");
+    table.className = "history-table";
+
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    const roundHead = document.createElement("th");
+    roundHead.scope = "col";
+    roundHead.textContent = "Runde";
+    headRow.append(roundHead);
+
+    state.players.forEach((player) => {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.textContent = getPlayerDisplayNameById(player.id);
+      headRow.append(th);
+    });
+    head.append(headRow);
+
+    const body = document.createElement("tbody");
+    completedRounds.forEach((round) => {
+      const row = document.createElement("tr");
+      const roundCell = document.createElement("th");
+      roundCell.scope = "row";
+      roundCell.textContent = String(round.number);
+      row.append(roundCell);
+
+      state.players.forEach((player) => {
+        const points = Number(round.playerResults?.[player.id]?.roundPoints) || 0;
+        const cell = document.createElement("td");
+        cell.textContent = formatSigned(points);
+        cell.className = points >= 0 ? "positive" : "negative";
+        row.append(cell);
+      });
+      body.append(row);
+    });
+
+    const foot = document.createElement("tfoot");
+    const totalRow = document.createElement("tr");
+    const totalLabel = document.createElement("th");
+    totalLabel.scope = "row";
+    totalLabel.textContent = "Gesamt";
+    totalRow.append(totalLabel);
+    state.players.forEach((player) => {
+      const cell = document.createElement("td");
+      cell.textContent = String(totals[player.id]);
+      totalRow.append(cell);
+    });
+    foot.append(totalRow);
+
+    table.append(head, body, foot);
+    container.append(table);
+  }
+
+  function reviewLastRound() {
+    state.currentRound = state.totalRounds;
+    const round = getCurrentRound();
+    if (round) round.phase = "result";
+    persistState();
+    renderGame();
+    showScreen("game");
+  }
+
+  function maybeShowRoundOneHint() {
+    const round = getCurrentRound();
+    if (round?.number === 1 && round.phase === "bids" && !state.roundOneHintConfirmed) {
+      requestAnimationFrame(() => openDialog(elements["round-one-dialog"]));
+    }
+  }
+
+  function confirmRoundOneHint() {
+    state.roundOneHintConfirmed = true;
+    persistState();
+    closeDialog(elements["round-one-dialog"]);
+  }
+
+  function createPanel(title, description = "") {
+    const panel = document.createElement("section");
+    panel.className = "panel";
+
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    panel.append(heading);
+
+    if (description) {
+      const text = document.createElement("p");
+      text.textContent = description;
+      panel.append(text);
+    }
+
+    return panel;
+  }
+
+  function createValueEntry({ name, meta, total = null, value, min, max, onChange }) {
+    const row = document.createElement("div");
+    row.className = "entry-row";
+
+    const info = document.createElement("div");
+    const nameElement = document.createElement("span");
+    nameElement.className = "entry-name";
+    nameElement.textContent = name;
+    info.append(nameElement);
+
+    if (meta) {
+      const metaElement = document.createElement("span");
+      metaElement.className = "entry-meta";
+      metaElement.textContent = meta;
+      info.append(metaElement);
+    }
+
+    if (total !== null) {
+      const totalElement = document.createElement("span");
+      totalElement.className = "entry-total";
+      totalElement.textContent = `Gesamtpunktzahl: ${total}`;
+      info.append(totalElement);
+    }
+
+    const stepper = document.createElement("div");
+    stepper.className = "value-stepper";
+
+    const minus = document.createElement("button");
+    minus.type = "button";
+    minus.className = "value-button";
+    minus.textContent = "−";
+    minus.disabled = value <= min;
+    minus.setAttribute("aria-label", `${name}: Wert verringern`);
+    minus.addEventListener("click", () => onChange(value - 1));
+
+    const display = document.createElement("span");
+    display.className = "value-display";
+    display.textContent = String(value);
+    display.setAttribute("aria-label", `${name}: ${value}`);
+
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.className = "value-button";
+    plus.textContent = "+";
+    plus.disabled = value >= max;
+    plus.setAttribute("aria-label", `${name}: Wert erhöhen`);
+    plus.addEventListener("click", () => onChange(value + 1));
+
+    stepper.append(minus, display, plus);
+    row.append(info, stepper);
+    return row;
+  }
+
+  function createStatusCard(type, title, text) {
+    const card = document.createElement("div");
+    card.className = `status-card ${type}`;
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    const body = document.createElement("span");
+    body.textContent = text;
+    card.append(strong, body);
+    return card;
+  }
+
+  function createSpecialButton(label, active, helper = "") {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `special-button${active ? " active" : ""}`;
+
+    const title = document.createElement("strong");
+    title.textContent = active ? `✓ ${label}` : label;
+    button.append(title);
+
+    if (helper) {
+      const help = document.createElement("span");
+      help.textContent = helper;
+      button.append(help);
+    }
+
+    return button;
+  }
+
+  function createSpecialDetail(text, actions) {
+    const detail = document.createElement("div");
+    detail.className = "special-detail";
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+    detail.append(paragraph);
+
+    if (actions?.length) {
+      const actionWrap = document.createElement("div");
+      actionWrap.className = "inline-actions";
+      actionWrap.style.marginTop = "10px";
+      actions.forEach((item) => {
+        actionWrap.append(createButton(item.label, item.danger ? "button-danger button-small" : "button-secondary button-small", item.action));
+      });
+      detail.append(actionWrap);
+    }
+
+    return detail;
+  }
+
+  function createButton(label, classNames, action, disabled = false) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `button ${classNames}`;
+    button.textContent = label;
+    button.disabled = disabled;
+    button.addEventListener("click", action);
+    return button;
+  }
+
+  function numberCell(value, extraClass = "") {
+    const cell = document.createElement("span");
+    cell.className = `number${extraClass ? ` ${extraClass}` : ""}`;
+    cell.textContent = String(value);
+    return cell;
+  }
+
+  function openDialog(dialog) {
+    if (!dialog) return;
+    if (typeof dialog.showModal === "function") {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+  }
+
+  function closeDialog(dialog) {
+    if (!dialog) return;
+    if (typeof dialog.close === "function" && dialog.open) {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+    }
+  }
+
+  function getRound(roundNumber) {
+    return state.rounds.find((round) => round.number === roundNumber) ?? null;
+  }
+
+  function getCurrentRound() {
+    return getRound(state.currentRound);
+  }
+
+  function ensureCurrentRound() {
+    let round = getCurrentRound();
+    if (!round) {
+      round = Logic.createRound(state.players, state.firstDealerId, state.currentRound);
+      state.rounds.push(round);
+      state.rounds.sort((a, b) => a.number - b.number);
+    }
+    return round;
+  }
+
+  function replaceRound(nextRound) {
+    const index = state.rounds.findIndex((round) => round.number === nextRound.number);
+    if (index === -1) state.rounds.push(nextRound);
+    else state.rounds[index] = nextRound;
+    state.rounds.sort((a, b) => a.number - b.number);
+  }
+
+  function getPlayerDisplayNameById(playerId) {
+    const index = state.players.findIndex((player) => player.id === playerId);
+    if (index === -1) return "–";
+    return getPlayerDisplayName(state.players[index], index);
+  }
+
+  function getPlayerDisplayName(player, index) {
+    const trimmed = player?.name?.trim();
+    return trimmed || `Spieler ${index + 1}`;
+  }
+
+  function formatSigned(value) {
+    const number = Number(value) || 0;
+    if (number > 0) return `+${number}`;
+    if (number < 0) return `−${Math.abs(number)}`;
+    return "0";
+  }
+
+  function deepClone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function ensureState() {
+    if (!state) state = Logic.createInitialGameState();
+  }
+
+  function persistState() {
+    if (!state) return;
+    const saved = Storage.saveGame(state);
+    if (!saved) {
+      updateStorageWarning("Der Spielstand konnte auf diesem Gerät nicht gespeichert werden. Exportiere den Spielstand, sobald die Speicherung wieder funktioniert.");
+      showToast("Der Spielstand konnte auf diesem Gerät nicht gespeichert werden.");
+    } else {
+      updateStorageWarning();
+    }
+  }
+
+  function showToast(message) {
+    const toast = elements["toast"];
+    window.clearTimeout(toastTimeout);
+    toast.textContent = message;
+    toast.hidden = false;
+    toastTimeout = window.setTimeout(() => {
+      toast.hidden = true;
+    }, 3200);
+  }
+
+
+  async function requestPersistentStorage() {
+    try {
+      if (!navigator.storage?.persist) return;
+      await navigator.storage.persist();
+    } catch (error) {
+      console.warn("Dauerhafte Speicherung konnte nicht angefragt werden:", error);
+    }
+  }
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js")
+        .catch((error) => console.warn("Service Worker konnte nicht registriert werden:", error));
+    });
+  }
+})();
