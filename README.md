@@ -64,7 +64,7 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - HTML, CSS und JavaScript ohne Framework
 - keine externen Bibliotheken
 - kein Build-Prozess
-- getrennte Module für Spiellogik, Zustandsmigration, Speicherung und Oberfläche
+- getrennte Module für Spiellogik, Zustandsmigration, Speicherung, History und Ergebnisdarstellung
 - responsive Darstellung für Handy und Tablet
 - große Touch-Ziele
 - Unterstützung für Hoch- und Querformat
@@ -170,8 +170,11 @@ wizard-punkte-app-v1.0-step3/
 ├── js/
 │   ├── app.js
 │   ├── game-logic.js
+│   ├── history-controller.js
+│   ├── result-view.js
 │   ├── state-manager.js
-│   └── storage.js
+│   ├── storage.js
+│   └── ui-components.js
 ├── tests/
 │   ├── browser-smoke.py
 │   ├── game-logic.test.js
