@@ -151,9 +151,10 @@
   function startNewGame(forceReplace) {
     const savedGame = Storage.loadGame();
     const hasStoredGameData = Storage.hasStoredData();
-    if (!forceReplace && hasStoredGameData) {
+    const hasUnsavedMemoryGame = persistenceController.canContinueFromMemory();
+    if (!forceReplace && (hasStoredGameData || hasUnsavedMemoryGame)) {
       const shouldReplace = window.confirm(
-        "A game is already saved. Starting a new game will replace the current save. Continue?"
+        "A game already exists. Starting a new game will replace it. Continue?"
       );
       if (!shouldReplace) return;
     }

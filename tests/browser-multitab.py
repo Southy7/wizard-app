@@ -43,12 +43,20 @@ def main():
         quota_context = browser.new_context()
         quota_context.add_init_script(FAIL_WRITES_SCRIPT)
         quota = open_clean_page(quota_context, url)
-        quota.click("#btn-new-game")
         quota.evaluate("window.__failGameWrites = true")
-        quota.locator("#player-list .text-input").first.fill("Nicht saved")
+        quota.click("#btn-new-game")
         assert quota.locator("#storage-warning").is_visible()
-        quota.click("#btn-setup-home")
-        assert quota.locator("#btn-continue-game").is_enabled()
+        assert quota.evaluate("localStorage.getItem(WizardStorage.STORAGE_KEY)") is None
+
+        # A later retry remains an explicit initial write and must not be
+        # mistaken for a stale tab recreating a deleted game.
+        quota.evaluate("window.__failGameWrites = false")
+        quota.locator("#player-list .text-input").first.fill("Recovered")
+        assert quota.locator("#storage-conflict-actions").is_hidden()
+        assert quota.locator("#storage-warning").is_hidden()
+        assert quota.evaluate(
+            "WizardStorage.loadGame().players[0].name"
+        ) == "Recovered"
         quota_context.close()
 
         blocked_context = browser.new_context()
@@ -57,8 +65,22 @@ def main():
         blocked.goto(url)
         blocked.click("#btn-new-game")
         assert blocked.locator("#storage-warning").is_visible()
+        blocked.locator("#player-list .text-input").first.fill("Keep me")
         blocked.click("#btn-setup-home")
         assert blocked.locator("#btn-continue-game").is_enabled()
+
+        # Starting another game must ask before replacing a game that exists
+        # only in memory after an initial storage failure.
+        dialog_messages = []
+        blocked.once(
+            "dialog",
+            lambda dialog: (dialog_messages.append(dialog.message), dialog.dismiss()),
+        )
+        blocked.click("#btn-new-game")
+        assert dialog_messages and "A game already exists" in dialog_messages[0]
+        assert blocked.locator("#screen-home").is_visible()
+        blocked.click("#btn-continue-game")
+        assert blocked.locator("#player-list .text-input").first.input_value() == "Keep me"
         blocked_context.close()
         browser.close()
 

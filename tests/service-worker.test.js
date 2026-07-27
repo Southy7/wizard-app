@@ -4,6 +4,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
+const indexHtml = fs.readFileSync(require.resolve("../index.html"), "utf8");
+assert.match(indexHtml, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
+assert.match(indexHtml, /if \(!hadController \|\| isReloadingForUpdate\) return/);
+
 const listeners = {};
 const deletedCaches = [];
 const cacheWrites = [];
@@ -35,8 +39,8 @@ const context = vm.createContext({
     },
     async keys() {
       return [
-        "wizard-scoreboard-v1.0.41",
         "wizard-scoreboard-v1.0.42",
+        "wizard-scoreboard-v1.0.43",
         "another-application-cache"
       ];
     },
@@ -120,7 +124,7 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(!installedAppShell.includes("./js/history-controller.js"));
 
   await dispatchLifecycle("activate");
-  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.41"]);
+  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.42"]);
 
   assert.equal(dispatchFetch({
     method: "GET",

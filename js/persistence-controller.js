@@ -10,6 +10,7 @@
   }) {
     let hasUnsavedChanges = false;
     let storageConflict = false;
+    let pendingSaveOptions = null;
     let externalGameWarning = "";
     let externalHistoryWarning = "";
 
@@ -36,10 +37,18 @@
       const state = getState();
       if (!state) return false;
 
-      const saved = Storage.saveGame(state, options);
+      // Preserve the last known storage baseline after a technical write error.
+      // This is especially important when the first save has not succeeded yet:
+      // subsequent writes must remain explicit initial writes instead of looking
+      // like a stale tab trying to recreate a deleted game.
+      const effectiveOptions = options ?? pendingSaveOptions ?? undefined;
+      const saved = Storage.saveGame(state, effectiveOptions);
       if (!saved) {
         storageConflict = Storage.wasLastGameSaveConflict?.() === true;
         hasUnsavedChanges = !storageConflict;
+        pendingSaveOptions = storageConflict
+          ? null
+          : cloneSaveOptions(effectiveOptions);
         const error = Storage.getStorageErrors?.().gameError
           || "The game could not be saved on this device. Export the game state as soon as storage is available again.";
         updateWarning(error);
@@ -47,6 +56,7 @@
       } else {
         hasUnsavedChanges = false;
         storageConflict = false;
+        pendingSaveOptions = null;
         externalGameWarning = "";
         updateWarning();
       }
@@ -61,6 +71,7 @@
     function markStateLoaded() {
       hasUnsavedChanges = false;
       storageConflict = false;
+      pendingSaveOptions = null;
       externalGameWarning = "";
       refreshConflictMode();
       updateWarning();
@@ -68,6 +79,19 @@
 
     function markStateImported() {
       markStateLoaded();
+    }
+
+    function cloneSaveOptions(options) {
+      if (!options || typeof options !== "object") return null;
+
+      const copy = {};
+      if (Object.prototype.hasOwnProperty.call(options, "expectedUpdatedAt")) {
+        copy.expectedUpdatedAt = options.expectedUpdatedAt;
+      }
+      if (Object.prototype.hasOwnProperty.call(options, "expectedGameId")) {
+        copy.expectedGameId = options.expectedGameId;
+      }
+      return Object.keys(copy).length > 0 ? copy : null;
     }
 
     function clearHistoryWarning() {

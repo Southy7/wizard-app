@@ -22,9 +22,10 @@
   <!-- Reload once when an updated PWA worker takes control to avoid mixed app versions. -->
   <script>
     if ("serviceWorker" in navigator) {
+      const hadController = Boolean(navigator.serviceWorker.controller);
       let isReloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (isReloadingForUpdate) return;
+        if (!hadController || isReloadingForUpdate) return;
         isReloadingForUpdate = true;
         window.location.reload();
       });
