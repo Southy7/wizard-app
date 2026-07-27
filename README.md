@@ -65,6 +65,8 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - keine externen Bibliotheken
 - kein Build-Prozess
 - getrennte Module für Spiellogik, Zustandsmigration, Speicherung, History und Ergebnisdarstellung
+- eigene Controller für Spieleinrichtung und Persistenzkonflikte
+- optionales History-Modul; die Kernanwendung bleibt ohne History funktionsfähig
 - responsive Darstellung für Handy und Tablet
 - große Touch-Ziele
 - Unterstützung für Hoch- und Querformat
@@ -122,6 +124,7 @@ Einzelne Testgruppen lassen sich separat starten:
 ```bash
 npm run test:unit
 npm run test:browser
+npm run test:browser:core
 npm run test:browser:persistence
 npm run test:browser:rounds
 npm run test:browser:multitab
@@ -180,13 +183,16 @@ wizard-punkte-app-v1.0-step3/
 │   ├── app.js
 │   ├── game-logic.js
 │   ├── history-controller.js
+│   ├── persistence-controller.js
 │   ├── result-view.js
+│   ├── setup-controller.js
 │   ├── state-manager.js
 │   ├── storage.js
 │   └── ui-components.js
 ├── tests/
 │   ├── browser_helpers.py
 │   ├── browser-smoke.py
+│   ├── browser-core-without-history.py
 │   ├── browser-persistence.py
 │   ├── browser-round-flow.py
 │   ├── browser-multitab.py

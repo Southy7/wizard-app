@@ -39,6 +39,8 @@ def build_inline_document() -> str:
         '<script defer src="js/storage.js"></script>',
         '<script defer src="js/ui-components.js"></script>',
         '<script defer src="js/result-view.js"></script>',
+        '<script defer src="js/persistence-controller.js"></script>',
+        '<script defer src="js/setup-controller.js"></script>',
         '<script defer src="js/history-controller.js"></script>',
         '<script defer src="js/app.js"></script>',
     ):
@@ -54,6 +56,8 @@ def main() -> None:
         (ROOT / "js/storage.js").read_text(encoding="utf-8"),
         (ROOT / "js/ui-components.js").read_text(encoding="utf-8"),
         (ROOT / "js/result-view.js").read_text(encoding="utf-8"),
+        (ROOT / "js/persistence-controller.js").read_text(encoding="utf-8"),
+        (ROOT / "js/setup-controller.js").read_text(encoding="utf-8"),
         (ROOT / "js/history-controller.js").read_text(encoding="utf-8"),
         (ROOT / "js/app.js").read_text(encoding="utf-8"),
     ]

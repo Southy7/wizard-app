@@ -2,7 +2,7 @@
 
 // Increment after app-shell changes so installed apps receive the latest files.
 const CACHE_PREFIX = "wizard-scoreboard-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.39`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.40`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -12,7 +12,8 @@ const APP_SHELL = [
   "./js/storage.js",
   "./js/ui-components.js",
   "./js/result-view.js",
-  "./js/history-controller.js",
+  "./js/persistence-controller.js",
+  "./js/setup-controller.js",
   "./js/app.js",
   "./manifest.webmanifest",
   "./assets/icons/favicon-32.png",
@@ -21,17 +22,33 @@ const APP_SHELL = [
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png"
 ];
+const OPTIONAL_APP_SHELL = [
+  "./js/history-controller.js"
+];
 const SCOPE_URL = new URL(self.registration.scope);
 const INDEX_URL = new URL("./index.html", SCOPE_URL).href;
-const APP_ASSET_URLS = new Set(APP_SHELL.map((path) => new URL(path, SCOPE_URL).href));
+const APP_ASSET_URLS = new Set(
+  [...APP_SHELL, ...OPTIONAL_APP_SHELL].map((path) => new URL(path, SCOPE_URL).href)
+);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => cacheOptionalAppShell())
       .then(() => self.skipWaiting())
   );
 });
+
+async function cacheOptionalAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.allSettled(OPTIONAL_APP_SHELL.map(async (path) => {
+    const response = await fetch(new URL(path, SCOPE_URL).href);
+    if (response.ok && response.type !== "opaque") {
+      await cache.put(new URL(path, SCOPE_URL).href, response.clone());
+    }
+  }));
+}
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(

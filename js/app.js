@@ -6,6 +6,8 @@
   const Storage = window.WizardStorage;
   const ResultView = window.WizardResultView;
   const HistoryControllerModule = window.WizardHistoryController;
+  const PersistenceControllerModule = window.WizardPersistenceController;
+  const SetupControllerModule = window.WizardSetupController;
   const Ui = window.WizardUiComponents;
   const hydrateState = StateManager?.hydrateState;
   const normalizeSpecialDependencies = StateManager?.normalizeSpecialDependencies;
@@ -21,53 +23,67 @@
     closeDialog
   } = Ui ?? {};
 
-  if (!Logic || !StateManager || !Storage || !ResultView || !HistoryControllerModule || !Ui) {
+  if (!Logic || !StateManager || !Storage || !ResultView
+    || !PersistenceControllerModule || !SetupControllerModule || !Ui) {
     console.error("Die Anwendungsabhängigkeiten konnten nicht geladen werden.");
     return;
   }
 
   const elements = {};
   let historyController = null;
+  let persistenceController = null;
+  let setupController = null;
   let state = null;
-  let hasUnsavedChanges = false;
-  let storageConflict = false;
   let toastTimeout = null;
   let cloudDialogContext = null;
-  let externalGameWarning = "";
-  let externalHistoryWarning = "";
-  const conflictAllowedControlIds = new Set([
-    "btn-setup-home",
-    "btn-summary-back",
-    "btn-game-home",
-    "btn-finished-home",
-    "btn-close-cloud-dialog",
-    "btn-close-edit-dialog",
-    "btn-confirm-round-one-hint"
-  ]);
+  const historyAvailable = typeof HistoryControllerModule?.createHistoryController === "function";
 
   document.addEventListener("DOMContentLoaded", init);
 
   // Initialisierung und zentrale DOM-Verknüpfungen
   function init() {
     cacheElements();
-    historyController = HistoryControllerModule.createHistoryController({
+    persistenceController = PersistenceControllerModule.createPersistenceController({
       Storage,
-      Logic,
-      StateManager,
-      ResultView,
       elements,
-      showScreen,
+      getState: () => state,
       showToast,
-      refreshHomeScreen,
-      updateStorageWarning
+      getHistoryCapacityWarning: () => historyController?.getCapacityWarning() ?? ""
+    });
+    historyController = historyAvailable
+      ? HistoryControllerModule.createHistoryController({
+        Storage,
+        Logic,
+        StateManager,
+        ResultView,
+        elements,
+        showScreen,
+        showToast,
+        refreshHomeScreen,
+        updateStorageWarning
+      })
+      : createUnavailableHistoryController();
+    setupController = SetupControllerModule.createSetupController({
+      Logic,
+      elements,
+      createSeatRoleBadge,
+      getState: () => state,
+      ensureState,
+      persistState,
+      showScreen,
+      renderGame,
+      maybeShowRoundOneHint,
+      getPlayerDisplayNameById,
+      refreshConflictMode: () => persistenceController.refreshConflictMode()
     });
     bindEvents();
-    window.addEventListener("storage", handleExternalStorageChange);
+    persistenceController.bindEvents();
+    setupController.bindEvents();
     refreshHomeScreen();
     updateStorageWarning();
     showScreen("home");
     registerServiceWorker();
-    requestPersistentStorage();
+    persistenceController.requestPersistentStorage();
   }
 
   function cacheElements() {
@@ -107,16 +123,11 @@
   }
 
   function bindEvents() {
-    ["click", "input", "change", "submit"].forEach((eventName) => {
-      document.addEventListener(eventName, blockInteractionDuringConflict, true);
-    });
     elements["btn-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-continue-game"].addEventListener("click", continueGame);
     elements["btn-history"].addEventListener("click", openHistory);
     elements["btn-import-game"].addEventListener("click", () => elements["import-file-input"].click());
     elements["import-file-input"].addEventListener("change", importGameFromFile);
-    elements["btn-export-conflict-state"].addEventListener("click", exportConflictState);
-    elements["btn-reload-after-conflict"].addEventListener("click", () => window.location.reload());
     elements["btn-setup-home"].addEventListener("click", goHome);
     elements["btn-game-home"].addEventListener("click", goHome);
     elements["btn-history-home"].addEventListener("click", goHome);
@@ -124,17 +135,6 @@
     elements["btn-finished-home"].addEventListener("click", goHome);
     elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
-    elements["btn-add-player"].addEventListener("click", addPlayer);
-    elements["btn-round-mode-full"].addEventListener("click", () => setRoundMode("full"));
-    elements["btn-round-mode-individual"].addEventListener("click", () => setRoundMode("individual"));
-    elements["btn-rounds-minus"].addEventListener("click", () => changeRounds(-1));
-    elements["btn-rounds-plus"].addEventListener("click", () => changeRounds(1));
-    elements["rounds-input"].addEventListener("change", commitRoundInput);
-    elements["rounds-input"].addEventListener("blur", commitRoundInput);
-    elements["setup-form"].addEventListener("submit", submitSetup);
-    elements["btn-summary-back"].addEventListener("click", returnToSetup);
-    elements["btn-summary-start"].addEventListener("click", startGameFromSummary);
-
     elements["btn-confirm-round-one-hint"].addEventListener("click", confirmRoundOneHint);
     elements["round-one-dialog"].addEventListener("cancel", (event) => event.preventDefault());
 
@@ -173,16 +173,12 @@
       expectedUpdatedAt: savedGame?.updatedAt ?? null,
       expectedGameId: savedGame?.gameId ?? null
     });
-    renderSetup();
+    setupController.renderSetup();
     showScreen("setup");
   }
 
   function continueGame() {
-    const canContinueFromMemory = Boolean(
-      state
-      && hasUnsavedChanges
-      && !storageConflict
-    );
+    const canContinueFromMemory = persistenceController.canContinueFromMemory();
     const savedState = canContinueFromMemory ? state : Storage.loadGame();
 
     if (!savedState) {
@@ -193,8 +189,7 @@
 
     if (!canContinueFromMemory) {
       state = hydrateState(savedState);
-      hasUnsavedChanges = false;
-      storageConflict = false;
+      persistenceController.markStateLoaded();
     } else {
       persistState();
     }
@@ -212,7 +207,7 @@
       return;
     }
 
-    renderSetup();
+    setupController.renderSetup();
     showScreen("setup");
   }
 
@@ -238,7 +233,7 @@
     });
 
     window.scrollTo({ top: 0, behavior: "auto" });
-    updateConflictMode();
+    persistenceController.refreshConflictMode();
   }
 
   // Startseite und lokaler Spielstand
@@ -262,57 +257,47 @@
     }
 
     const games = Storage.loadGameHistory();
-    const canContinueFromMemory = Boolean(
-      state
-      && hasUnsavedChanges
-      && !storageConflict
-    );
+    const canContinueFromMemory = persistenceController.canContinueFromMemory();
     continueButton.disabled = !savedState && !canContinueFromMemory;
-    historyButton.disabled = games.length === 0;
+    historyButton.disabled = !historyAvailable || games.length === 0;
     historyController.updateControls(games);
     updateStorageWarning();
   }
 
   function updateStorageWarning(message = "") {
-    const warning = elements["storage-warning"];
-    if (!warning) return;
-
-    const storageAvailable = Storage.isStorageAvailable();
-    const storageError = Storage.getLastError?.();
-    const externalWarning = [
-      externalGameWarning,
-      externalHistoryWarning,
-      historyController?.getCapacityWarning()
-    ].filter(Boolean).join(" ");
-    const text = message || externalWarning || storageError || (!storageAvailable
-      ? "Der Browser stellt keinen dauerhaften lokalen Speicher bereit. Änderungen können beim Schließen verloren gehen."
-      : "");
-
-    warning.textContent = text;
-    warning.hidden = !text;
-  }
-
-  function handleExternalStorageChange(event) {
-    if (event.storageArea !== localStorage
-      || ![Storage.STORAGE_KEY, Storage.HISTORY_KEY].includes(event.key)) {
-      return;
-    }
-
-    if (event.key === Storage.STORAGE_KEY) {
-      storageConflict = true;
-      externalGameWarning = "Der Spielstand wurde in einem anderen Tab geändert. Lade diese Seite neu, bevor du weiterspielst.";
-    } else {
-      externalHistoryWarning = "Die History wurde in einem anderen Tab geändert. Lade diese Seite neu, um den aktuellen Stand zu sehen.";
-    }
-    updateConflictMode();
-    updateStorageWarning();
-    showToast(event.key === Storage.STORAGE_KEY ? externalGameWarning : externalHistoryWarning);
+    persistenceController?.updateWarning(message);
   }
 
   function openHistory() {
-    externalHistoryWarning = "";
+    persistenceController.clearHistoryWarning();
     historyController.open();
     updateStorageWarning();
+  }
+
+  function createUnavailableHistoryController() {
+    const disableControls = () => {
+      [
+        "btn-history",
+        "btn-history-export-all",
+        "btn-history-import",
+        "btn-history-clear",
+        "btn-history-export-game",
+        "btn-history-delete-game"
+      ].forEach((id) => {
+        if (elements[id]) elements[id].disabled = true;
+      });
+    };
+
+    disableControls();
+    return Object.freeze({
+      bindEvents: disableControls,
+      updateControls: disableControls,
+      getCapacityWarning: () => "",
+      open: () => showToast("Die optionale History ist in dieser Installation nicht verfügbar."),
+      importArchive: () => {
+        throw new Error("Die optionale History ist in dieser Installation nicht verfügbar.");
+      }
+    });
   }
 
   async function importGameFromFile(event) {
@@ -369,344 +354,13 @@
       }
 
       state = importedState;
-      hasUnsavedChanges = false;
-      storageConflict = false;
-      externalGameWarning = "";
-      updateConflictMode();
+      persistenceController.markStateImported();
       refreshHomeScreen();
       showToast("Spielstand wurde erfolgreich importiert.");
     } catch (error) {
       console.error("Import fehlgeschlagen:", error);
       showToast(error instanceof Error ? error.message : "Die Importdatei konnte nicht gelesen werden.");
     }
-  }
-
-  // Spieleinrichtung: Spieler, Sitzordnung und Rundenzahl
-  function renderSetup() {
-    ensureState();
-    renderPlayerList();
-    renderRoundControls();
-    renderSummary();
-    clearFormErrors();
-    updateConflictMode();
-  }
-
-  function renderPlayerList() {
-    const playerList = elements["player-list"];
-    const duplicateIds = Logic.getDuplicateNameIds(state.players);
-    playerList.innerHTML = "";
-
-    state.players.forEach((player, index) => {
-      const row = document.createElement("div");
-      row.className = "player-row";
-      row.dataset.playerId = player.id;
-
-      const inputWrap = document.createElement("div");
-      inputWrap.className = "player-input-wrap";
-
-      const input = document.createElement("input");
-      input.id = `player-name-${player.id}`;
-      input.className = "text-input";
-      input.type = "text";
-      input.maxLength = 30;
-      input.autocomplete = "off";
-      input.placeholder = `Spieler ${index + 1}`;
-      input.setAttribute("aria-label", `Spieler ${index + 1}`);
-      input.value = player.name;
-      input.setAttribute("aria-invalid", String(!player.name.trim()));
-      input.addEventListener("input", (event) => updatePlayerName(player.id, event.target.value));
-
-      const duplicateHint = document.createElement("span");
-      duplicateHint.className = "duplicate-hint";
-      duplicateHint.textContent = duplicateIds.has(player.id) ? "Name wird mehrfach verwendet." : "";
-
-      inputWrap.append(input, duplicateHint);
-
-      const actions = document.createElement("div");
-      actions.className = "player-actions";
-
-      const moveUp = createIconButton("↑", `Spieler ${index + 1} nach oben verschieben`, index === 0);
-      moveUp.addEventListener("click", () => reorderPlayer(player.id, "up"));
-
-      const moveDown = createIconButton("↓", `Spieler ${index + 1} nach unten verschieben`, index === state.players.length - 1);
-      moveDown.addEventListener("click", () => reorderPlayer(player.id, "down"));
-
-      const remove = createIconButton("×", `Spieler ${index + 1} entfernen`, state.players.length <= Logic.MIN_PLAYERS, true);
-      remove.addEventListener("click", () => removePlayer(player.id));
-
-      actions.append(moveUp, moveDown, remove);
-      row.append(inputWrap, actions);
-      playerList.append(row);
-    });
-
-    elements["player-count-badge"].textContent = `${state.players.length} / ${Logic.MAX_PLAYERS}`;
-    elements["btn-add-player"].disabled = state.players.length >= Logic.MAX_PLAYERS;
-  }
-
-  function createIconButton(text, label, disabled = false, danger = false) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `icon-button${danger ? " danger" : ""}`;
-    button.textContent = text;
-    button.disabled = disabled;
-    button.setAttribute("aria-label", label);
-    return button;
-  }
-
-  function updatePlayerName(playerId, name) {
-    const player = state.players.find((entry) => entry.id === playerId);
-    if (!player) return;
-
-    player.name = name;
-    persistState();
-    renderSummary();
-    updateDuplicateHints();
-  }
-
-  function updateDuplicateHints() {
-    const duplicateIds = Logic.getDuplicateNameIds(state.players);
-
-    document.querySelectorAll(".player-row").forEach((row) => {
-      const playerId = row.dataset.playerId;
-      const player = state.players.find((entry) => entry.id === playerId);
-      const input = row.querySelector(".text-input");
-      const hint = row.querySelector(".duplicate-hint");
-
-      if (input && player) input.setAttribute("aria-invalid", String(!player.name.trim()));
-      if (hint) hint.textContent = duplicateIds.has(playerId) ? "Name wird mehrfach verwendet." : "";
-    });
-  }
-
-  function addPlayer() {
-    if (state.players.length >= Logic.MAX_PLAYERS) return;
-
-    state.players.push(Logic.createPlayer(state.players.length));
-    state.setupDealerRandomized = false;
-    syncRoundsAfterPlayerChange();
-    persistState();
-    renderSetup();
-    focusLastPlayerInput();
-  }
-
-  function removePlayer(playerId) {
-    if (state.players.length <= Logic.MIN_PLAYERS) return;
-
-    const removedWasDealer = state.firstDealerId === playerId;
-    state.players = Logic.normalizeSeatPositions(state.players.filter((player) => player.id !== playerId));
-    state.setupDealerRandomized = false;
-
-    if (removedWasDealer || !state.players.some((player) => player.id === state.firstDealerId)) {
-      state.firstDealerId = state.players[0].id;
-    }
-
-    syncRoundsAfterPlayerChange();
-    persistState();
-    renderSetup();
-  }
-
-  function reorderPlayer(playerId, direction) {
-    state.players = Logic.movePlayer(state.players, playerId, direction);
-    persistState();
-    renderSetup();
-  }
-
-  function focusLastPlayerInput() {
-    requestAnimationFrame(() => {
-      const lastPlayer = state.players[state.players.length - 1];
-      document.getElementById(`player-name-${lastPlayer.id}`)?.focus();
-    });
-  }
-
-  function renderRoundControls(message = "") {
-    const playerCount = state.players.length;
-    const standard = Logic.getStandardRounds(playerCount);
-    const maximum = Logic.getMaximumRounds(playerCount, state.totalCards);
-    const isIndividual = state.roundMode === "individual";
-
-    state.roundMode = isIndividual ? "individual" : "full";
-    state.totalRounds = isIndividual
-      ? Logic.clampRoundCount(state.totalRounds, playerCount, state.totalCards)
-      : standard;
-
-    elements["round-mode-toggle"].dataset.mode = state.roundMode;
-    elements["btn-round-mode-full"].setAttribute("aria-checked", String(!isIndividual));
-    elements["btn-round-mode-individual"].setAttribute("aria-checked", String(isIndividual));
-    elements["full-game-rounds"].textContent = String(standard);
-    elements["custom-round-controls"].hidden = !isIndividual;
-    elements["rounds-input"].value = String(state.totalRounds);
-    elements["rounds-input"].max = String(maximum);
-    elements["btn-rounds-minus"].disabled = state.totalRounds <= 1;
-    elements["btn-rounds-plus"].disabled = state.totalRounds >= maximum;
-    elements["rounds-message"].textContent = message;
-  }
-
-  function setRoundMode(mode) {
-    if (!["full", "individual"].includes(mode) || state.roundMode === mode) return;
-
-    state.roundMode = mode;
-    if (mode === "full") resetRoundsToStandard();
-    persistState();
-    renderRoundControls();
-    renderSummary();
-
-    if (mode === "individual") {
-      requestAnimationFrame(() => elements["rounds-input"].focus());
-    }
-  }
-
-  function changeRounds(delta) {
-    state.totalRounds = Logic.clampRoundCount(state.totalRounds + delta, state.players.length, state.totalCards);
-    persistState();
-    renderRoundControls();
-    renderSummary();
-  }
-
-  function commitRoundInput() {
-    const maximum = Logic.getMaximumRounds(state.players.length, state.totalCards);
-    const entered = Number.parseInt(elements["rounds-input"].value, 10);
-    const corrected = Logic.clampRoundCount(entered, state.players.length, state.totalCards);
-    const wasCorrected = entered !== corrected;
-
-    state.totalRounds = corrected;
-    persistState();
-    renderRoundControls(wasCorrected ? `Zulässig sind 1 bis ${maximum} Runden. Der Wert wurde angepasst.` : "");
-    renderSummary();
-  }
-
-  function resetRoundsToStandard() {
-    state.totalRounds = Logic.getStandardRounds(state.players.length);
-  }
-
-  function syncRoundsAfterPlayerChange() {
-    if (state.roundMode === "individual") {
-      state.totalRounds = Logic.clampRoundCount(state.totalRounds, state.players.length, state.totalCards);
-      return;
-    }
-
-    resetRoundsToStandard();
-  }
-
-  function renderSummary() {
-    const starter = Logic.getStartingPlayerForRound(state.players, state.firstDealerId, 1);
-
-    elements["summary-player-count"].textContent = String(state.players.length);
-    elements["summary-round-count"].textContent = String(state.totalRounds);
-    renderSummarySeatOrder(starter?.id ?? null);
-  }
-
-  function renderSummarySeatOrder(starterId) {
-    const seatOrder = elements["summary-seat-order"];
-    seatOrder.innerHTML = "";
-
-    state.players.forEach((player, index) => {
-      const item = document.createElement("li");
-      item.className = "seat-order-item";
-
-      const position = document.createElement("span");
-      position.className = "seat-position";
-      position.textContent = String(index + 1);
-      position.setAttribute("aria-label", `Sitzplatz ${index + 1}`);
-
-      const name = document.createElement("span");
-      name.className = "seat-player-name";
-      name.textContent = getPlayerDisplayNameById(player.id);
-
-      const roles = document.createElement("span");
-      roles.className = "seat-role-badges";
-
-      if (player.id === state.firstDealerId) {
-        roles.append(createSeatRoleBadge("Kartengeber", "dealer"));
-      }
-      if (player.id === starterId) {
-        roles.append(createSeatRoleBadge("Startspieler", "starter"));
-      }
-
-      item.append(position, name, roles);
-      seatOrder.append(item);
-    });
-  }
-
-  function submitSetup(event) {
-    event.preventDefault();
-    commitRoundInput();
-
-    const errors = Logic.validateSetup(state);
-    if (errors.length > 0) {
-      showFormErrors(errors);
-      focusFirstInvalidField();
-      return;
-    }
-
-    clearFormErrors();
-    selectRandomDealer();
-    renderSummary();
-    persistState();
-    showScreen("setup-summary");
-  }
-
-  function returnToSetup() {
-    renderSetup();
-    showScreen("setup");
-  }
-
-  function selectRandomDealer() {
-    if (state.setupDealerRandomized || state.players.length === 0) return;
-
-    const randomIndex = Math.floor(Math.random() * state.players.length);
-    state.firstDealerId = state.players[randomIndex].id;
-    state.setupDealerRandomized = true;
-  }
-
-  function startGameFromSummary() {
-    const errors = Logic.validateSetup(state);
-    if (errors.length > 0) {
-      renderSetup();
-      showFormErrors(errors);
-      showScreen("setup");
-      focusFirstInvalidField();
-      return;
-    }
-
-    state.status = "running";
-    state.currentRound = 1;
-    state.roundOneHintConfirmed = false;
-    state.rounds = [Logic.createRound(state.players, state.firstDealerId, 1)];
-    persistState();
-    renderGame();
-    showScreen("game");
-    maybeShowRoundOneHint();
-  }
-
-  function showFormErrors(errors) {
-    const container = elements["form-errors"];
-    container.innerHTML = "";
-    const list = document.createElement("ul");
-
-    errors.forEach((error) => {
-      const item = document.createElement("li");
-      item.textContent = error;
-      list.append(item);
-    });
-
-    container.append(list);
-    container.hidden = false;
-  }
-
-  function clearFormErrors() {
-    elements["form-errors"].hidden = true;
-    elements["form-errors"].innerHTML = "";
-  }
-
-  function focusFirstInvalidField() {
-    const invalidNameInput = [...document.querySelectorAll(".text-input")]
-      .find((input) => !input.value.trim());
-
-    if (invalidNameInput) {
-      invalidNameInput.focus();
-      return;
-    }
-
-    elements["rounds-input"].focus();
   }
 
   // Laufendes Spiel: wählt passend zum Rundenstatus die aktuelle Phasenansicht.
@@ -731,7 +385,7 @@
     else if (round.phase === "play") renderPlay(round);
     else if (round.phase === "tricks") renderTricks(round);
     else renderRoundResult(round);
-    updateConflictMode();
+    persistenceController.refreshConflictMode();
   }
 
   // Phase 1: Ansagen aller Spieler erfassen
@@ -1358,7 +1012,7 @@
 
     ResultView.renderRanking(elements["final-ranking"], state, totals);
     ResultView.renderScoreHistory(elements["final-score-history"], completedRounds, totals, state);
-    updateConflictMode();
+    persistenceController.refreshConflictMode();
   }
 
   function reviewLastRound() {
@@ -1474,108 +1128,7 @@
   }
 
   function persistState(options) {
-    if (!state) return false;
-    const saved = Storage.saveGame(state, options);
-    if (!saved) {
-      storageConflict = Storage.wasLastGameSaveConflict?.() === true;
-      hasUnsavedChanges = !storageConflict;
-      const error = Storage.getStorageErrors?.().gameError
-        || "Der Spielstand konnte auf diesem Gerät nicht gespeichert werden. Exportiere den Spielstand, sobald die Speicherung wieder funktioniert.";
-      updateStorageWarning(error);
-      showToast(error);
-    } else {
-      hasUnsavedChanges = false;
-      storageConflict = false;
-      externalGameWarning = "";
-      updateStorageWarning();
-    }
-    updateConflictMode();
-    return saved;
-  }
-
-  function updateConflictMode() {
-    const actions = elements["storage-conflict-actions"];
-    if (!actions) return;
-
-    actions.hidden = !storageConflict;
-    elements["btn-export-conflict-state"].disabled = !state;
-    document.body.classList.toggle("game-storage-conflict", storageConflict);
-
-    const stateUi = document.querySelectorAll(
-      "#screen-setup button, #screen-setup input, #screen-setup select, #screen-setup textarea, "
-      + "#screen-setup-summary button, #screen-game button, #screen-game input, "
-      + "#screen-game select, #screen-game textarea, #screen-finished button, "
-      + "#cloud-dialog button, #edit-round-dialog button"
-    );
-
-    stateUi.forEach((control) => {
-      if (conflictAllowedControlIds.has(control.id)) return;
-
-      if (storageConflict) {
-        if (!control.disabled) {
-          control.dataset.conflictDisabled = "true";
-          control.disabled = true;
-        }
-      } else if (control.dataset.conflictDisabled === "true") {
-        control.disabled = false;
-        delete control.dataset.conflictDisabled;
-      }
-    });
-  }
-
-  function blockInteractionDuringConflict(event) {
-    if (!storageConflict) return;
-
-    const control = event.target instanceof Element
-      ? event.target.closest("button, input, select, textarea, form")
-      : null;
-    if (!control || conflictAllowedControlIds.has(control.id)) return;
-    if (!control.closest(
-      "#screen-setup, #screen-setup-summary, #screen-game, #screen-finished, "
-      + "#cloud-dialog, #edit-round-dialog"
-    )) return;
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showToast("Dieser Spielstand ist wegen eines Speicherkonflikts gesperrt. Lade die Seite neu oder exportiere den ungespeicherten Stand.");
-  }
-
-  function exportConflictState() {
-    if (!state || !storageConflict) return;
-
-    const exportedAt = new Date();
-    downloadJson({
-      exportFormat: "wizard-punkte-app",
-      exportVersion: 1,
-      exportedAt: exportedAt.toISOString(),
-      recoveryReason: "storage-conflict",
-      gameState: deepClone(state)
-    }, `wizard-konflikt-${formatFileTimestamp(exportedAt)}.json`);
-  }
-
-  function downloadJson(payload, filename) {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  }
-
-  function formatFileTimestamp(date) {
-    const pad = (value) => String(value).padStart(2, "0");
-    return [
-      date.getFullYear(),
-      pad(date.getMonth() + 1),
-      pad(date.getDate()),
-      "-",
-      pad(date.getHours()),
-      pad(date.getMinutes()),
-      pad(date.getSeconds())
-    ].join("");
+    return persistenceController.persist(options);
   }
 
   function archiveCompletedGame(gameState) {
@@ -1603,17 +1156,6 @@
       toast.hidden = true;
     }, 3200);
   }
-
-
-  async function requestPersistentStorage() {
-    try {
-      if (!navigator.storage?.persist) return;
-      await navigator.storage.persist();
-    } catch (error) {
-      console.warn("Dauerhafte Speicherung konnte nicht angefragt werden:", error);
-    }
-  }
-
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
 
