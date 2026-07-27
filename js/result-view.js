@@ -14,9 +14,11 @@
     ranking.forEach((entry, index) => {
       if (entry.points !== previousPoints) displayedPosition = index + 1;
       previousPoints = entry.points;
+      if (displayedPosition > 3) return;
 
       const row = document.createElement("div");
       row.className = "ranking-row";
+      row.dataset.rank = String(displayedPosition);
       row.dataset.playerColor = String(
         gameState.players.findIndex((player) => player.id === entry.player.id) + 1
       );

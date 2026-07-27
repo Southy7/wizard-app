@@ -893,7 +893,7 @@
 
     const header = document.createElement("div");
     header.className = "score-row header";
-    header.innerHTML = '<span>Player</span><span class="number">Bid</span><span class="number">Tricks</span><span class="number">Round</span><span class="number">Total</span>';
+    header.innerHTML = '<span>Player</span><span class="number bid-column">Bid</span><span class="number tricks-column">Tricks</span><span class="number round-column">Round</span><span class="number total-column">Total</span>';
     table.append(header);
 
     state.players.forEach((player) => {
@@ -915,9 +915,9 @@
         name.append(crown);
       }
 
-      const bid = numberCell(result.currentBid, result.currentBid !== result.originalBid ? "changed-bid" : "");
-      const tricks = numberCell(result.tricks);
-      const points = numberCell(formatSigned(result.roundPoints), result.roundPoints >= 0 ? "positive" : "negative");
+      const bid = numberCell(result.currentBid, `bid-value${result.currentBid !== result.originalBid ? " changed-bid" : ""}`);
+      const tricks = numberCell(result.tricks, "tricks-value");
+      const points = numberCell(formatSigned(result.roundPoints), `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`);
       const total = numberCell(totals[player.id], "total-points");
       bid.dataset.label = "Bid";
       tricks.dataset.label = "Tricks";

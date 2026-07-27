@@ -796,6 +796,7 @@ select:focus-visible {
 .points-strip {
   display: grid;
   grid-template-columns: repeat(var(--player-count), minmax(0, 1fr));
+  column-gap: clamp(3px, 1.2vw, 6px);
   align-items: stretch;
 }
 
@@ -1436,41 +1437,47 @@ select:focus-visible {
   }
 
   .score-table.five-columns {
+    width: 100%;
     min-width: 0;
+    max-width: 100%;
   }
 
   .score-table.five-columns .score-row.header {
+    display: grid;
+  }
+
+  .score-table.five-columns .score-row {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 0.7fr));
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .score-table.five-columns .bid-column,
+  .score-table.five-columns .tricks-column,
+  .score-table.five-columns .bid-value,
+  .score-table.five-columns .tricks-value {
     display: none;
   }
 
-  .score-table.five-columns .score-row:not(.header) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 7px;
-    padding: 12px;
-  }
-
   .score-table.five-columns .score-player {
-    grid-column: 1 / -1;
-    padding-bottom: 4px;
-    border-bottom: 1px solid var(--border);
+    grid-column: auto;
+    min-width: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   .score-table.five-columns .number {
     min-width: 0;
-    border-radius: 8px;
-    background: var(--surface);
-    padding: 7px 4px;
-    text-align: center;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    text-align: right;
   }
 
   .score-table.five-columns .number::before {
-    content: attr(data-label);
-    display: block;
-    margin-bottom: 3px;
-    color: var(--muted);
-    font-size: 0.62rem;
-    font-weight: 750;
-    text-transform: uppercase;
+    display: none;
   }
 }
 
@@ -1509,13 +1516,6 @@ select:focus-visible {
     font-size: 0.65rem;
   }
 
-  .score-table.five-columns .score-row:not(.header) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .score-table.five-columns .score-player {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -413,12 +413,21 @@ def main() -> None:
         assert page.locator(".score-row.header span").all_text_contents() == [
             "Player", "Bid", "Tricks", "Round", "Total"
         ]
+        assert page.locator(".score-row.header span:visible").all_text_contents() == [
+            "Player", "Round", "Total"
+        ]
+        assert page.locator(".score-table .score-row:not(.header)").first.locator(
+            ":scope > span:visible"
+        ).count() == 3
         assert page.locator(".score-table .score-row:not(.header)").evaluate_all(
             "(rows) => rows.map((row) => row.dataset.playerColor)"
         ) == ["1", "2", "3"]
         result_table_box = page.locator(".round-result-panel .score-table-scroll").bounding_box()
         result_actions_box = page.locator(".round-result-panel .result-actions").bounding_box()
         assert result_table_box and result_actions_box
+        assert result_table_box["x"] >= 0
+        assert result_table_box["x"] + result_table_box["width"] <= 390
+        assert page.evaluate("document.documentElement.scrollWidth") == 390
         assert result_actions_box["y"] - (result_table_box["y"] + result_table_box["height"]) >= 16
         page.click('button:has-text("Finish Game")')
         assert page.get_by_text("game completed").count() == 0
@@ -426,6 +435,9 @@ def main() -> None:
         assert page.locator("#final-game-meta").count() == 0
         assert page.get_by_text("Round points and completed total score for all players.").count() == 0
         assert page.locator("#final-ranking .ranking-position").all_text_contents() == ["🥇", "🥈", "🥉"]
+        assert page.locator("#final-ranking .ranking-row").evaluate_all(
+            "(rows) => rows.every((row) => Number(row.dataset.rank) <= 3)"
+        )
         assert page.locator("#btn-finished-home").get_attribute("aria-label") == "Home"
         assert page.locator("#btn-finished-home").text_content().strip() == ""
         assert page.locator(".history-table tbody tr").count() == 1
