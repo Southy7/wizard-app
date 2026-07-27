@@ -1,8 +1,8 @@
 {
-  "name": "wizard-punkte-app",
+  "name": "wizard-scoreboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Leichtgewichtiger Wizard-Punkteblock – vollständige Version 1.0",
+  "description": "Lightweight Wizard scoreboard – complete version 1.0",
   "scripts": {
     "test": "npm run test:unit && npm run test:browser",
     "test:unit": "node tests/game-logic.test.js && node tests/state-manager.test.js && node tests/storage.test.js && node tests/service-worker.test.js",

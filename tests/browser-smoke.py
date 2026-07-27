@@ -1,8 +1,8 @@
-"""Optionaler Browser-Smoke-Test.
+"""Optional browser smoke test.
 
-Benötigt Python, Playwright und einen Chromium-Browser. Die App selbst benötigt
-keine dieser Abhängigkeiten. Der Test lädt die Dateien inline, legt eine kurze
-Partie an und prüft Ansagen, Gesamtpunkte, Rundenergebnis und Endtabelle.
+Requires Python, Playwright, and a Chromium browser. The app itself requires
+none of these dependencies. The test loads the files inline, creates a short
+game, and verifies bids, total scores, the round result, and final standings.
 """
 
 from pathlib import Path
@@ -88,7 +88,7 @@ def main() -> None:
         page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
 
         assert page.locator("#storage-warning").is_visible()
-        assert "beschädigt" in page.locator("#storage-warning").text_content()
+        assert "corrupted" in page.locator("#storage-warning").text_content()
 
         new_game_box = page.locator("#btn-new-game").bounding_box()
         secondary_row_box = page.locator(".home-secondary-actions").bounding_box()
@@ -112,13 +112,13 @@ def main() -> None:
         )
         assert page.locator("#screen-setup").is_visible()
         assert page.locator("#screen-setup h2").count() == 0
-        assert page.get_by_text("Die Reihenfolge entspricht der Sitzordnung am Tisch.").count() == 0
+        assert page.get_by_text("The order matches the seating order at the table.").count() == 0
         assert page.get_by_text("Wizard-Standard:").count() == 0
-        assert page.get_by_text("Maximum mit 70 Karten:").count() == 0
-        assert page.locator("#btn-setup-home").get_attribute("aria-label") == "Zur Startseite"
+        assert page.get_by_text("Maximum with 70 cards:").count() == 0
+        assert page.locator("#btn-setup-home").get_attribute("aria-label") == "Home"
         assert page.locator("#player-list label").count() == 0
         assert page.locator("#btn-round-mode-full").get_attribute("aria-checked") == "true"
-        assert page.locator("#btn-round-mode-full").text_content().strip() == "Full Game (20 Runden)"
+        assert page.locator("#btn-round-mode-full").text_content().strip() == "Full Game (20 Rounds)"
         assert page.locator("#btn-round-mode-individual").get_attribute("aria-checked") == "false"
         assert page.locator("#custom-round-controls").is_hidden()
         assert page.locator("#rounds-input").get_attribute("max") == "23"
@@ -126,7 +126,7 @@ def main() -> None:
         assert page.locator("#custom-round-controls").is_visible()
         assert page.locator("#btn-round-mode-individual").get_attribute("aria-checked") == "true"
         for index, name in enumerate(("Anna", "Ben", "Chris")):
-            assert page.locator("#player-list .text-input").nth(index).get_attribute("placeholder") == f"Spieler {index + 1}"
+            assert page.locator("#player-list .text-input").nth(index).get_attribute("placeholder") == f"Player {index + 1}"
             page.locator("#player-list .text-input").nth(index).fill(name)
         page.fill("#rounds-input", "1")
         page.dispatch_event("#rounds-input", "change")
@@ -149,13 +149,13 @@ def main() -> None:
         page.click("#btn-summary-start")
         page.click("#btn-confirm-round-one-hint")
 
-        assert page.locator("#game-phase-label").text_content() == "Ansagen"
-        assert page.locator("#game-title").text_content() == "Runde 1 von 1"
-        assert page.locator("#btn-game-home").get_attribute("aria-label") == "Zur Startseite"
+        assert page.locator("#game-phase-label").text_content() == "Bids"
+        assert page.locator("#game-title").text_content() == "Round 1 of 1"
+        assert page.locator("#btn-game-home").get_attribute("aria-label") == "Home"
         assert page.locator("#btn-game-home").text_content().strip() == ""
-        assert page.get_by_text("Aktuelle Gesamtpunktzahl").count() == 0
-        assert page.get_by_text("Die Eingabe beginnt beim Startspieler.").count() == 0
-        assert page.get_by_text("Beginnt mit der Ansage").count() == 0
+        assert page.get_by_text("Current Total Score").count() == 0
+        assert page.get_by_text("Entry starts with the starting player.").count() == 0
+        assert page.get_by_text("Starts the bidding").count() == 0
         assert page.locator("#game-dealer").count() == 0
         assert page.locator("#game-starter").count() == 0
         assert page.locator("#game-content h3").count() == 0
@@ -172,26 +172,26 @@ def main() -> None:
         assert starter_name_box and starter_badge_box
         assert starter_badge_box["x"] >= starter_name_box["x"] + starter_name_box["width"]
         bid_status = page.locator(".bid-panel .status-card")
-        assert bid_status.text_content().strip() == "Summe der Ansagen: 0"
+        assert bid_status.text_content().strip() == "Bid Total: 0"
         assert "neutral" in bid_status.get_attribute("class")
         page.locator(".entry-row").nth(0).locator(".value-button").nth(1).click()
-        assert bid_status.text_content().strip() == "Summe der Ansagen: 1"
+        assert bid_status.text_content().strip() == "Bid Total: 1"
         assert "error" in bid_status.get_attribute("class")
-        assert page.get_by_role("button", name="Ansagen bestätigen").is_disabled()
+        assert page.get_by_role("button", name="Confirm Bids").is_disabled()
         page.locator(".entry-row").nth(1).locator(".value-button").nth(1).click()
-        assert bid_status.text_content().strip() == "Summe der Ansagen: 2"
+        assert bid_status.text_content().strip() == "Bid Total: 2"
         assert "neutral" in bid_status.get_attribute("class")
         assert "success" not in bid_status.get_attribute("class")
-        assert page.get_by_role("button", name="Ansagen bestätigen").is_enabled()
-        page.click('button:has-text("Ansagen bestätigen")')
+        assert page.get_by_role("button", name="Confirm Bids").is_enabled()
+        page.click('button:has-text("Confirm Bids")')
         assert page.locator("#game-round-overview").is_hidden()
-        assert page.get_by_text("Aktuelle Ansagen").count() == 0
-        assert page.get_by_text("Nur Wolke, Bombe und Hexe verändern die Punkteverwaltung.").count() == 0
+        assert page.get_by_text("Current Bids").count() == 0
+        assert page.get_by_text("Only Cloud, Bomb, and Witch affect scoring.").count() == 0
         assert page.locator("#game-content h3").count() == 0
-        assert page.get_by_text("auswählen", exact=True).count() == 0
-        assert page.get_by_text("erneut klicken zum Entfernen", exact=True).count() == 0
+        assert page.get_by_text("select", exact=True).count() == 0
+        assert page.get_by_text("click again to remove", exact=True).count() == 0
         assert page.locator(".bid-overview .score-row.header span").all_text_contents() == [
-            "Spieler", "Ansage", "Gesamt"
+            "Player", "Bid", "Total"
         ]
         overview_starter = page.locator(".bid-overview .starter")
         assert overview_starter.count() == 1
@@ -201,29 +201,29 @@ def main() -> None:
         overview_badge_box = overview_starter.bounding_box()
         assert overview_name_box and overview_badge_box
         assert overview_badge_box["x"] >= overview_name_box["x"] + overview_name_box["width"]
-        witch = page.locator(".special-button", has_text="Hexe")
+        witch = page.locator(".special-button", has_text="Witch")
         assert witch.is_disabled()
-        bomb = page.locator(".special-button", has_text="Bombe")
+        bomb = page.locator(".special-button", has_text="Bomb")
         bomb.click()
         assert bomb.get_attribute("aria-pressed") == "true"
         assert "✓" not in bomb.text_content()
         assert witch.is_enabled()
         bomb.click()
-        assert page.locator(".special-button", has_text="Hexe").is_disabled()
+        assert page.locator(".special-button", has_text="Witch").is_disabled()
 
-        # Mit Wolke und Bombe bietet die Hexe beide möglichen Wiederholungen an.
-        page.locator(".special-button", has_text="Wolke").click()
+        # With both Cloud and Bomb active, the Witch offers both possible repeats.
+        page.locator(".special-button", has_text="Cloud").click()
         assert page.locator("#cloud-dialog-help").count() == 0
         cloud_heading_box = page.locator("#cloud-dialog .dialog-heading").bounding_box()
         cloud_players_box = page.locator("#cloud-player-options").bounding_box()
         assert cloud_heading_box and cloud_players_box
         assert cloud_players_box["y"] - (cloud_heading_box["y"] + cloud_heading_box["height"]) >= 16
         page.locator("#cloud-player-options button").first.click()
-        assert page.get_by_text("hat vor dieser Wolke die Ansage").count() == 0
+        assert page.get_by_text("had the following bid before this Cloud").count() == 0
         page.click("#btn-cloud-plus")
-        page.locator(".special-button", has_text="Bombe").click()
+        page.locator(".special-button", has_text="Bomb").click()
 
-        # Wolke +1 darf in Runde 1 zu einer aktuellen Ansage von 2 führen.
+        # Cloud +1 may result in a current bid of 2 in round 1.
         saved_cloud_state = page.evaluate(
             """
             (() => {
@@ -247,7 +247,7 @@ def main() -> None:
         assert saved_cloud_state["bombActive"]
         assert saved_cloud_state["storageError"] == ""
 
-        # Ein frischer Seitenkontext muss denselben Zustand laden und fortsetzen können.
+        # A fresh page context must load and continue the same state.
         reload_page = browser.new_page(viewport={"width": 390, "height": 844})
         reload_page.set_content(html)
         reload_page.evaluate(LOCAL_STORAGE_MOCK)
@@ -270,28 +270,28 @@ def main() -> None:
         assert reload_page.evaluate("WizardStorage.getStorageErrors().gameError") == ""
         reload_page.close()
 
-        page.locator(".special-button", has_text="Hexe").click()
-        assert page.get_by_text("Eingaben prüfen", exact=True).count() == 0
-        assert page.locator(".special-button", has_text="2. Wolke").count() == 1
-        assert page.locator(".special-button", has_text="2. Bombe").count() == 1
-        assert page.locator(".special-button", has_text="2. Wolke").text_content().strip() == "☁ 2. Wolke"
-        assert page.locator(".special-button", has_text="2. Bombe").text_content().strip() == "💣 2. Bombe"
-        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+        page.locator(".special-button", has_text="Witch").click()
+        assert page.get_by_text("Check entries", exact=True).count() == 0
+        assert page.locator(".special-button", has_text="2nd Cloud").count() == 1
+        assert page.locator(".special-button", has_text="2nd Bomb").count() == 1
+        assert page.locator(".special-button", has_text="2nd Cloud").text_content().strip() == "☁ 2nd Cloud"
+        assert page.locator(".special-button", has_text="2nd Bomb").text_content().strip() == "💣 2nd Bomb"
+        assert page.get_by_role("button", name="Enter Tricks").is_disabled()
         second_effect_box = page.locator(".second-effect-wrap").bounding_box()
         special_actions_box = page.locator(".special-actions").bounding_box()
         assert second_effect_box and special_actions_box
         assert special_actions_box["y"] - (second_effect_box["y"] + second_effect_box["height"]) >= 16
 
-        # Eine unvollständige Hexe blockiert den Rückweg zu den Ansagen.
-        page.get_by_role("button", name="Ansagen bearbeiten").click()
+        # An incomplete Witch selection blocks navigation back to bids.
+        page.get_by_role("button", name="Edit Bids").click()
         assert page.locator("#toast").text_content() == (
-            "Wähle zuerst die zweite Sonderkarte der Hexe aus oder entferne die Hexe."
+            "Choose the Witch's second special card first or remove the Witch."
         )
-        assert page.locator("#game-phase-label").text_content() == "Sonderkarten"
-        assert page.locator(".special-button", has_text="Hexe").get_attribute("aria-pressed") == "true"
+        assert page.locator("#game-phase-label").text_content() == "Special Cards"
+        assert page.locator(".special-button", has_text="Witch").get_attribute("aria-pressed") == "true"
         assert page.evaluate("WizardStorage.loadGame().rounds[0].phase") == "play"
 
-        # Auch nach einem Reload bleibt dieser temporäre Zustand fortsetzbar.
+        # This temporary state remains resumable after a reload.
         incomplete_witch_state = page.evaluate(
             "localStorage.getItem(WizardStorage.STORAGE_KEY)"
         )
@@ -312,54 +312,54 @@ def main() -> None:
         witch_reload_page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
         assert witch_reload_page.locator("#btn-continue-game").is_enabled()
         witch_reload_page.click("#btn-continue-game")
-        assert witch_reload_page.locator("#game-phase-label").text_content() == "Sonderkarten"
+        assert witch_reload_page.locator("#game-phase-label").text_content() == "Special Cards"
         assert witch_reload_page.locator(
-            ".special-button", has_text="Hexe"
+            ".special-button", has_text="Witch"
         ).get_attribute("aria-pressed") == "true"
         assert witch_reload_page.evaluate("WizardStorage.getStorageErrors().gameError") == ""
         witch_reload_page.close()
 
-        # Mit vollständig ausgewählter zweiter Karte ist der Rückweg erlaubt.
-        second_bomb = page.locator(".special-button", has_text="2. Bombe")
+        # Navigation back is allowed after selecting a complete second card.
+        second_bomb = page.locator(".special-button", has_text="2nd Bomb")
         second_bomb.click()
-        page.get_by_role("button", name="Ansagen bearbeiten").click()
-        assert page.locator("#game-phase-label").text_content() == "Ansagen"
-        page.get_by_role("button", name="Ansagen bestätigen").click()
-        assert page.locator("#game-phase-label").text_content() == "Sonderkarten"
-        second_bomb = page.locator(".special-button", has_text="2. Bombe")
+        page.get_by_role("button", name="Edit Bids").click()
+        assert page.locator("#game-phase-label").text_content() == "Bids"
+        page.get_by_role("button", name="Confirm Bids").click()
+        assert page.locator("#game-phase-label").text_content() == "Special Cards"
+        second_bomb = page.locator(".special-button", has_text="2nd Bomb")
         assert "active" in second_bomb.get_attribute("class")
 
-        # Zweite Bombe und zweite Wolke lassen sich jeweils über denselben Button ein- und ausschalten.
+        # The second Bomb and second Cloud can each be toggled with the same button.
         second_bomb.click()
-        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+        assert page.get_by_role("button", name="Enter Tricks").is_disabled()
         second_bomb.click()
         assert second_bomb.get_attribute("class") and "active" in second_bomb.get_attribute("class")
         assert "✓" not in second_bomb.text_content()
         second_bomb.click()
-        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+        assert page.get_by_role("button", name="Enter Tricks").is_disabled()
 
-        page.locator(".special-button", has_text="2. Wolke").click()
+        page.locator(".special-button", has_text="2nd Cloud").click()
         page.locator("#cloud-player-options button").first.click()
         page.click("#btn-cloud-plus")
-        second_cloud = page.locator(".special-button", has_text="2. Wolke")
+        second_cloud = page.locator(".special-button", has_text="2nd Cloud")
         assert "active" in second_cloud.get_attribute("class")
         second_cloud.click()
-        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+        assert page.get_by_role("button", name="Enter Tricks").is_disabled()
 
-        # Hexe sowie die beiden Primärkarten wieder ausschalten.
-        page.locator(".special-button", has_text="Hexe").click()
-        page.locator(".special-button", has_text="Bombe").click()
-        page.locator(".special-button", has_text="Wolke").click()
-        assert page.locator("button", has_text="Rückgängig").count() == 0
+        # Turn off the Witch and both primary cards again.
+        page.locator(".special-button", has_text="Witch").click()
+        page.locator(".special-button", has_text="Bomb").click()
+        page.locator(".special-button", has_text="Cloud").click()
+        assert page.locator("button", has_text="Undo").count() == 0
 
-        page.click('button:has-text("Stiche eintragen")')
+        page.click('button:has-text("Enter Tricks")')
         assert page.locator("#game-round-overview").is_hidden()
-        assert page.locator("#game-phase-label").text_content() == "Stiche"
+        assert page.locator("#game-phase-label").text_content() == "Tricks"
         assert page.locator("#game-content h3").count() == 0
-        assert page.get_by_text("Trage für jeden Spieler nur die endgültige Stichzahl dieser Runde ein.").count() == 0
+        assert page.get_by_text("Enter only each player's final trick count for this round.").count() == 0
         assert page.locator(".tricks-panel .entry-meta").count() == 0
         trick_status = page.locator(".trick-status")
-        assert trick_status.text_content().strip() == "1 Stich fehlt."
+        assert trick_status.text_content().strip() == "1 trick is missing."
         assert trick_status.locator(":scope > *").count() == 1
         trick_list_box = page.locator(".tricks-panel .entry-list").bounding_box()
         trick_status_box = trick_status.bounding_box()
@@ -374,31 +374,31 @@ def main() -> None:
         assert correct_button_box["x"] + correct_button_box["width"] <= correct_stepper_box["x"]
         correct_button.click()
         assert "1" in page.locator(".value-display").all_text_contents()
-        assert trick_status.text_content().strip() == "Alle Stiche sind vollständig verteilt."
+        assert trick_status.text_content().strip() == "All tricks have been assigned."
         assert trick_status.locator(":scope > *").count() == 1
-        page.click('button:has-text("Runde abschließen")')
+        page.click('button:has-text("Complete Round")')
 
-        assert page.locator("#game-phase-label").text_content() == "Rundenergebnis"
+        assert page.locator("#game-phase-label").text_content() == "Round Result"
         assert page.locator("#game-content h3").count() == 0
-        assert page.get_by_text("Rundenpunkte und aktuelle Gesamtpunktzahl nach dieser Runde.").count() == 0
+        assert page.get_by_text("Round points and current total score after this round.").count() == 0
         assert page.locator(".score-row.header span").all_text_contents() == [
-            "Spieler", "Ansage", "Stiche", "Runde", "Gesamt"
+            "Player", "Bid", "Tricks", "Round", "Total"
         ]
         result_table_box = page.locator(".round-result-panel .score-table-scroll").bounding_box()
         result_actions_box = page.locator(".round-result-panel .result-actions").bounding_box()
         assert result_table_box and result_actions_box
         assert result_actions_box["y"] - (result_table_box["y"] + result_table_box["height"]) >= 16
-        page.click('button:has-text("Spiel beenden")')
-        assert page.get_by_text("Partie beendet").count() == 0
+        page.click('button:has-text("Finish Game")')
+        assert page.get_by_text("game completed").count() == 0
         assert page.locator("#winner-summary").count() == 0
         assert page.locator("#final-game-meta").count() == 0
-        assert page.get_by_text("Rundenpunkte und abschließende Gesamtpunktzahl aller Spieler.").count() == 0
+        assert page.get_by_text("Round points and completed total score for all players.").count() == 0
         assert page.locator("#final-ranking .ranking-position").all_text_contents() == ["🥇", "🥈", "🥉"]
-        assert page.locator("#btn-finished-home").get_attribute("aria-label") == "Zur Startseite"
+        assert page.locator("#btn-finished-home").get_attribute("aria-label") == "Home"
         assert page.locator("#btn-finished-home").text_content().strip() == ""
         assert page.locator(".history-table tbody tr").count() == 1
 
-        # Der neue Startseiten-Button öffnet denselben gespeicherten Punkteverlauf.
+        # The new Home button opens the same saved score history.
         page.click("#btn-finished-home")
         assert page.locator("#btn-history").is_enabled()
         page.click("#btn-history")
@@ -413,9 +413,9 @@ def main() -> None:
         with page.expect_download() as single_download_info:
             page.click("#btn-history-export-game")
         single_download = single_download_info.value
-        assert single_download.suggested_filename.startswith("wizard-partie-")
+        assert single_download.suggested_filename.startswith("wizard-game-")
         single_export = json.loads(Path(single_download.path()).read_text(encoding="utf-8"))
-        assert single_export["exportFormat"] == "wizard-punkte-app"
+        assert single_export["exportFormat"] == "wizard-scoreboard-game"
 
         page.click("#btn-history-list-back")
         assert page.locator("#history-list-view").is_visible()
@@ -425,13 +425,13 @@ def main() -> None:
         archive_download = archive_download_info.value
         archive_path = archive_download.path()
         archive_export = json.loads(Path(archive_path).read_text(encoding="utf-8"))
-        assert archive_export["exportFormat"] == "wizard-punkte-history"
+        assert archive_export["exportFormat"] == "wizard-scoreboard-history"
         assert len(archive_export["games"]) == 1
 
         page.locator("#history-game-list .history-game-card").click()
         page.once("dialog", lambda dialog: dialog.accept())
         page.click("#btn-history-delete-game")
-        assert page.get_by_text("Keine archivierten Partien vorhanden.").is_visible()
+        assert page.get_by_text("No archived games available.").is_visible()
         assert page.locator("#btn-history-export-all").is_disabled()
         assert page.locator("#btn-history-clear").is_disabled()
         assert page.locator("#btn-history").is_disabled()
@@ -443,10 +443,10 @@ def main() -> None:
 
         page.once("dialog", lambda dialog: dialog.accept())
         page.click("#btn-history-clear")
-        assert page.get_by_text("Keine archivierten Partien vorhanden.").is_visible()
+        assert page.get_by_text("No archived games available.").is_visible()
         assert page.locator("#btn-history").is_disabled()
 
-        # Ohne nutzbaren localStorage bleibt das Spiel im Arbeitsspeicher erreichbar.
+        # Without usable localStorage, the in-memory game remains accessible.
         memory_page = browser.new_page(viewport={"width": 390, "height": 844})
         memory_page.set_content(html)
         memory_page.evaluate(LOCAL_STORAGE_MOCK)
@@ -470,8 +470,8 @@ def main() -> None:
         assert memory_page.locator("#screen-setup").is_visible()
         memory_page.close()
 
-        # Nach einer externen Löschung darf ein veralteter In-Memory-Stand
-        # hingegen nicht als fortsetzbares Spiel angeboten werden.
+        # After an external deletion, an outdated in-memory state must not be
+        # offered as a resumable game.
         conflict_page = browser.new_page(viewport={"width": 390, "height": 844})
         conflict_page.set_content(html)
         conflict_page.evaluate(LOCAL_STORAGE_MOCK)
@@ -501,15 +501,15 @@ def main() -> None:
         conflict_export = json.loads(
             Path(conflict_download_info.value.path()).read_text(encoding="utf-8")
         )
-        assert conflict_export["exportFormat"] == "wizard-punkte-app"
+        assert conflict_export["exportFormat"] == "wizard-scoreboard-game"
         assert conflict_export["recoveryReason"] == "storage-conflict"
         assert conflict_export["gameState"]["gameId"]
         conflict_page.click("#btn-setup-home")
         assert conflict_page.locator("#screen-home").is_visible()
         assert conflict_page.locator("#btn-continue-game").is_disabled()
-        assert "anderen Tab" in conflict_page.locator("#storage-warning").text_content()
+        assert "another tab" in conflict_page.locator("#storage-warning").text_content()
 
-        # Der separate Konfliktexport lässt sich anschließend bewusst wiederherstellen.
+        # The separate conflict export can then be restored deliberately.
         conflict_page.set_input_files(
             "#import-file-input",
             conflict_download_info.value.path(),
@@ -523,7 +523,7 @@ def main() -> None:
 
         browser.close()
 
-    print("Browser-Smoke-Test erfolgreich.")
+    print("Browser smoke test passed.")
 
 
 if __name__ == "__main__":

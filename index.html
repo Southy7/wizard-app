@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Grundlegende Dokument- und PWA-Metadaten -->
+  <!-- Core document and PWA metadata -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f4f46">
@@ -31,7 +31,7 @@
     }
   </script>
 
-  <!-- Reihenfolge ist wichtig: app.js verwendet Logik und Speicher als Abhängigkeiten. -->
+  <!-- Script order matters: app.js depends on the logic and storage modules. -->
   <script defer src="js/game-logic.js"></script>
   <script defer src="js/state-manager.js"></script>
   <script defer src="js/storage.js"></script>
@@ -44,82 +44,82 @@
 </head>
 <body>
   <noscript>
-    <div class="noscript-message">Diese Anwendung benötigt JavaScript.</div>
+    <div class="noscript-message">This application requires JavaScript.</div>
   </noscript>
 
   <div class="app-shell">
     <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
-    <section id="storage-conflict-actions" class="storage-conflict-actions" aria-label="Speicherkonflikt" hidden>
+    <section id="storage-conflict-actions" class="storage-conflict-actions" aria-label="Storage conflict" hidden>
       <button id="btn-export-conflict-state" class="button button-secondary" type="button">
-        Ungespeicherten Stand exportieren
+        Export Unsaved State
       </button>
       <button id="btn-reload-after-conflict" class="button button-primary" type="button">
-        Seite neu laden
+        Reload Page
       </button>
     </section>
 
     <!--
-      Ansichtsbereich der Single-Page-App.
-      JavaScript blendet immer genau eine der folgenden sechs Ansichten ein.
+      View container for the single-page application.
+      JavaScript displays exactly one of the following six views at a time.
     -->
     <main id="app" class="app-main">
-      <!-- ==================== STARTSEITE ==================== -->
+      <!-- ==================== HOME ==================== -->
       <section id="screen-home" class="screen screen-home" data-screen="home" aria-labelledby="home-title">
         <header class="home-header">
           <h1 id="home-title">Wizard</h1>
           <p class="home-subtitle">Scoreboard</p>
         </header>
 
-        <!-- Zentrales Menü der Startseite -->
-        <nav class="home-actions" aria-label="Hauptmenü">
-          <button id="btn-new-game" class="button button-primary" type="button">Neues Spiel</button>
-          <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Spiel fortsetzen</button>
+        <!-- Main menu on the home screen -->
+        <nav class="home-actions" aria-label="Main menu">
+          <button id="btn-new-game" class="button button-primary" type="button">New Game</button>
+          <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Continue Game</button>
           <div class="home-secondary-actions">
             <button id="btn-history" class="button button-secondary" type="button" disabled>History</button>
             <button id="btn-import-game" class="button button-secondary" type="button">Import</button>
           </div>
         </nav>
 
-        <!-- Der Dateidialog wird über den Import-Button geöffnet. -->
+        <!-- The file dialog is opened through the Import button. -->
         <input id="import-file-input" type="file" accept="application/json,.json" hidden>
 
-        <footer class="home-footer">Lokal gespeichert · Version 1.0</footer>
+        <footer class="home-footer">Saved locally · Version 1.0</footer>
       </section>
-      <!-- ================== ENDE STARTSEITE ================== -->
+      <!-- ================== END HOME ================== -->
 
-      <!-- ================= SPIELEINRICHTUNG ================= -->
-      <section id="screen-setup" class="screen screen-setup" data-screen="setup" aria-label="Neues Spiel" hidden>
+      <!-- ================= GAME SETUP ================= -->
+      <section id="screen-setup" class="screen screen-setup" data-screen="setup" aria-label="New Game" hidden>
         <form id="setup-form" novalidate>
-          <!-- 1. Spieler erfassen und Sitzreihenfolge festlegen -->
+          <!-- 1. Enter players and define their seating order -->
           <section class="panel" aria-labelledby="players-title">
             <div class="panel-heading">
-              <h3 id="players-title">Spieler und Sitzreihenfolge</h3>
+              <h3 id="players-title">Players and Seating Order</h3>
               <span id="player-count-badge" class="count-badge">3 / 6</span>
             </div>
 
-            <!-- Die Spielereingaben werden in app.js dynamisch erzeugt. -->
+            <!-- Player inputs are created dynamically by the setup controller. -->
             <div id="player-list" class="player-list"></div>
-            <button id="btn-add-player" class="button button-secondary full-width" type="button">Spieler hinzufügen</button>
+            <button id="btn-add-player" class="button button-secondary full-width" type="button">Add Player</button>
           </section>
 
-          <!-- 2. Anzahl der zu spielenden Runden festlegen -->
+          <!-- 2. Select the number of rounds -->
           <section class="panel" aria-labelledby="rounds-title">
-            <h3 id="rounds-title">Rundenzahl</h3>
-            <div id="round-mode-toggle" class="round-mode-toggle" role="radiogroup" aria-label="Spielumfang auswählen" data-mode="full">
+            <h3 id="rounds-title">Number of Rounds</h3>
+            <div id="round-mode-toggle" class="round-mode-toggle" role="radiogroup" aria-label="Select game length" data-mode="full">
               <span class="round-mode-slider" aria-hidden="true"></span>
               <button id="btn-round-mode-full" class="round-mode-button" type="button" role="radio" aria-checked="true">
-                Full Game (<span id="full-game-rounds">–</span> Runden)
+                Full Game (<span id="full-game-rounds">–</span> Rounds)
               </button>
               <button id="btn-round-mode-individual" class="round-mode-button" type="button" role="radio" aria-checked="false">
-                Individuell
+                Individual
               </button>
             </div>
 
             <div id="custom-round-controls" hidden>
-              <div class="stepper" aria-label="Rundenzahl einstellen">
-                <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Rundenzahl verringern">−</button>
-                <input id="rounds-input" class="stepper-input" type="number" inputmode="numeric" min="1" step="1" aria-label="Rundenzahl">
-                <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Rundenzahl erhöhen">+</button>
+              <div class="stepper" aria-label="Set number of rounds">
+                <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Decrease round count">−</button>
+                <input id="rounds-input" class="stepper-input" type="number" inputmode="numeric" min="1" step="1" aria-label="Number of rounds">
+                <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Increase round count">+</button>
               </div>
               <p id="rounds-message" class="status-message" aria-live="polite"></p>
             </div>
@@ -127,112 +127,112 @@
 
           <div id="form-errors" class="form-errors" role="alert" aria-live="assertive" hidden></div>
           <div class="setup-actions">
-            <button id="btn-setup-home" class="setup-home-button" type="button" aria-label="Zur Startseite" title="Zur Startseite">
+            <button id="btn-setup-home" class="setup-home-button" type="button" aria-label="Home" title="Home">
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
               </svg>
             </button>
-            <button class="button button-primary full-width" type="submit">Weiter</button>
+            <button class="button button-primary full-width" type="submit">Continue</button>
           </div>
         </form>
       </section>
-      <!-- =============== ENDE SPIELEINRICHTUNG =============== -->
+      <!-- =============== END GAME SETUP =============== -->
 
-      <!-- ================= ZUSAMMENFASSUNG ================= -->
+      <!-- ================= SETUP SUMMARY ================= -->
       <section id="screen-setup-summary" class="screen screen-setup-summary" data-screen="setup-summary" aria-labelledby="summary-title" hidden>
         <section class="panel summary-panel">
-          <h2 id="summary-title">Zusammenfassung</h2>
+          <h2 id="summary-title">Summary</h2>
           <dl class="summary-list">
-            <div><dt>Spieler</dt><dd id="summary-player-count">3</dd></div>
-            <div><dt>Runden</dt><dd id="summary-round-count">20</dd></div>
+            <div><dt>Players</dt><dd id="summary-player-count">3</dd></div>
+            <div><dt>Rounds</dt><dd id="summary-round-count">20</dd></div>
           </dl>
           <section class="seat-order-section" aria-labelledby="seat-order-title">
-            <h3 id="seat-order-title">Sitzreihenfolge</h3>
-            <!-- Die nummerierten Spielerzeilen werden passend zur Einrichtung erzeugt. -->
+            <h3 id="seat-order-title">Seating Order</h3>
+            <!-- Numbered player rows are created dynamically for the summary. -->
             <ol id="summary-seat-order" class="seat-order-list"></ol>
           </section>
         </section>
 
         <div class="round-actions">
-          <button id="btn-summary-back" class="button button-secondary" type="button">Zurück</button>
-          <button id="btn-summary-start" class="button button-primary" type="button">Spiel starten</button>
+          <button id="btn-summary-back" class="button button-secondary" type="button">Back</button>
+          <button id="btn-summary-start" class="button button-primary" type="button">Start Game</button>
         </div>
       </section>
-      <!-- =============== ENDE ZUSAMMENFASSUNG =============== -->
+      <!-- =============== END SETUP SUMMARY =============== -->
 
-      <!-- ================= LAUFENDES SPIEL ================= -->
+      <!-- ================= ACTIVE GAME ================= -->
       <section id="screen-game" class="screen screen-game" data-screen="game" aria-labelledby="game-phase-label game-title" hidden>
         <div class="game-topbar">
-          <h2 id="game-phase-label" class="game-phase-title">Ansagen</h2>
-          <p id="game-title" class="game-round-title">Runde 1 von 20</p>
-          <button id="btn-game-home" class="setup-home-button game-home-button" type="button" aria-label="Zur Startseite" title="Zur Startseite">
+          <h2 id="game-phase-label" class="game-phase-title">Bids</h2>
+          <p id="game-title" class="game-round-title">Round 1 of 20</p>
+          <button id="btn-game-home" class="setup-home-button game-home-button" type="button" aria-label="Home" title="Home">
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
             </svg>
           </button>
         </div>
 
-        <!-- Gesamtpunkte werden ausschließlich während der Ansagen eingeblendet. -->
-        <div id="game-round-overview" class="panel compact-panel" aria-label="Gesamtpunktzahlen" hidden>
+        <!-- Total scores are displayed only during the bidding phase. -->
+        <div id="game-round-overview" class="panel compact-panel" aria-label="Total scores" hidden>
           <div id="game-total-points" class="game-total-points"></div>
         </div>
 
-        <!-- Die aktuelle Phase (Ansagen, Sonderkarten, Stiche oder Ergebnis) rendert app.js. -->
+        <!-- app.js renders the current phase: bids, special cards, tricks, or result. -->
         <div id="game-content" class="game-content"></div>
       </section>
-      <!-- =============== ENDE LAUFENDES SPIEL =============== -->
+      <!-- =============== END ACTIVE GAME =============== -->
 
       <!-- ==================== HISTORY ==================== -->
       <section id="screen-history" class="screen screen-history" data-screen="history" aria-labelledby="history-page-title" hidden>
         <div class="screen-heading">
           <div>
-            <p class="eyebrow">Spielverlauf</p>
+            <p class="eyebrow">Game Archive</p>
             <h2 id="history-page-title">History</h2>
           </div>
-          <button id="btn-history-home" class="button button-ghost button-small" type="button">Startseite</button>
+          <button id="btn-history-home" class="button button-ghost button-small" type="button">Home</button>
         </div>
 
         <div id="history-list-view">
           <div class="history-toolbar">
-            <button id="btn-history-export-all" class="button button-secondary" type="button">Archiv exportieren</button>
-            <button id="btn-history-import" class="button button-secondary" type="button">Archiv importieren</button>
+            <button id="btn-history-export-all" class="button button-secondary" type="button">Export Archive</button>
+            <button id="btn-history-import" class="button button-secondary" type="button">Import Archive</button>
           </div>
           <p id="history-storage-status" class="history-storage-status" aria-live="polite"></p>
 
           <section class="panel" aria-labelledby="history-list-title">
-            <h3 id="history-list-title">Partien</h3>
+            <h3 id="history-list-title">Games</h3>
             <div id="history-game-list" class="history-game-list"></div>
           </section>
 
-          <button id="btn-history-clear" class="button button-danger full-width" type="button">Gesamte History löschen</button>
+          <button id="btn-history-clear" class="button button-danger full-width" type="button">Clear All History</button>
         </div>
 
         <div id="history-detail-view" class="history-detail-view" hidden>
-          <button id="btn-history-list-back" class="button button-secondary full-width" type="button">Zur Übersicht</button>
+          <button id="btn-history-list-back" class="button button-secondary full-width" type="button">Back to Overview</button>
 
           <section class="panel" aria-labelledby="history-detail-title">
-            <h3 id="history-detail-title">Endergebnis</h3>
-            <div id="history-detail-ranking" class="ranking-list" aria-label="Abschlusstabelle"></div>
+            <h3 id="history-detail-title">Final Result</h3>
+            <div id="history-detail-ranking" class="ranking-list" aria-label="Final standings"></div>
           </section>
 
           <section class="panel" aria-labelledby="history-score-title">
-            <h3 id="history-score-title">Punkteverlauf</h3>
+            <h3 id="history-score-title">Score History</h3>
             <div id="history-score-content" class="history-scroll"></div>
           </section>
 
           <div class="round-actions history-detail-actions">
-            <button id="btn-history-export-game" class="button button-secondary" type="button">Partie exportieren</button>
-            <button id="btn-history-delete-game" class="button button-danger" type="button">Partie löschen</button>
+            <button id="btn-history-export-game" class="button button-secondary" type="button">Export Game</button>
+            <button id="btn-history-delete-game" class="button button-danger" type="button">Delete Game</button>
           </div>
         </div>
       </section>
-      <!-- ================== ENDE HISTORY ================== -->
+      <!-- ================== END HISTORY ================== -->
 
-      <!-- ================== ENDERGEBNIS ================== -->
+      <!-- ================== FINAL RESULT ================== -->
       <section id="screen-finished" class="screen screen-finished" data-screen="finished" aria-labelledby="finished-title" hidden>
         <div class="screen-heading">
-          <h2 id="finished-title">Endergebnis</h2>
-          <button id="btn-finished-home" class="setup-home-button" type="button" aria-label="Zur Startseite" title="Zur Startseite">
+          <h2 id="finished-title">Final Result</h2>
+          <button id="btn-finished-home" class="setup-home-button" type="button" aria-label="Home" title="Home">
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
             </svg>
@@ -240,76 +240,75 @@
         </div>
 
         <section class="panel">
-          <div id="final-ranking" class="ranking-list" aria-label="Abschlusstabelle"></div>
+          <div id="final-ranking" class="ranking-list" aria-label="Final standings"></div>
         </section>
 
         <section class="panel" aria-labelledby="history-title">
-          <h3 id="history-title">Punkteverlauf</h3>
+          <h3 id="history-title">Score History</h3>
           <div id="final-score-history" class="history-scroll"></div>
         </section>
 
         <div class="round-actions">
-          <button id="btn-review-last-round" class="button button-secondary" type="button">Letzte Runde ansehen</button>
-          <button id="btn-finished-new-game" class="button button-primary" type="button">Neues Spiel</button>
+          <button id="btn-review-last-round" class="button button-secondary" type="button">View Last Round</button>
+          <button id="btn-finished-new-game" class="button button-primary" type="button">New Game</button>
         </div>
       </section>
-      <!-- ================ ENDE ENDERGEBNIS ================ -->
+      <!-- ================ END FINAL RESULT ================ -->
     </main>
   </div>
 
   <!--
-    Globale Dialoge liegen außerhalb der Ansichten, weil sie aus mehreren
-    Spielphasen heraus geöffnet werden können.
+    Global dialogs live outside the views because several game phases can open them.
   -->
-  <!-- Hinweis vor der ersten Runde -->
+  <!-- Reminder shown before the first round -->
   <dialog id="round-one-dialog" class="app-dialog">
     <div class="dialog-content">
       <p class="dialog-icon" aria-hidden="true">🃏</p>
-      <h2>Hinweis für Runde 1</h2>
-      <p><strong>Karte nicht anschauen!</strong></p>
-      <p>Haltet eure Karte an die Stirn, sodass nur die anderen Spieler sie sehen können.</p>
-      <button id="btn-confirm-round-one-hint" class="button button-primary full-width" type="button">Verstanden</button>
+      <h2>Round 1 Reminder</h2>
+      <p><strong>Do not look at your card!</strong></p>
+      <p>Hold your card against your forehead so only the other players can see it.</p>
+      <button id="btn-confirm-round-one-hint" class="button button-primary full-width" type="button">Got It</button>
     </div>
   </dialog>
 
-  <!-- Auswahl für die Sonderkarte „Wolke“ -->
+  <!-- Selection dialog for the Cloud special card -->
   <dialog id="cloud-dialog" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
         <div>
-          <p id="cloud-dialog-kicker" class="eyebrow">Wolke</p>
-          <h2>Ansage verändern</h2>
+          <p id="cloud-dialog-kicker" class="eyebrow">Cloud</p>
+          <h2>Change Bid</h2>
         </div>
-        <button id="btn-close-cloud-dialog" class="button button-ghost button-small" type="button">Schließen</button>
+        <button id="btn-close-cloud-dialog" class="button button-ghost button-small" type="button">Close</button>
       </div>
       <div id="cloud-player-options" class="choice-grid"></div>
       <div id="cloud-change-options" class="choice-grid two-columns" hidden>
-        <button id="btn-cloud-minus" class="button button-secondary" type="button">Ansage −1</button>
-        <button id="btn-cloud-plus" class="button button-secondary" type="button">Ansage +1</button>
+        <button id="btn-cloud-minus" class="button button-secondary" type="button">Bid −1</button>
+        <button id="btn-cloud-plus" class="button button-secondary" type="button">Bid +1</button>
       </div>
     </div>
   </dialog>
 
-  <!-- Auswahl der zu korrigierenden Rundendaten -->
+  <!-- Selection dialog for choosing which round data to edit -->
   <dialog id="edit-round-dialog" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
         <div>
-          <p class="eyebrow">Korrektur</p>
-          <h2>Runde bearbeiten</h2>
+          <p class="eyebrow">Correction</p>
+          <h2>Edit Round</h2>
         </div>
-        <button id="btn-close-edit-dialog" class="button button-ghost button-small" type="button">Schließen</button>
+        <button id="btn-close-edit-dialog" class="button button-ghost button-small" type="button">Close</button>
       </div>
-      <p>Welcher Bereich soll korrigiert werden?</p>
+      <p>Which section should be corrected?</p>
       <div class="stacked-actions">
-        <button id="btn-edit-bids" class="button button-secondary" type="button">Ansagen bearbeiten</button>
-        <button id="btn-edit-specials" class="button button-secondary" type="button">Sonderkarten bearbeiten</button>
-        <button id="btn-edit-tricks" class="button button-secondary" type="button">Stiche bearbeiten</button>
+        <button id="btn-edit-bids" class="button button-secondary" type="button">Edit Bids</button>
+        <button id="btn-edit-specials" class="button button-secondary" type="button">Edit Special Cards</button>
+        <button id="btn-edit-tricks" class="button button-secondary" type="button">Edit Tricks</button>
       </div>
     </div>
   </dialog>
 
-  <!-- Globale, kurz eingeblendete Statusmeldung -->
+  <!-- Global status message shown briefly -->
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

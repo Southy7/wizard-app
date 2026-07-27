@@ -1,4 +1,4 @@
-"""Gemeinsame Browser-Testhilfen mit echtem HTTP-Origin und nativem localStorage."""
+"""Shared browser-test helpers using a real HTTP origin and native localStorage."""
 
 from contextlib import contextmanager
 from functools import partial
@@ -78,7 +78,6 @@ def assert_persisted(page):
         }))()
         """
     )
-    assert result["readable"], "Der aktuelle UI-Zustand ist nicht mehr aus localStorage lesbar."
+    assert result["readable"], "The current UI state is no longer readable from localStorage."
     assert result["gameError"] == "", result["gameError"]
     assert page.locator("#storage-warning").is_hidden()
-

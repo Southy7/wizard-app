@@ -1,4 +1,4 @@
-"""Die Kernanwendung startet auch ohne das optionale History-Modul."""
+"""The core application starts without the optional history module."""
 
 from playwright.sync_api import sync_playwright
 from browser_helpers import launch_browser, serve_app
@@ -22,9 +22,8 @@ def main():
         context.close()
         browser.close()
 
-    print("Browser-Kerntest ohne History erfolgreich.")
+    print("Browser core test without history passed.")
 
 
 if __name__ == "__main__":
     main()
-

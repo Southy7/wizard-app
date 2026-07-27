@@ -21,7 +21,7 @@
       const position = document.createElement("span");
       position.className = "ranking-position";
       position.textContent = medals[displayedPosition] ?? String(displayedPosition);
-      position.setAttribute("aria-label", `Platz ${displayedPosition}`);
+      position.setAttribute("aria-label", `Place ${displayedPosition}`);
 
       const name = document.createElement("span");
       name.className = "ranking-name";
@@ -29,7 +29,7 @@
 
       const points = document.createElement("span");
       points.className = "ranking-points";
-      points.textContent = `${entry.points} Punkte`;
+      points.textContent = `${entry.points} Points`;
 
       row.append(position, name, points);
       container.append(row);
@@ -46,7 +46,7 @@
     const headRow = document.createElement("tr");
     const roundHead = document.createElement("th");
     roundHead.scope = "col";
-    roundHead.textContent = "Runde";
+    roundHead.textContent = "Round";
     headRow.append(roundHead);
 
     gameState.players.forEach((player, index) => {
@@ -79,7 +79,7 @@
     const totalRow = document.createElement("tr");
     const totalLabel = document.createElement("th");
     totalLabel.scope = "row";
-    totalLabel.textContent = "Gesamt";
+    totalLabel.textContent = "Total";
     totalRow.append(totalLabel);
     gameState.players.forEach((player) => {
       const cell = document.createElement("td");
@@ -95,7 +95,7 @@
   function getPlayerDisplayName(gameState, playerId, fallbackIndex = 0) {
     const index = gameState.players.findIndex((player) => player.id === playerId);
     const player = gameState.players[index];
-    return player?.name?.trim() || `Spieler ${(index >= 0 ? index : fallbackIndex) + 1}`;
+    return player?.name?.trim() || `Player ${(index >= 0 ? index : fallbackIndex) + 1}`;
   }
 
   function formatSigned(value) {

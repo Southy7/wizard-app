@@ -7,12 +7,12 @@ let failHistoryWrites = false;
 let failGameWrites = false;
 global.localStorage = {
   setItem(key, value) {
-    if (failGameWrites && String(key) === "wizard-punkte-app:game-state:v1") {
+    if (failGameWrites && String(key) === "wizard-scoreboard:game-state:v1") {
       const error = new Error("Storage blocked");
       error.name = "SecurityError";
       throw error;
     }
-    if (failHistoryWrites && String(key) === "wizard-punkte-app:game-history:v1") {
+    if (failHistoryWrites && String(key) === "wizard-scoreboard:game-history:v1") {
       const error = new Error("Quota exceeded");
       error.name = "QuotaExceededError";
       throw error;
@@ -65,26 +65,26 @@ assert.equal(Storage.loadGame().schemaVersion, 4);
 
 const tabAState = JSON.parse(JSON.stringify(loaded));
 const tabBState = JSON.parse(JSON.stringify(loaded));
-tabAState.players[0].name = "Anna aus Tab A";
+tabAState.players[0].name = "Anna from Tab A";
 assert.equal(Storage.saveGame(tabAState), true);
 const tabAUpdatedAt = tabAState.updatedAt;
-tabBState.players[0].name = "Anna aus Tab B";
+tabBState.players[0].name = "Anna from Tab B";
 assert.equal(Storage.saveGame(tabBState), false);
 assert.equal(Storage.wasLastGameSaveConflict(), true);
-assert.match(Storage.getStorageErrors().gameError, /anderen Tab/i);
-assert.equal(Storage.loadGame().players[0].name, "Anna aus Tab A");
+assert.match(Storage.getStorageErrors().gameError, /another tab/i);
+assert.equal(Storage.loadGame().players[0].name, "Anna from Tab A");
 assert.equal(Storage.loadGame().updatedAt, tabAUpdatedAt);
 
-// Ein anderer Tab löscht den zuvor geladenen Spielstand.
+// Another tab deletes the previously loaded game state.
 const staleAfterDeletion = JSON.parse(JSON.stringify(Storage.loadGame()));
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.saveGame(staleAfterDeletion), false);
 assert.equal(Storage.wasLastGameSaveConflict(), true);
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
 
-// Ein anderer Tab ersetzt den gelöschten Zustand durch ein neues Spiel.
+// Another tab replaces the deleted state with a new game.
 const replacementState = Logic.createInitialGameState(3);
-replacementState.players[0].name = "Neues Spiel";
+replacementState.players[0].name = "New Game";
 assert.equal(Storage.saveGame(replacementState, { expectedUpdatedAt: null }), true);
 const replacementId = replacementState.gameId;
 const replacementWithCollidingTimestamp = JSON.parse(localStorage.getItem(Storage.STORAGE_KEY));
@@ -93,21 +93,21 @@ localStorage.setItem(Storage.STORAGE_KEY, JSON.stringify(replacementWithCollidin
 assert.equal(Storage.saveGame(staleAfterDeletion), false);
 assert.equal(Storage.loadGame().gameId, replacementId);
 
-// Eine zwischen Laden und Speichern beschädigte Fassung wird nicht überschrieben.
+// A copy corrupted between loading and saving is not overwritten.
 const staleBeforeDamage = JSON.parse(JSON.stringify(Storage.loadGame()));
 localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
 assert.equal(Storage.saveGame(staleBeforeDamage), false);
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), "{invalid-json");
 
-// Nur der explizite Wiederherstellungspfad darf anschließend neu beginnen.
+// Only the explicit recovery path may start over afterward.
 assert.equal(Storage.deleteGame(), true);
 const recoveryState = Logic.createInitialGameState(3);
-recoveryState.players[0].name = "Wiederhergestellt";
+recoveryState.players[0].name = "Recovered";
 assert.equal(Storage.saveGame(recoveryState, { expectedUpdatedAt: null }), true);
 assert.equal(Storage.wasLastGameSaveConflict(), false);
 const latestGame = Storage.loadGame();
 
-// Ein technischer Schreibfehler ist kein Mehr-Tab-Konflikt.
+// A technical write failure is not a multi-tab conflict.
 failGameWrites = true;
 assert.equal(Storage.saveGame(JSON.parse(JSON.stringify(latestGame))), false);
 assert.equal(Storage.wasLastGameSaveConflict(), false);
@@ -133,13 +133,13 @@ for (const mutate of [
   console.error = () => {};
   assert.equal(Storage.loadGame(), null);
   console.error = validationConsoleError;
-  assert.match(Storage.getStorageErrors().gameError, /beschädigt|nicht lesbar/i);
+  assert.match(Storage.getStorageErrors().gameError, /corrupted|unreadable/i);
   assert.equal(localStorage.getItem(Storage.STORAGE_KEY), invalidStoredValue);
 }
 
-// Die Hexe darf während der laufenden Auswahl lokal zwischengespeichert werden.
+// The Witch may be saved locally while its selection is in progress.
 const transientWitchGame = Logic.createInitialGameState(3);
-transientWitchGame.players.forEach((player, index) => { player.name = `Spieler ${index + 1}`; });
+transientWitchGame.players.forEach((player, index) => { player.name = `Player ${index + 1}`; });
 transientWitchGame.status = "running";
 transientWitchGame.setupDealerRandomized = true;
 transientWitchGame.roundMode = "individual";
@@ -156,10 +156,10 @@ transientRound.specialCards.witch.active = true;
 transientWitchGame.rounds = [transientRound];
 localStorage.setItem(Storage.STORAGE_KEY, JSON.stringify(transientWitchGame));
 assert.notEqual(Storage.loadGame(), null);
-assert.ok(Logic.validateImportedGameState(transientWitchGame).some((error) => error.includes("Hexe")));
+assert.ok(Logic.validateImportedGameState(transientWitchGame).some((error) => error.includes("Witch")));
 assert.deepEqual(Logic.validatePersistableGameState(transientWitchGame), []);
 
-// Eine Wolke +1 in Runde 1 bleibt speicher-, änder- und erneut ladbar.
+// A Cloud +1 in round 1 remains saveable, editable, and reloadable.
 assert.equal(Storage.deleteGame(), true);
 const cloudStoredGame = Logic.createInitialGameState(3);
 cloudStoredGame.players.forEach((player, index) => {
@@ -210,7 +210,7 @@ assert.equal(Storage.saveGame(invalidOutgoingGame), false);
 assert.equal(Storage.wasLastGameSaveConflict(), false);
 assert.match(
   Storage.getStorageErrors().gameError,
-  /aktuelle Spielzustand ist inkonsistent.*offene Runde darf noch keine Punkte/i
+  /current game state is inconsistent.*open round must not contain points yet/i
 );
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), storedCloudValue);
 
@@ -226,12 +226,12 @@ assert.equal(typeof Storage.loadGameHistory()[0].archivedAt, "string");
 const updatedCompletedGame = {
   ...completedGame,
   players: completedGame.players.map((player, index) => (
-    index === 0 ? { ...player, name: "Lena aktualisiert" } : player
+    index === 0 ? { ...player, name: "Lena updated" } : player
   ))
 };
 assert.equal(Storage.saveCompletedGame(updatedCompletedGame), true);
 assert.equal(Storage.loadGameHistory().length, 1);
-assert.equal(Storage.loadGameHistory()[0].players[0].name, "Lena aktualisiert");
+assert.equal(Storage.loadGameHistory()[0].players[0].name, "Lena updated");
 assert.equal(Storage.saveCompletedGame(state), false);
 
 const secondCompletedGame = require("../examples/history-game-2.json").gameState;
@@ -279,7 +279,7 @@ failHistoryWrites = true;
 const quotaConsoleError = console.error;
 console.error = () => {};
 assert.equal(Storage.saveCompletedGame(secondCompletedGame), false);
-assert.match(Storage.getStorageErrors().historyError, /Speicher ist voll/i);
+assert.match(Storage.getStorageErrors().historyError, /storage is full/i);
 console.error = quotaConsoleError;
 failHistoryWrites = false;
 assert.equal(Storage.loadGameHistory().length, 1);
@@ -304,7 +304,7 @@ localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify([inconsistentArchive]))
 const archiveConsoleError = console.error;
 console.error = () => {};
 assert.deepEqual(Storage.loadGameHistory(), []);
-assert.match(Storage.getStorageErrors().historyError, /inkonsistent|nicht lesbar/i);
+assert.match(Storage.getStorageErrors().historyError, /inconsistent|unreadable/i);
 console.error = archiveConsoleError;
 localStorage.setItem(Storage.HISTORY_KEY, validHistoryValue);
 assert.equal(Storage.loadGameHistory().length, 1);
@@ -313,26 +313,26 @@ localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
 const originalConsoleError = console.error;
 console.error = () => {};
 assert.equal(Storage.loadGame(), null);
-assert.match(Storage.getLastError(), /beschädigt|nicht lesbar/i);
+assert.match(Storage.getLastError(), /corrupted|unreadable/i);
 const damagedGameError = Storage.getStorageErrors().gameError;
 
-// Eine erfolgreiche History-Abfrage darf den Fehler des aktiven Spielstands nicht löschen.
+// A successful history query must not clear the active game's error.
 assert.equal(Storage.loadGameHistory().length, 1);
 assert.equal(Storage.getStorageErrors().gameError, damagedGameError);
 assert.equal(Storage.getStorageErrors().historyError, "");
 
-// Umgekehrt darf ein erfolgreicher Spielzugriff keinen History-Fehler löschen.
+// Conversely, successful game access must not clear a history error.
 localStorage.setItem(Storage.HISTORY_KEY, "{invalid-json");
 assert.deepEqual(Storage.loadGameHistory(), []);
 const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
 const damagedHistoryError = Storage.getStorageErrors().historyError;
-assert.match(damagedHistoryError, /Partienarchiv|nicht lesbar/i);
+assert.match(damagedHistoryError, /game archive|unreadable/i);
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.saveGame(latestGame, { expectedUpdatedAt: null }), true);
 assert.equal(Storage.loadGame().version, "1.0");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
-// Ein beschädigtes Archiv wird beim Speichern nicht stillschweigend überschrieben.
+// A corrupted archive is not silently overwritten during a save.
 assert.equal(Storage.saveCompletedGame(completedGame), false);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), damagedHistoryValue);
 console.error = originalConsoleError;
@@ -348,4 +348,4 @@ assert.deepEqual(Storage.loadGameHistory(), []);
 Storage.clearLastError();
 assert.equal(Storage.getLastError(), "");
 
-console.log("Alle Tests der Speicherung wurden erfolgreich ausgeführt.");
+console.log("All storage tests passed.");

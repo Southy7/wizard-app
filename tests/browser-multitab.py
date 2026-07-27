@@ -1,4 +1,4 @@
-"""Native Mehr-Tab-, blockierter-Speicher- und Quota-Szenarien."""
+"""Native multi-tab, blocked-storage, and quota scenarios."""
 
 from playwright.sync_api import sync_playwright
 from browser_helpers import launch_browser, open_clean_page, serve_app
@@ -34,7 +34,7 @@ def main():
         second.click("#btn-continue-game")
         assert second.locator("#screen-setup").is_visible()
 
-        first.locator("#player-list .text-input").first.fill("Anna aus Tab A")
+        first.locator("#player-list .text-input").first.fill("Anna from Tab A")
         assert second.locator("#storage-conflict-actions").is_visible()
         assert second.locator("#player-list .text-input").first.is_disabled()
         assert second.locator("#btn-export-conflict-state").is_enabled()
@@ -45,7 +45,7 @@ def main():
         quota = open_clean_page(quota_context, url)
         quota.click("#btn-new-game")
         quota.evaluate("window.__failGameWrites = true")
-        quota.locator("#player-list .text-input").first.fill("Nicht gespeichert")
+        quota.locator("#player-list .text-input").first.fill("Nicht saved")
         assert quota.locator("#storage-warning").is_visible()
         quota.click("#btn-setup-home")
         assert quota.locator("#btn-continue-game").is_enabled()
@@ -62,9 +62,8 @@ def main():
         blocked_context.close()
         browser.close()
 
-    print("Browser-Mehrtab- und Speicherfehlertests erfolgreich.")
+    print("Browser multi-tab and storage-error tests passed.")
 
 
 if __name__ == "__main__":
     main()
-

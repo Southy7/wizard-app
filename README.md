@@ -1,98 +1,91 @@
-# Wizard-Punkte-App – Version 1.0
+# Wizard Scoreboard – Version 1.0
 
-Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Die App läuft ohne Build-Schritt, ohne Benutzerkonto und ohne Serverlogik. Der Spielstand wird lokal im Browser gespeichert.
+A lightweight, responsive web app for a 70-card Wizard variant. It runs without a build step, user accounts, or server-side logic. Game data is stored locally in the browser.
 
-## Funktionsumfang
+## Features
 
-### Spieleinrichtung
+### Game setup
 
-- reduzierte Startseite mit neuem Spiel, Fortsetzen, History und Import
-- drei bis sechs Spieler
-- Spielernamen und Sitzreihenfolge
-- zufällige Bestimmung des Kartengebers auf der Zusammenfassungsseite
-- automatische Ableitung des Startspielers aus dem zufälligen Kartengeber
-- Wizard-Standardrundenzahl als Ausgangswert
-- individuelle Rundenzahl bis zum Kartenmaximum bei 70 Karten
-- separate Zusammenfassung mit Zurück- und Spiel-starten-Aktion
+- Focused home screen with New Game, Continue Game, History, and Import
+- Three to six players
+- Editable player names and seating order
+- Random dealer selection on the summary screen
+- Automatic starting-player selection based on the dealer
+- Standard Wizard round count selected by default
+- Custom round count up to the 70-card maximum
+- Separate summary screen with Back and Start Game actions
 
-### Vollständiger Spielablauf
+### Complete game flow
 
-- Kartengeber und Startspieler für jede Runde
-- einmaliger Stirnkarten-Hinweis in Runde 1
-- Ansagen in der Reihenfolge ab dem Startspieler
-- gemeinsame Übersicht für Kartengeber, Startspieler und Gesamtpunkte während der Ansagen
-- aktuelle Ansagen und Gesamtpunktzahlen gemeinsam in der Sonderkartenphase
-- Sperre, wenn Ansagesumme und Rundennummer identisch sind
-- Wolke mit Änderung um −1 oder +1
-- Bombe mit angepasster Stichsumme
-- Wolke, Bombe und Hexe als direkt umschaltbare Karten
-- Hexe erst nach einer Wolke oder Bombe, anschließend mit genau einer umschaltbaren Wiederholung
-- gesperrte Sticheingabe, solange bei aktiver Hexe keine zweite Karte gewählt wurde
-- Eingabe der endgültigen Stiche
-- „Richtig“-Schnellaktion zum Übernehmen der aktuellen Ansage als Stichzahl
-- automatische Stichsummenprüfung
-- automatische Punkteberechnung
-- Rundenergebnis mit Rundenpunkten und aktueller Gesamtpunktzahl in getrennten Spalten
-- Bearbeitung der zuletzt abgeschlossenen Runde
-- automatische Vorbereitung der nächsten Runde
+- Dealer and starting player for every round
+- One-time forehead-card reminder in round 1
+- Bids entered in starting-player order
+- Combined dealer, starting-player, and total-score overview during bidding
+- Current bids and total scores shown during the special-card phase
+- Validation when the bid total equals the round number
+- Cloud adjustments of −1 or +1
+- Bomb with an adjusted expected trick total
+- Cloud, Bomb, and Witch cards can be toggled directly
+- Witch becomes available after a Cloud or Bomb and permits exactly one matching second effect
+- Trick entry remains locked until an active Witch has a second card selected
+- Final trick entry for every player
+- Correct shortcut that copies the current bid to the trick count
+- Automatic trick-total validation and score calculation
+- Round result with separate round-score and total-score columns
+- Editing of the most recently completed round
+- Automatic preparation of the next round
 
-### Endergebnis
+### Final result
 
-- Gewinner oder Gleichstand
-- vollständige Rangliste
-- Punktzahl aller Spieler
-- Punkteverlauf über sämtliche Runden
-- Gesamtzeile am Ende der Rundentabelle
+- Winner or tie handling
+- Complete ranking and every player's score
+- Score history across all rounds
+- Total row at the end of the score table
 
-### Sicherheit und Datensicherung
+### Data safety
 
-- Sicherheitsabfrage vor dem Überschreiben eines vorhandenen Spiels
-- verständliche Warnung bei nicht verfügbarem oder beschädigtem Browser-Speicher
-- strikte Validierung aktiver lokaler Spielstände vor dem Laden und Darstellen
-- keine automatische Reparatur mehrdeutiger Spieler-IDs oder Rundennummern
-- unabhängige Fehlerzustände für aktiven Spielstand und History
-- Konfliktschutz und sichtbare Warnung bei Änderungen aus einem anderen Browser-Tab
-- Daten- und Schema-Version im Spielstand
-- Import einer exportierten JSON-Datei
-- Größen- und Formatprüfung beim Import
-- Sicherheitsabfrage vor dem Ersetzen eines vorhandenen Spielstands durch einen Import
-- automatische Speicherung nach relevanten Änderungen
-- Anfrage an unterstützte Browser, die lokalen Daten dauerhaft zu speichern
+- Confirmation before replacing an existing game
+- Clear warnings when browser storage is unavailable or corrupted
+- Strict validation before a local game is loaded or displayed
+- No automatic repair of ambiguous player IDs or round numbers
+- Separate error states for the active game and history
+- Conflict protection and visible warnings for changes made in another browser tab
+- Data and schema versions in every game state
+- JSON import and export
+- Import size and format validation
+- Automatic saving after relevant changes
+- Persistent-storage request in supported browsers
 
-### Technik
+### Technology
 
-- HTML, CSS und JavaScript ohne Framework
-- keine externen Bibliotheken
-- kein Build-Prozess
-- getrennte Module für Spiellogik, Zustandsverwaltung, Speicherung, History und Ergebnisdarstellung
-- eigene Controller für Spieleinrichtung und Persistenzkonflikte
-- optionales History-Modul; die Kernanwendung bleibt ohne History funktionsfähig
-- responsive Darstellung für Handy und Tablet
-- große Touch-Ziele
-- Unterstützung für Hoch- und Querformat
-- automatischer Hell- und Dunkelmodus
-- PWA-Manifest und Offline-Cache
-- Offline-Cache ausschließlich für den eigenen App-Scope und die feste App-Shell
+- Framework-free HTML, CSS, and JavaScript
+- No external runtime libraries or build process
+- Separate modules for game logic, state management, storage, history, and result rendering
+- Dedicated controllers for game setup and persistence conflicts
+- Optional history module; the core app still starts when history is unavailable
+- Responsive phone and tablet layouts with large touch targets
+- Portrait and landscape support
+- Automatic light and dark themes
+- PWA manifest and offline cache
+- Offline caching restricted to the app's own scope and fixed app shell
 
-## Lokal starten
+## Run locally
 
-Für Installation und Offlinefunktion muss die App über einen lokalen Webserver oder HTTPS geöffnet werden.
+Installation and offline support require a local web server or HTTPS.
 
-### Python
-
-Im Projektordner:
+From the project directory, run:
 
 ```bash
 python -m http.server 8080
 ```
 
-Unter Windows alternativ:
+On Windows, you can alternatively run:
 
 ```bash
 py -m http.server 8080
 ```
 
-Danach öffnen:
+Then open:
 
 ```text
 http://localhost:8080
@@ -100,26 +93,26 @@ http://localhost:8080
 
 ## Tests
 
-Die App selbst benötigt Node.js nicht. Für die Tests werden Node.js 24 sowie Python 3.13 verwendet. Die Python-Abhängigkeiten und der zugehörige Chromium-Browser werden einmalig installiert:
+The app itself does not require Node.js. The tests use Node.js 24 and Python 3.13. Install the Python dependencies and Chromium once:
 
 ```bash
 python -m pip install -r requirements-test.txt
 python -m playwright install chromium
 ```
 
-Unter Linux kann Playwright die benötigten Systembibliotheken mitinstallieren:
+On Linux, Playwright can install the required system libraries as well:
 
 ```bash
 python -m playwright install --with-deps chromium
 ```
 
-Danach führt die vollständige Testsuite Unit- und Browser-Tests gemeinsam aus:
+Run the complete unit and browser test suite:
 
 ```bash
 npm test
 ```
 
-Einzelne Testgruppen lassen sich separat starten:
+Run individual groups:
 
 ```bash
 npm run test:unit
@@ -131,42 +124,37 @@ npm run test:browser:multitab
 npm run test:browser:offline
 ```
 
-Die fokussierten Browser-Szenarien starten einen echten lokalen HTTP-Server. Dadurch
-verwenden Reload-, Mehr-Tab- und Offline-Tests natives `localStorage` und einen
-tatsächlich installierten Service Worker. Playwright ist in
-`requirements-test.txt` fest versioniert. Die GitHub-Actions-Konfiguration führt
-`npm test` zusätzlich bei jedem Push und Pull Request in einer reproduzierbaren
-Umgebung aus.
+The focused browser scenarios start a real local HTTP server. Reload, multi-tab, and offline tests therefore use native `localStorage` and an installed service worker. Playwright is pinned in `requirements-test.txt`. GitHub Actions also runs `npm test` for every push and pull request in a reproducible environment.
 
-## History und Import
+## History and import
 
-Die reduzierte Startseite bietet direkten Zugriff auf den Spielverlauf und den Import:
+The home screen provides direct access to the game archive and import:
 
-- **History** listet alle lokal archivierten, abgeschlossenen Partien auf. Ein Klick öffnet das jeweilige Endergebnis mit Rangliste und Punkteverlauf.
-- Einzelne Partien sowie das gesamte Archiv können als JSON-Datei exportiert werden.
-- Archivdateien lassen sich wieder importieren. Dabei werden Partien anhand ihrer `gameId` zusammengeführt; neuere vorhandene Fassungen werden nicht durch ältere überschrieben.
-- Einzelne Partien oder die gesamte History können nach einer Sicherheitsabfrage gelöscht werden.
-- **Import** erkennt sowohl einzelne Spielstände als auch vollständige History-Archive.
+- **History** lists every locally archived completed game. Selecting a game opens its final ranking and score history.
+- Individual games and the entire archive can be exported as JSON.
+- Archive files can be imported again. Games are merged by `gameId`; an older import never overwrites a newer stored version.
+- Individual games or the complete history can be deleted after confirmation.
+- **Import** accepts individual game states and complete history archives.
 
-Die JSON-Datei enthält nur Spielinformationen wie Namen, Runden, Ansagen, Sonderkarten, Stiche und Punkte. Sie wird nicht automatisch an einen Server übertragen.
+Exported JSON contains only game information such as names, rounds, bids, special cards, tricks, and points. It is never sent to a server automatically.
 
-## Speicherung
+## Storage
 
-Der aktive Spielstand und das getrennte Archiv abgeschlossener Partien liegen in `localStorage`. Sie bleiben normalerweise nach dem Schließen des Browsers erhalten. Folgende Fälle können trotzdem zum Datenverlust führen:
+The active game and the separate completed-game archive are stored in `localStorage`. They normally remain after the browser is closed, but data can still be lost through:
 
-- manuelles Löschen der Browserdaten
-- private Browsermodi
-- restriktive Browser- oder Geräteeinstellungen
-- Wechsel zu einem anderen Browser oder Gerät
+- Manual deletion of browser data
+- Private browsing modes
+- Restrictive browser or device settings
+- Switching to another browser or device
 
-Deshalb empfiehlt sich bei längeren Partien oder vor einem Gerätewechsel ein Export.
+Export longer games and create a backup before changing devices.
 
-Ab 100 archivierten Partien oder ungefähr 3 MB Archivgröße zeigt die App eine Warnung an. Es werden keine Partien automatisch gelöscht. Ist das Browserkontingent erschöpft, bleibt der aktive Spielstand erhalten und die App fordert zum Exportieren oder Löschen älterer Partien auf.
+The app displays a warning at 100 archived games or about 3 MB of archive data. Games are never deleted automatically. If the browser quota is exhausted, the active game remains intact and the app asks the user to export or delete older archived games.
 
-## Projektstruktur
+## Project structure
 
 ```text
-wizard-punkte-app-v1.0-step3/
+wizard-app/
 ├── index.html
 ├── styles.css
 ├── manifest.webmanifest

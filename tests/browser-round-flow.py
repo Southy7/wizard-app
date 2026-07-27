@@ -1,16 +1,16 @@
-"""Zwei vollständige Runden einschließlich nachträglicher Ergebniskorrektur."""
+"""Two complete rounds, including a later result correction."""
 
 from playwright.sync_api import sync_playwright
 from browser_helpers import assert_persisted, launch_browser, open_clean_page, serve_app, set_values, start_game
 
 
 def complete_round(page, tricks):
-    page.get_by_role("button", name="Ansagen bestätigen").click()
+    page.get_by_role("button", name="Confirm Bids").click()
     assert_persisted(page)
-    page.get_by_role("button", name="Stiche eintragen").click()
+    page.get_by_role("button", name="Enter Tricks").click()
     assert_persisted(page)
     set_values(page, ".tricks-panel", tricks)
-    page.get_by_role("button", name="Runde abschließen").click()
+    page.get_by_role("button", name="Complete Round").click()
     assert_persisted(page)
 
 
@@ -22,12 +22,12 @@ def main():
         start_game(page, rounds=2)
 
         complete_round(page, (1, 0, 0))
-        page.get_by_role("button", name="Nächste Runde").click()
+        page.get_by_role("button", name="Next Round").click()
         assert_persisted(page)
-        assert page.locator("#game-title").text_content() == "Runde 2 von 2"
+        assert page.locator("#game-title").text_content() == "Round 2 of 2"
 
         complete_round(page, (2, 0, 0))
-        page.get_by_role("button", name="Runde bearbeiten").click()
+        page.get_by_role("button", name="Edit Round").click()
         page.click("#btn-edit-tricks")
         assert_persisted(page)
 
@@ -37,7 +37,7 @@ def main():
         assert_persisted(page)
         second_row.locator(".value-button").nth(1).click()
         assert_persisted(page)
-        page.get_by_role("button", name="Runde abschließen").click()
+        page.get_by_role("button", name="Complete Round").click()
         assert_persisted(page)
 
         saved = page.evaluate(
@@ -52,15 +52,14 @@ def main():
             """
         )
         assert saved == {"rounds": 2, "completed": 2}
-        page.get_by_role("button", name="Spiel beenden").click()
+        page.get_by_role("button", name="Finish Game").click()
         assert_persisted(page)
         assert page.locator("#screen-finished").is_visible()
         context.close()
         browser.close()
 
-    print("Browser-Rundenflusstests erfolgreich.")
+    print("Browser round-flow tests passed.")
 
 
 if __name__ == "__main__":
     main()
-

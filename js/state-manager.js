@@ -9,7 +9,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : window, function createStateManager() {
   "use strict";
 
-  // Zustände werden vor dem Aufruf validiert und anschließend unverändert kopiert.
+  // States are validated before this function is called and then copied unchanged.
   function cloneState(state) {
     return JSON.parse(JSON.stringify(state));
   }

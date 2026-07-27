@@ -1,4 +1,4 @@
-/* Design-Tokens und globale Grundeinstellungen */
+/* Design tokens and global defaults */
 :root {
   color-scheme: light dark;
   --bg: #f3f6f5;
@@ -71,7 +71,7 @@ select:focus-visible {
   display: none !important;
 }
 
-/* App-Rahmen, Kopfbereich und gemeinsame Layout-Bausteine */
+/* App shell, header, and shared layout components */
 .app-shell {
   width: min(100%, 820px);
   min-height: 100vh;
@@ -171,7 +171,7 @@ select:focus-visible {
   line-height: 1.45;
 }
 
-/* Aktionen und Buttons */
+/* Actions and buttons */
 .stacked-actions {
   width: min(100%, 440px);
   margin: 8px auto 0;
@@ -255,7 +255,7 @@ select:focus-visible {
   width: 100%;
 }
 
-/* Reduzierte Startseite */
+/* Reduzierte Home */
 .screen-home {
   flex: 1;
   min-height: calc(100dvh - max(38px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
@@ -301,7 +301,7 @@ select:focus-visible {
   font-size: 0.78rem;
 }
 
-/* Globale Speicherwarnung */
+/* Globale storagewarnung */
 .storage-warning {
   border: 1px solid var(--danger-border);
   border-radius: var(--radius-small);
@@ -332,7 +332,7 @@ select:focus-visible {
   }
 }
 
-/* Spieleinrichtung */
+/* Game setup */
 .setup-home-button {
   display: grid;
   width: var(--touch-target);
@@ -731,7 +731,7 @@ select:focus-visible {
   padding-left: 20px;
 }
 
-/* Laufendes Spiel: Eingaben und Phasenstatus */
+/* Active game: inputs and phase status */
 .points-grid {
   margin-top: 14px;
   display: grid;
@@ -894,7 +894,7 @@ select:focus-visible {
   color: var(--warning);
 }
 
-/* Laufendes Spiel: Sonderkarten */
+/* Active game: special cards */
 .special-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -971,7 +971,7 @@ select:focus-visible {
   margin-top: 16px;
 }
 
-/* Runden- und Punktetabellen */
+/* Round and score tables */
 .score-table-scroll {
   width: 100%;
   min-width: 0;
@@ -1048,7 +1048,7 @@ select:focus-visible {
   font-weight: 600;
 }
 
-/* Endergebnis und Punkteverlauf */
+/* Final result and score history */
 .history-game-list,
 .history-detail-view {
   display: grid;
@@ -1233,7 +1233,7 @@ select:focus-visible {
   font-weight: 800;
 }
 
-/* Dialoge, globale Meldungen und Fußbereich */
+/* Dialogs, global messages, and footer */
 .app-dialog {
   width: min(calc(100% - 30px), 560px);
   max-height: min(86vh, 720px);

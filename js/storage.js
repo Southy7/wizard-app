@@ -1,8 +1,8 @@
 (function attachStorage(root) {
   "use strict";
 
-  const STORAGE_KEY = "wizard-punkte-app:game-state:v1";
-  const HISTORY_KEY = "wizard-punkte-app:game-history:v1";
+  const STORAGE_KEY = "wizard-scoreboard:game-state:v1";
+  const HISTORY_KEY = "wizard-scoreboard:game-history:v1";
   const HISTORY_SOFT_LIMIT_COUNT = 100;
   const HISTORY_SOFT_LIMIT_BYTES = 3_000_000;
   const errors = {
@@ -12,7 +12,7 @@
   };
   let lastGameSaveConflict = false;
 
-  // Getrennte Fehlerkanäle verhindern, dass eine erfolgreiche Operation fremde Fehler löscht.
+  // Separate error channels prevent a successful operation from clearing unrelated errors.
   function setError(scope, message, error) {
     errors[scope] = message;
     if (error) console.error(message, error);
@@ -51,12 +51,12 @@
       clearError("storageError");
       return true;
     } catch (error) {
-      setError("storageError", "Der Browser stellt keinen nutzbaren lokalen Speicher bereit.", error);
+      setError("storageError", "The browser does not provide usable local storage.", error);
       return false;
     }
   }
 
-  // Alle Speicherzugriffe bleiben in diesem Modul gekapselt.
+  // All storage access is encapsulated in this module.
   function saveGame(state, options = {}) {
     lastGameSaveConflict = false;
     if (!isStorageAvailable()) return false;
@@ -84,7 +84,7 @@
         lastGameSaveConflict = true;
         setError(
           "gameError",
-          "Der Spielstand wurde in einem anderen Tab geändert oder gelöscht. Diese Seite wurde nicht gespeichert; lade sie neu, bevor du weiterarbeitest."
+          "The game was changed or deleted in another tab. This page was not saved; reload it before continuing."
         );
         return false;
       }
@@ -97,7 +97,7 @@
       if (validationErrors.length > 0) {
         setError(
           "gameError",
-          `Der aktuelle Spielzustand ist inkonsistent: ${validationErrors[0]}`
+          `The current game state is inconsistent: ${validationErrors[0]}`
         );
         return false;
       }
@@ -107,7 +107,7 @@
       clearError("gameError");
       return true;
     } catch (error) {
-      setError("gameError", "Der Spielstand konnte nicht lokal gespeichert werden.", error);
+      setError("gameError", "The game could not be saved locally.", error);
       return false;
     }
   }
@@ -128,7 +128,7 @@
   function getPersistableGameValidationErrors(candidate) {
     const validatePersistableGame = root.WizardGameLogic?.validatePersistableGameState;
     if (typeof validatePersistableGame !== "function") {
-      return ["Die Spielstandvalidierung ist nicht verfügbar."];
+      return ["Game-state validation is not available."];
     }
     return validatePersistableGame(candidate);
   }
@@ -153,7 +153,7 @@
 
       const parsed = JSON.parse(raw);
       if (!parsed || parsed.version !== "1.0" || !Array.isArray(parsed.players)) {
-        throw new Error("Unbekanntes oder beschädigtes Speicherformat.");
+        throw new Error("Unknown or corrupted storage format.");
       }
 
       const validationErrors = getPersistableGameValidationErrors(parsed);
@@ -166,7 +166,7 @@
     } catch (error) {
       setError(
         "gameError",
-        "Der gespeicherte Spielstand ist beschädigt oder nicht lesbar. Eine exportierte Sicherung kann weiterhin importiert werden.",
+        "The saved game is corrupted or unreadable. An exported backup can still be imported.",
         error
       );
       return null;
@@ -181,7 +181,7 @@
       clearError("gameError");
       return true;
     } catch (error) {
-      setError("gameError", "Der gespeicherte Spielstand konnte nicht gelöscht werden.", error);
+      setError("gameError", "The saved game could not be deleted.", error);
       return false;
     }
   }
@@ -191,7 +191,7 @@
     try {
       return localStorage.getItem(STORAGE_KEY) !== null;
     } catch (error) {
-      setError("gameError", "Der lokale Speicher konnte nicht geprüft werden.", error);
+      setError("gameError", "Local storage could not be checked.", error);
       return false;
     }
   }
@@ -212,17 +212,17 @@
 
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) {
-        throw new Error("Unbekanntes Archivformat.");
+        throw new Error("Unknown archive format.");
       }
 
       if (parsed.some((game) => !isCompletedGameConsistent(game))) {
-        throw new Error("Das Archiv enthält eine unvollständige oder inkonsistente Partie.");
+        throw new Error("The archive contains an incomplete or inconsistent game.");
       }
 
       clearError("historyError");
       return parsed;
     } catch (error) {
-      setError("historyError", "Das gespeicherte Partienarchiv ist beschädigt oder nicht lesbar.", error);
+      setError("historyError", "The saved game archive is corrupted or unreadable.", error);
       return [];
     }
   }
@@ -268,7 +268,7 @@
 
     const nextHistory = history.filter((game) => game.gameId !== gameId);
     if (nextHistory.length === history.length) return false;
-    return writeGameHistory(nextHistory, "Die Partie konnte nicht aus der History gelöscht werden.");
+    return writeGameHistory(nextHistory, "The game could not be deleted from history.");
   }
 
   function clearGameHistory() {
@@ -279,7 +279,7 @@
       clearError("historyError");
       return true;
     } catch (error) {
-      setHistoryWriteError(error, "Die History konnte nicht gelöscht werden.");
+      setHistoryWriteError(error, "History could not be cleared.");
       return false;
     }
   }
@@ -323,7 +323,7 @@
     const nextHistory = [...merged.values()]
       .sort((a, b) => String(b.archivedAt ?? b.updatedAt ?? "")
         .localeCompare(String(a.archivedAt ?? a.updatedAt ?? "")));
-    const success = writeGameHistory(nextHistory, "Das importierte Archiv konnte nicht lokal gespeichert werden.");
+    const success = writeGameHistory(nextHistory, "The imported archive could not be saved locally.");
     return { success, added: success ? added : 0, updated: success ? updated : 0, skipped: success ? skipped : 0 };
   }
 
@@ -334,7 +334,7 @@
     return !Number.isNaN(candidateTime) && candidateTime > existingTime;
   }
 
-  function writeGameHistory(history, fallbackMessage = "Die abgeschlossene Partie konnte nicht im Archiv gespeichert werden.") {
+  function writeGameHistory(history, fallbackMessage = "The completed game could not be saved to the archive.") {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       clearError("historyError");
@@ -345,9 +345,9 @@
     }
   }
 
-  function setHistoryWriteError(error, fallbackMessage = "Die abgeschlossene Partie konnte nicht im Archiv gespeichert werden.") {
+  function setHistoryWriteError(error, fallbackMessage = "The completed game could not be saved to the archive.") {
     const message = isQuotaExceededError(error)
-      ? "Der lokale Speicher ist voll. Die History konnte nicht gespeichert werden. Exportiere oder lösche ältere Partien."
+      ? "Local storage is full. History could not be saved. Export or delete older games."
       : fallbackMessage;
     setError("historyError", message, error);
   }
@@ -361,8 +361,8 @@
 
   function getHistoryStorageStatus(history = loadGameHistory()) {
     const serialized = JSON.stringify(Array.isArray(history) ? history : []);
-    // localStorage speichert Zeichenketten üblicherweise als UTF-16. Der Wert ist
-    // daher eine bewusst vorsichtige Näherung an das belegte Browserkontingent.
+    // localStorage usually stores strings as UTF-16. This value is therefore a
+    // deliberately conservative estimate of the browser quota in use.
     const bytes = serialized.length * 2;
     const count = Array.isArray(history) ? history.length : 0;
 

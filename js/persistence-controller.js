@@ -41,7 +41,7 @@
         storageConflict = Storage.wasLastGameSaveConflict?.() === true;
         hasUnsavedChanges = !storageConflict;
         const error = Storage.getStorageErrors?.().gameError
-          || "Der Spielstand konnte auf diesem Gerät nicht gespeichert werden. Exportiere den Spielstand, sobald die Speicherung wieder funktioniert.";
+          || "The game could not be saved on this device. Export the game state as soon as storage is available again.";
         updateWarning(error);
         showToast(error);
       } else {
@@ -87,7 +87,7 @@
         getHistoryCapacityWarning()
       ].filter(Boolean).join(" ");
       const text = message || externalWarning || storageError || (!storageAvailable
-        ? "Der Browser stellt keinen dauerhaften lokalen Speicher bereit. Änderungen können beim Schließen verloren gehen."
+        ? "The browser does not provide persistent local storage. Changes may be lost when it is closed."
         : "");
 
       warning.textContent = text;
@@ -102,9 +102,9 @@
 
       if (event.key === Storage.STORAGE_KEY) {
         storageConflict = true;
-        externalGameWarning = "Der Spielstand wurde in einem anderen Tab geändert. Lade diese Seite neu, bevor du weiterspielst.";
+        externalGameWarning = "The game was changed in another tab. Reload this page before continuing.";
       } else {
-        externalHistoryWarning = "Die History wurde in einem anderen Tab geändert. Lade diese Seite neu, um den aktuellen Stand zu sehen.";
+        externalHistoryWarning = "History was changed in another tab. Reload this page to see the latest state.";
       }
       refreshConflictMode();
       updateWarning();
@@ -155,7 +155,7 @@
 
       event.preventDefault();
       event.stopImmediatePropagation();
-      showToast("Dieser Spielstand ist wegen eines Speicherkonflikts gesperrt. Lade die Seite neu oder exportiere den ungespeicherten Stand.");
+      showToast("This game is locked because of a storage conflict. Reload the page or export the unsaved state.");
     }
 
     function exportConflictState() {
@@ -164,7 +164,7 @@
 
       const exportedAt = new Date();
       downloadJson({
-        exportFormat: "wizard-punkte-app",
+        exportFormat: "wizard-scoreboard-game",
         exportVersion: 1,
         exportedAt: exportedAt.toISOString(),
         recoveryReason: "storage-conflict",
@@ -202,7 +202,7 @@
         if (!navigator.storage?.persist) return;
         await navigator.storage.persist();
       } catch (error) {
-        console.warn("Dauerhafte Speicherung konnte nicht angefragt werden:", error);
+        console.warn("Persistent storage could not be requested:", error);
       }
     }
 

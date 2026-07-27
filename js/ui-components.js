@@ -69,7 +69,7 @@
     minus.className = "value-button";
     minus.textContent = "−";
     minus.disabled = value <= min;
-    minus.setAttribute("aria-label", `${name}: Wert verringern`);
+    minus.setAttribute("aria-label", `${name}: decrease value`);
     minus.addEventListener("click", () => onChange(value - 1));
 
     const display = document.createElement("span");
@@ -82,7 +82,7 @@
     plus.className = "value-button";
     plus.textContent = "+";
     plus.disabled = value >= max;
-    plus.setAttribute("aria-label", `${name}: Wert erhöhen`);
+    plus.setAttribute("aria-label", `${name}: increase value`);
     plus.addEventListener("click", () => onChange(value + 1));
 
     stepper.append(minus, display, plus);

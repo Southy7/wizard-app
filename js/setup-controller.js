@@ -62,24 +62,24 @@
         input.type = "text";
         input.maxLength = 30;
         input.autocomplete = "off";
-        input.placeholder = `Spieler ${index + 1}`;
-        input.setAttribute("aria-label", `Spieler ${index + 1}`);
+        input.placeholder = `Player ${index + 1}`;
+        input.setAttribute("aria-label", `Player ${index + 1}`);
         input.value = player.name;
         input.setAttribute("aria-invalid", String(!player.name.trim()));
         input.addEventListener("input", (event) => updatePlayerName(player.id, event.target.value));
 
         const duplicateHint = document.createElement("span");
         duplicateHint.className = "duplicate-hint";
-        duplicateHint.textContent = duplicateIds.has(player.id) ? "Name wird mehrfach verwendet." : "";
+        duplicateHint.textContent = duplicateIds.has(player.id) ? "This name is used more than once." : "";
         inputWrap.append(input, duplicateHint);
 
         const actions = document.createElement("div");
         actions.className = "player-actions";
-        const moveUp = createIconButton("↑", `Spieler ${index + 1} nach oben verschieben`, index === 0);
+        const moveUp = createIconButton("↑", `Move player ${index + 1} up`, index === 0);
         moveUp.addEventListener("click", () => reorderPlayer(player.id, "up"));
-        const moveDown = createIconButton("↓", `Spieler ${index + 1} nach unten verschieben`, index === state.players.length - 1);
+        const moveDown = createIconButton("↓", `Move player ${index + 1} down`, index === state.players.length - 1);
         moveDown.addEventListener("click", () => reorderPlayer(player.id, "down"));
-        const remove = createIconButton("×", `Spieler ${index + 1} entfernen`, state.players.length <= Logic.MIN_PLAYERS, true);
+        const remove = createIconButton("×", `Remove player ${index + 1}`, state.players.length <= Logic.MIN_PLAYERS, true);
         remove.addEventListener("click", () => removePlayer(player.id));
         actions.append(moveUp, moveDown, remove);
         row.append(inputWrap, actions);
@@ -117,7 +117,7 @@
         const input = row.querySelector(".text-input");
         const hint = row.querySelector(".duplicate-hint");
         if (input && player) input.setAttribute("aria-invalid", String(!player.name.trim()));
-        if (hint) hint.textContent = duplicateIds.has(playerId) ? "Name wird mehrfach verwendet." : "";
+        if (hint) hint.textContent = duplicateIds.has(playerId) ? "This name is used more than once." : "";
       });
     }
 
@@ -197,7 +197,7 @@
       const corrected = Logic.clampRoundCount(entered, state.players.length, state.totalCards);
       state.totalRounds = corrected;
       persistState();
-      renderRoundControls(entered !== corrected ? `Zulässig sind 1 bis ${maximum} Runden. Der Wert wurde angepasst.` : "");
+      renderRoundControls(entered !== corrected ? `Choose between 1 and ${maximum} rounds. The value was adjusted.` : "");
       renderSummary();
     }
 
@@ -221,14 +221,14 @@
         const position = document.createElement("span");
         position.className = "seat-position";
         position.textContent = String(index + 1);
-        position.setAttribute("aria-label", `Sitzplatz ${index + 1}`);
+        position.setAttribute("aria-label", `seat ${index + 1}`);
         const name = document.createElement("span");
         name.className = "seat-player-name";
         name.textContent = getPlayerDisplayNameById(player.id);
         const roles = document.createElement("span");
         roles.className = "seat-role-badges";
-        if (player.id === state.firstDealerId) roles.append(createSeatRoleBadge("Kartengeber", "dealer"));
-        if (player.id === starter?.id) roles.append(createSeatRoleBadge("Startspieler", "starter"));
+        if (player.id === state.firstDealerId) roles.append(createSeatRoleBadge("Dealer", "dealer"));
+        if (player.id === starter?.id) roles.append(createSeatRoleBadge("Starting Player", "starter"));
         item.append(position, name, roles);
         seatOrder.append(item);
       });

@@ -20,7 +20,7 @@
     6: 10
   });
 
-  // Spieler, Sitzordnung und Rundengrenzen
+  // Players, seating order, and round limits
   function createId(prefix = "player") {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       return `${prefix}-${crypto.randomUUID()}`;
@@ -119,7 +119,7 @@
     const groups = new Map();
 
     for (const player of players) {
-      const normalizedName = String(player.name ?? "").trim().toLocaleLowerCase("de-DE");
+      const normalizedName = String(player.name ?? "").trim().toLocaleLowerCase("en-US");
       if (!normalizedName) continue;
 
       if (!groups.has(normalizedName)) groups.set(normalizedName, []);
@@ -138,27 +138,27 @@
     const players = Array.isArray(state?.players) ? state.players : [];
 
     if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
-      errors.push(`Es müssen zwischen ${MIN_PLAYERS} und ${MAX_PLAYERS} Spieler angelegt sein.`);
+      errors.push(`There must be between ${MIN_PLAYERS} and ${MAX_PLAYERS} players.`);
     }
 
     if (players.some((player) => !String(player.name ?? "").trim())) {
-      errors.push("Bitte trage für jeden Spieler einen Namen ein.");
+      errors.push("Please enter a name for every player.");
     }
 
     if (!players.some((player) => player.id === state?.firstDealerId)) {
-      errors.push("Bitte wähle einen gültigen Kartengeber aus.");
+      errors.push("Please select a valid dealer.");
     }
 
     const maximumRounds = getMaximumRounds(players.length, state?.totalCards ?? TOTAL_CARDS);
     if (!Number.isInteger(state?.totalRounds) || state.totalRounds < 1 || state.totalRounds > maximumRounds) {
-      errors.push(`Die Rundenzahl muss zwischen 1 und ${maximumRounds} liegen.`);
+      errors.push(`The number of rounds must be between 1 and ${maximumRounds}.`);
     }
 
     return errors;
   }
 
-  // Importdaten müssen vollständig spielbar sein. Bewusst temporäre UI-Zustände
-  // werden ausschließlich über validatePersistableGameState zugelassen.
+  // Imported data must represent a complete, playable state. Temporary UI states
+  // are accepted exclusively by validatePersistableGameState.
   function validateImportedGameState(candidate) {
     return validateGameState(candidate, { allowIncompleteWitchSelection: false });
   }
@@ -173,20 +173,20 @@
     const allowedPhases = new Set(["bids", "play", "tricks", "result"]);
 
     if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-      return ["Die Datei enthält keinen gültigen Spielstand."];
+      return ["The file does not contain a valid game state."];
     }
 
     if (candidate.version !== "1.0") {
-      errors.push("Die Datei ist kein gültiger Wizard-Spielstand der Version 1.0.");
+      errors.push("The file is not a valid Wizard game state for version 1.0.");
     }
 
     if (candidate.schemaVersion !== 4) {
-      errors.push("Der Spielstand verwendet nicht das aktuelle Schema 4.");
+      errors.push("The game state does not use the current schema version 4.");
     }
 
     const players = Array.isArray(candidate.players) ? candidate.players : [];
     if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
-      errors.push(`Der Spielstand muss ${MIN_PLAYERS} bis ${MAX_PLAYERS} Spieler enthalten.`);
+      errors.push(`The game state must contain between ${MIN_PLAYERS} and ${MAX_PLAYERS} players.`);
       return errors;
     }
 
@@ -194,7 +194,7 @@
     players.forEach((player, index) => {
       const id = player?.id;
       if (typeof id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(id)) {
-        errors.push(`Spieler ${index + 1} besitzt keine gültige ID.`);
+        errors.push(`Player ${index + 1} does not have a valid ID.`);
       } else {
         playerIds.push(id);
       }
@@ -202,11 +202,11 @@
       if (typeof player?.name !== "string"
         || player.name.length > 30
         || (candidate.status !== "setup" && !player.name.trim())) {
-        errors.push(`Spieler ${index + 1} besitzt keinen gültigen Namen.`);
+        errors.push(`Player ${index + 1} does not have a valid name.`);
       }
 
       if (player?.seatPosition !== undefined && player.seatPosition !== index) {
-        errors.push("Die Sitzreihenfolge der Spieler ist nicht eindeutig.");
+        errors.push("The players' seating order is ambiguous.");
       }
     });
 
@@ -214,49 +214,49 @@
 
     const playerIdSet = new Set(playerIds);
     if (playerIdSet.size !== playerIds.length) {
-      errors.push("Spieler-IDs müssen eindeutig sein.");
+      errors.push("Player IDs must be unique.");
       return errors;
     }
 
     if (!allowedStatuses.has(candidate.status)) {
-      errors.push("Der Spielstatus ist ungültig.");
+      errors.push("The game status is invalid.");
     }
 
     if (!playerIdSet.has(candidate.firstDealerId)) {
-      errors.push("Der Kartengeber ist ungültig.");
+      errors.push("The dealer is invalid.");
     }
 
     if (!["full", "individual"].includes(candidate.roundMode)) {
-      errors.push("Der Rundentyp ist ungültig.");
+      errors.push("The round mode is invalid.");
     }
 
     const maximumRounds = getMaximumRounds(players.length, TOTAL_CARDS);
     if (!Number.isInteger(candidate.totalRounds)
       || candidate.totalRounds < 1
       || candidate.totalRounds > maximumRounds) {
-      errors.push(`Die Rundenzahl muss zwischen 1 und ${maximumRounds} liegen.`);
+      errors.push(`The number of rounds must be between 1 and ${maximumRounds}.`);
     } else if (candidate.roundMode === "full" && candidate.totalRounds !== getStandardRounds(players.length)) {
-      errors.push("Die Rundenzahl passt nicht zum ausgewählten Full Game.");
+      errors.push("The number of rounds does not match the selected full game.");
     }
 
     if (!Number.isInteger(candidate.currentRound)
       || !Number.isInteger(candidate.totalRounds)
       || candidate.currentRound < 1
       || candidate.currentRound > candidate.totalRounds) {
-      errors.push("Die aktuelle Runde ist ungültig.");
+      errors.push("The current round is invalid.");
     }
 
     if (candidate.totalCards !== undefined && candidate.totalCards !== TOTAL_CARDS) {
-      errors.push(`Der Spielstand muss auf ${TOTAL_CARDS} Karten basieren.`);
+      errors.push(`The game state must be based on ${TOTAL_CARDS} cards.`);
     }
 
     if (candidate.status !== "setup" && candidate.setupDealerRandomized !== true) {
-      errors.push("Für eine gestartete Partie muss der Kartengeber festgelegt sein.");
+      errors.push("A dealer must be set for a started game.");
     }
 
     const rounds = Array.isArray(candidate.rounds) ? candidate.rounds : null;
     if (!rounds) {
-      errors.push("Die Runden des Spielstands fehlen.");
+      errors.push("The game state's rounds are missing.");
       return errors;
     }
 
@@ -269,31 +269,31 @@
         || !Number.isInteger(candidate.totalRounds)
         || roundNumber < 1
         || roundNumber > candidate.totalRounds) {
-        errors.push("Mindestens eine Rundennummer ist ungültig.");
+        errors.push("At least one round number is invalid.");
         continue;
       }
 
       if (seenRoundNumbers.has(roundNumber)) {
-        errors.push(`Runde ${roundNumber} ist mehrfach vorhanden.`);
+        errors.push(`Round ${roundNumber} occurs more than once.`);
         continue;
       }
       seenRoundNumbers.add(roundNumber);
 
       if (!allowedPhases.has(rawRound.phase)) {
-        errors.push(`Runde ${roundNumber} besitzt eine ungültige Phase.`);
+        errors.push(`Round ${roundNumber} has an invalid phase.`);
       }
 
       if (typeof rawRound.completed !== "boolean") {
-        errors.push(`Runde ${roundNumber} besitzt keinen eindeutigen Abschlussstatus.`);
+        errors.push(`Round ${roundNumber} does not have an unambiguous completion status.`);
       }
 
       const expectedDealer = getDealerForRound(players, candidate.firstDealerId, roundNumber);
       const expectedStarter = getStartingPlayerForRound(players, candidate.firstDealerId, roundNumber);
       if (rawRound.dealerId != null && rawRound.dealerId !== expectedDealer?.id) {
-        errors.push(`Der Kartengeber in Runde ${roundNumber} ist ungültig.`);
+        errors.push(`The dealer in round ${roundNumber} is invalid.`);
       }
       if (rawRound.startingPlayerId != null && rawRound.startingPlayerId !== expectedStarter?.id) {
-        errors.push(`Der Startspieler in Runde ${roundNumber} ist ungültig.`);
+        errors.push(`The starting player in round ${roundNumber} is invalid.`);
       }
 
       const specialCards = validateImportedSpecialCards(rawRound.specialCards, players, roundNumber, errors);
@@ -317,38 +317,38 @@
       };
 
       getSpecialCardErrors(normalizedRound, players, options)
-        .forEach((error) => errors.push(`Runde ${roundNumber}: ${error}`));
+        .forEach((error) => errors.push(`Round ${roundNumber}: ${error}`));
 
       const recalculated = recalculateCurrentBids(normalizedRound, players);
       for (const player of players) {
         if (playerResults[player.id].currentBid !== recalculated.playerResults[player.id].currentBid) {
-          errors.push(`Die aktuelle Ansage von ${player.name} in Runde ${roundNumber} ist inkonsistent.`);
+          errors.push(`${player.name}'s current bid in round ${roundNumber} is inconsistent.`);
         }
       }
 
       if (rawRound.completed) {
         if (rawRound.phase !== "result") {
-          errors.push(`Die abgeschlossene Runde ${roundNumber} muss sich in der Ergebnisphase befinden.`);
+          errors.push(`Completed round ${roundNumber} must be in the result phase.`);
         }
         if (typeof rawRound.completedAt !== "string" || Number.isNaN(Date.parse(rawRound.completedAt))) {
-          errors.push(`Runde ${roundNumber} besitzt kein gültiges Abschlussdatum.`);
+          errors.push(`Round ${roundNumber} does not have a valid completion date.`);
         }
         if (!validateTrickSum(normalizedRound).valid) {
-          errors.push(`Die Stichsumme in Runde ${roundNumber} ist ungültig.`);
+          errors.push(`The trick total in round ${roundNumber} is invalid.`);
         }
 
         for (const player of players) {
           const result = playerResults[player.id];
           if (result.roundPoints !== calculatePoints(result.currentBid, result.tricks)) {
-            errors.push(`Die Punkte von ${player.name} in Runde ${roundNumber} sind ungültig.`);
+            errors.push(`${player.name}'s points in round ${roundNumber} are invalid.`);
           }
         }
       } else {
         if (rawRound.phase === "result") {
-          errors.push(`Die offene Runde ${roundNumber} darf nicht in der Ergebnisphase sein.`);
+          errors.push(`Open round ${roundNumber} must not be in the result phase.`);
         }
         if (rawRound.completedAt != null) {
-          errors.push(`Die offene Runde ${roundNumber} darf kein Abschlussdatum besitzen.`);
+          errors.push(`Open round ${roundNumber} must not have a completion date.`);
         }
       }
 
@@ -361,14 +361,14 @@
 
   function validateImportedPlayerResults(rawResults, players, roundNumber, completed, errors) {
     if (!rawResults || typeof rawResults !== "object" || Array.isArray(rawResults)) {
-      errors.push(`Die Spielerdaten in Runde ${roundNumber} fehlen.`);
+      errors.push(`The player data for round ${roundNumber} is missing.`);
       return null;
     }
 
     const expectedIds = new Set(players.map((player) => player.id));
     const resultIds = Object.keys(rawResults);
     if (resultIds.length !== expectedIds.size || resultIds.some((id) => !expectedIds.has(id))) {
-      errors.push(`Die Spielerdaten in Runde ${roundNumber} sind nicht eindeutig.`);
+      errors.push(`The player data for round ${roundNumber} is ambiguous.`);
       return null;
     }
 
@@ -376,7 +376,7 @@
     for (const player of players) {
       const rawResult = rawResults[player.id];
       if (!rawResult || typeof rawResult !== "object" || Array.isArray(rawResult)) {
-        errors.push(`Die Spielerdaten von ${player.name} in Runde ${roundNumber} fehlen.`);
+        errors.push(`${player.name}'s player data for round ${roundNumber} is missing.`);
         return null;
       }
 
@@ -386,24 +386,24 @@
         || !Number.isInteger(rawResult.tricks)
         || rawResult.tricks < 0
         || rawResult.tricks > roundNumber) {
-        errors.push(`Ursprüngliche Ansagen und Stiche in Runde ${roundNumber} müssen zwischen 0 und ${roundNumber} liegen.`);
+        errors.push(`Original bids and tricks in round ${roundNumber} must be between 0 and ${roundNumber}.`);
         return null;
       }
 
-      // Wolken dürfen die aktuelle Ansage über die Rundennummer erhöhen. Ihre
-      // exakte Höhe wird weiter unten durch eine Neuberechnung verifiziert.
+      // Clouds may increase the current bid beyond the round number. Its exact
+      // value is verified below by recalculating all current bids.
       if (!Number.isInteger(rawResult.currentBid) || rawResult.currentBid < 0) {
-        errors.push(`Die aktuelle Ansage in Runde ${roundNumber} muss eine nichtnegative Ganzzahl sein.`);
+        errors.push(`The current bid in round ${roundNumber} must be a non-negative integer.`);
         return null;
       }
 
       if (completed) {
         if (!Number.isInteger(rawResult.roundPoints)) {
-          errors.push(`Die Punkte von ${player.name} in Runde ${roundNumber} fehlen.`);
+          errors.push(`${player.name}'s points in round ${roundNumber} are missing.`);
           return null;
         }
       } else if (rawResult.roundPoints != null) {
-        errors.push("Eine offene Runde darf noch keine Punkte enthalten.");
+        errors.push("An open round must not contain points yet.");
         return null;
       }
 
@@ -420,7 +420,7 @@
 
   function validateImportedSpecialCards(rawCards, players, roundNumber, errors) {
     if (rawCards !== undefined && (!rawCards || typeof rawCards !== "object" || Array.isArray(rawCards))) {
-      errors.push(`Die Sonderkarten in Runde ${roundNumber} sind ungültig.`);
+      errors.push(`The special cards in round ${roundNumber} are invalid.`);
       return null;
     }
 
@@ -432,7 +432,7 @@
       if (rawCloud === undefined) continue;
       if (!rawCloud || typeof rawCloud !== "object" || Array.isArray(rawCloud)
         || typeof rawCloud.active !== "boolean") {
-        errors.push(`Die Sonderkarte ${key} in Runde ${roundNumber} ist ungültig.`);
+        errors.push(`The ${key} special card in round ${roundNumber} is invalid.`);
         return null;
       }
 
@@ -446,7 +446,7 @@
           || ![-1, 1].includes(normalized[key].change)))
         || (!rawCloud.active && (normalized[key].playerId !== null
           || normalized[key].change !== 0))) {
-        errors.push(`Die Sonderkarte ${key} in Runde ${roundNumber} ist inkonsistent.`);
+        errors.push(`The ${key} special card in round ${roundNumber} is inconsistent.`);
       }
     }
 
@@ -455,7 +455,7 @@
       if (rawBomb === undefined) continue;
       if (!rawBomb || typeof rawBomb !== "object" || Array.isArray(rawBomb)
         || typeof rawBomb.active !== "boolean") {
-        errors.push(`Die Sonderkarte ${key} in Runde ${roundNumber} ist ungültig.`);
+        errors.push(`The ${key} special card in round ${roundNumber} is invalid.`);
         return null;
       }
       normalized[key].active = rawBomb.active;
@@ -465,7 +465,7 @@
       if (!cards.witch || typeof cards.witch !== "object" || Array.isArray(cards.witch)
         || typeof cards.witch.active !== "boolean"
         || ![null, "cloud", "bomb"].includes(cards.witch.secondEffect ?? null)) {
-        errors.push(`Die Hexe in Runde ${roundNumber} ist ungültig.`);
+        errors.push(`The Witch in round ${roundNumber} is invalid.`);
         return null;
       }
       normalized.witch = {
@@ -482,7 +482,7 @@
 
     if (candidate.status === "setup") {
       if (sorted.length > 0 || candidate.currentRound !== 1) {
-        errors.push("Eine noch nicht gestartete Partie darf keine Runden enthalten.");
+        errors.push("A game that has not started must not contain any rounds.");
       }
       return;
     }
@@ -493,23 +493,23 @@
 
     if (sorted.length !== expectedCount
       || sorted.some((round, index) => round.number !== index + 1)) {
-      errors.push("Die Runden müssen vollständig, eindeutig und ohne Lücken vorliegen.");
+      errors.push("Rounds must be complete, unique, and consecutive.");
       return;
     }
 
     if (candidate.status === "completed") {
       if (candidate.currentRound !== candidate.totalRounds || sorted.some((round) => !round.completed)) {
-        errors.push("Eine beendete Partie muss vollständig abgeschlossene Runden enthalten.");
+        errors.push("A completed game must contain every round as completed.");
       }
       return;
     }
 
     if (sorted.some((round) => round.number < candidate.currentRound && !round.completed)) {
-      errors.push("Vorherige Runden müssen abgeschlossen sein.");
+      errors.push("Previous rounds must be completed.");
     }
   }
 
-  // Grundstruktur einer Runde einschließlich aller möglichen Sonderkarten
+  // Base structure of a round, including every supported special card
   function createPlayerResult() {
     return {
       originalBid: 0,
@@ -561,7 +561,7 @@
     };
   }
 
-  // Ansagen und Auswirkungen der Sonderkarten
+  // Bids and special-card effects
   function getBidSum(round) {
     return Object.values(round?.playerResults ?? {})
       .reduce((sum, result) => sum + (Number(result?.originalBid) || 0), 0);
@@ -639,60 +639,60 @@
 
     if (cards.cloud?.active) {
       if (!playerIds.has(cards.cloud.playerId) || !validChange(cards.cloud.change)) {
-        errors.push("Die erste Wolke ist nicht vollständig erfasst.");
+        errors.push("The first Cloud selection is incomplete.");
       }
     }
 
     if (cards.witch?.secondEffect === "cloud" && !cards.secondCloud?.active) {
-      errors.push("Die Auswahl '2. Wolke' ist nicht vollständig erfasst.");
+      errors.push("The '2nd Cloud' selection is incomplete.");
     }
 
     if (cards.witch?.active && !cards.cloud?.active && !cards.bomb?.active) {
-      errors.push("Die Hexe benötigt zuerst eine Wolke oder Bombe.");
+      errors.push("The Witch requires a Cloud or Bomb first.");
     }
 
     if (cards.witch?.active
       && !cards.witch?.secondEffect
       && !(options.allowIncompleteWitchSelection && round?.phase === "play")) {
-      errors.push("Wähle für die Hexe eine zweite Wolke oder Bombe aus.");
+      errors.push("Select a second Cloud or Bomb for the Witch.");
     }
 
     if (cards.witch?.secondEffect === "bomb" && !cards.secondBomb?.active) {
-      errors.push("Die Auswahl '2. Bombe' ist nicht vollständig erfasst.");
+      errors.push("The '2nd Bomb' selection is incomplete.");
     }
 
     if (cards.secondCloud?.active) {
       if (!cards.witch?.active || cards.witch.secondEffect !== "cloud" || !cards.cloud?.active) {
-        errors.push("Die zweite Wolke benötigt Hexe und erste Wolke.");
+        errors.push("The second Cloud requires the Witch and the first Cloud.");
       }
       if (!playerIds.has(cards.secondCloud.playerId) || !validChange(cards.secondCloud.change)) {
-        errors.push("Die zweite Wolke ist nicht vollständig erfasst.");
+        errors.push("The second Cloud selection is incomplete.");
       }
     }
 
     if (cards.secondBomb?.active) {
       if (!cards.witch?.active || cards.witch.secondEffect !== "bomb" || !cards.bomb?.active) {
-        errors.push("Die zweite Bombe benötigt Hexe und erste Bombe.");
+        errors.push("The second Bomb requires the Witch and the first Bomb.");
       }
     }
 
     if (!cards.witch?.active && (cards.secondCloud?.active || cards.secondBomb?.active || cards.witch?.secondEffect)) {
-      errors.push("Ein zweiter Sonderkarteneffekt ist nur mit aktiver Hexe möglich.");
+      errors.push("A second special-card effect requires an active Witch.");
     }
 
     if (cards.secondCloud?.active && cards.secondBomb?.active) {
-      errors.push("Durch die Hexe darf nur eine zweite Sonderkarte gewählt werden.");
+      errors.push("Only one second special card may be selected through the Witch.");
     }
 
     const currentBids = calculateCurrentBidMap(round, players);
     if (Object.values(currentBids).some((bid) => bid < 0)) {
-      errors.push("Eine Wolkenänderung würde eine negative Ansage erzeugen.");
+      errors.push("A Cloud adjustment would result in a negative bid.");
     }
 
     return errors;
   }
 
-  // Stichprüfung und Punkteberechnung
+  // Trick validation and point calculation
   function getExpectedTrickCount(round) {
     return Math.max(0, (Number(round?.number) || 0) - getActiveBombCount(round));
   }
@@ -757,7 +757,7 @@
     return totals;
   }
 
-  // Vollständiger Ausgangszustand für eine neue Partie
+  // Complete initial state for a new game
   function createInitialGameState(playerCount = MIN_PLAYERS) {
     const safeCount = Math.min(Math.max(playerCount, MIN_PLAYERS), MAX_PLAYERS);
     const players = Array.from({ length: safeCount }, (_, index) => createPlayer(index));

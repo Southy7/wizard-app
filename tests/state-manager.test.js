@@ -37,4 +37,4 @@ assert.equal(round.specialCards.witch.active, false);
 assert.equal(round.specialCards.witch.secondEffect, null);
 assert.equal(round.specialCards.secondCloud.active, false);
 
-console.log("Alle Tests der Zustandsverwaltung wurden erfolgreich ausgeführt.");
+console.log("All state-manager tests passed.");

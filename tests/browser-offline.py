@@ -1,4 +1,4 @@
-"""Echte Service-Worker-Installation und Offline-Navigation."""
+"""Real service-worker installation and offline navigation."""
 
 from playwright.sync_api import sync_playwright
 from browser_helpers import launch_browser, open_clean_page, serve_app
@@ -21,9 +21,8 @@ def main():
         context.close()
         browser.close()
 
-    print("Browser-Offlinetest erfolgreich.")
+    print("Browser offline test passed.")
 
 
 if __name__ == "__main__":
     main()
-

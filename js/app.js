@@ -25,7 +25,7 @@
 
   if (!Logic || !StateManager || !Storage || !ResultView
     || !PersistenceControllerModule || !SetupControllerModule || !Ui) {
-    console.error("Die Anwendungsabhängigkeiten konnten nicht geladen werden.");
+    console.error("Application dependencies could not be loaded.");
     return;
   }
 
@@ -40,7 +40,7 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
-  // Initialisierung und zentrale DOM-Verknüpfungen
+  // Initialization and central DOM references
   function init() {
     cacheElements();
     persistenceController = PersistenceControllerModule.createPersistenceController({
@@ -153,13 +153,13 @@
     const hasStoredGameData = Storage.hasStoredData();
     if (!forceReplace && hasStoredGameData) {
       const shouldReplace = window.confirm(
-        "Es ist bereits ein Spiel gespeichert. Beim Starten eines neuen Spiels wird der bisherige Spielstand ersetzt. Fortfahren?"
+        "A game is already saved. Starting a new game will replace the current save. Continue?"
       );
       if (!shouldReplace) return;
     }
 
     if (!savedGame && hasStoredGameData && !Storage.deleteGame()) {
-      updateStorageWarning("Der beschädigte Spielstand konnte nicht ersetzt werden.");
+      updateStorageWarning("The corrupted game could not be replaced.");
       return;
     }
 
@@ -177,7 +177,7 @@
     const savedState = canContinueFromMemory ? state : Storage.loadGame();
 
     if (!savedState) {
-      showToast("Es wurde kein gültiger Spielstand gefunden.");
+      showToast("No valid game state was found.");
       refreshHomeScreen();
       return;
     }
@@ -206,7 +206,7 @@
     showScreen("setup");
   }
 
-  // Navigation zwischen den sechs Ansichten aus index.html
+  // Navigation between the six views defined in index.html
   function goHome() {
     persistState();
     refreshHomeScreen();
@@ -231,7 +231,7 @@
     persistenceController.refreshConflictMode();
   }
 
-  // Startseite und lokaler Spielstand
+  // Home screen and local game state
   function refreshHomeScreen() {
     const savedState = Storage.loadGame();
     const continueButton = elements["btn-continue-game"];
@@ -274,9 +274,9 @@
       bindEvents: disableControls,
       updateControls: disableControls,
       getCapacityWarning: () => "",
-      open: () => showToast("Die optionale History ist in dieser Installation nicht verfügbar."),
+      open: () => showToast("History is not available in this installation."),
       importArchive: () => {
-        throw new Error("Die optionale History ist in dieser Installation nicht verfügbar.");
+        throw new Error("History is not available in this installation.");
       }
     });
   }
@@ -288,24 +288,24 @@
     if (!file) return;
 
     if (file.size > 10_000_000) {
-      showToast("Die Importdatei ist ungewöhnlich groß und wurde abgelehnt.");
+      showToast("The import file is unusually large and was rejected.");
       return;
     }
 
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      if (parsed?.exportFormat === "wizard-punkte-history") {
+      if (parsed?.exportFormat === "wizard-scoreboard-history") {
         historyController.importArchive(parsed);
         return;
       }
 
       if (file.size > 2_000_000) {
-        throw new Error("Der einzelne Spielstand ist ungewöhnlich groß und wurde abgelehnt.");
+        throw new Error("The individual game state is unusually large and was rejected.");
       }
 
-      const candidate = parsed?.exportFormat === "wizard-punkte-app" ? parsed.gameState : parsed;
-      const isConflictRecovery = parsed?.exportFormat === "wizard-punkte-app"
+      const candidate = parsed?.exportFormat === "wizard-scoreboard-game" ? parsed.gameState : parsed;
+      const isConflictRecovery = parsed?.exportFormat === "wizard-scoreboard-game"
         && parsed?.recoveryReason === "storage-conflict";
       const validationErrors = isConflictRecovery
         ? Logic.validatePersistableGameState(candidate)
@@ -315,12 +315,12 @@
       const savedBeforeImport = Storage.loadGame();
       const hasStoredGameData = Storage.hasStoredData();
       const shouldReplace = !hasStoredGameData || window.confirm(
-        "Der vorhandene Spielstand wird durch den importierten Spielstand ersetzt. Fortfahren?"
+        "The existing save will be replaced by the imported save. Continue?"
       );
       if (!shouldReplace) return;
 
       if (!savedBeforeImport && hasStoredGameData && !Storage.deleteGame()) {
-        throw new Error("Der beschädigte Spielstand konnte nicht ersetzt werden.");
+        throw new Error("The corrupted game could not be replaced.");
       }
 
       const importedState = cloneState(candidate);
@@ -328,7 +328,7 @@
         expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
         expectedGameId: savedBeforeImport?.gameId ?? null
       })) {
-        throw new Error("Der importierte Spielstand konnte nicht lokal gespeichert werden.");
+        throw new Error("The imported game could not be saved locally.");
       }
       if (importedState.status === "completed") {
         archiveCompletedGame(importedState);
@@ -337,29 +337,29 @@
       state = importedState;
       persistenceController.markStateImported();
       refreshHomeScreen();
-      showToast("Spielstand wurde erfolgreich importiert.");
+      showToast("Game imported successfully.");
     } catch (error) {
       console.error("Import fehlgeschlagen:", error);
-      showToast(error instanceof Error ? error.message : "Die Importdatei konnte nicht gelesen werden.");
+      showToast(error instanceof Error ? error.message : "The import file could not be read.");
     }
   }
 
-  // Laufendes Spiel: wählt passend zum Rundenstatus die aktuelle Phasenansicht.
+  // Active game: select the phase view that matches the current round state.
   function renderGame() {
     ensureState();
     let round = ensureCurrentRound();
     round = Logic.recalculateCurrentBids(round, state.players);
     replaceRound(round);
 
-    elements["game-title"].textContent = `Runde ${round.number} von ${state.totalRounds}`;
+    elements["game-title"].textContent = `Round ${round.number} of ${state.totalRounds}`;
 
     const labels = {
-      bids: "Ansagen",
-      play: "Sonderkarten",
-      tricks: "Stiche",
-      result: "Rundenergebnis"
+      bids: "Bids",
+      play: "Special Cards",
+      tricks: "Tricks",
+      result: "Round Result"
     };
-    elements["game-phase-label"].textContent = labels[round.phase] ?? "Laufendes Spiel";
+    elements["game-phase-label"].textContent = labels[round.phase] ?? "Active Game";
     renderRoundOverview(round.phase);
 
     if (round.phase === "bids") renderBids(round);
@@ -369,11 +369,11 @@
     persistenceController.refreshConflictMode();
   }
 
-  // Phase 1: Ansagen aller Spieler erfassen
+  // Phase 1: record every player's bid
   function renderBids(round) {
     const panel = createPanel();
     panel.classList.add("bid-panel");
-    panel.setAttribute("aria-label", "Ansagen eintragen");
+    panel.setAttribute("aria-label", "Enter bids");
     const list = document.createElement("div");
     list.className = "entry-list";
 
@@ -383,8 +383,8 @@
       list.append(createValueEntry({
         name: getPlayerDisplayNameById(player.id),
         badges: [
-          ...(player.id === round.dealerId ? [{ label: "Kartengeber", role: "dealer" }] : []),
-          ...(player.id === round.startingPlayerId ? [{ label: "Startspieler", role: "starter" }] : [])
+          ...(player.id === round.dealerId ? [{ label: "Dealer", role: "dealer" }] : []),
+          ...(player.id === round.startingPlayerId ? [{ label: "Starting Player", role: "starter" }] : [])
         ],
         value: result.originalBid,
         min: 0,
@@ -401,15 +401,15 @@
     summary.className = "phase-summary";
     summary.append(createStatusCard(
       validSum ? "neutral" : "error",
-      `Summe der Ansagen: ${sum}`,
+      `Bid Total: ${sum}`,
       ""
     ));
 
     if (specialErrors.length > 0) {
-      summary.append(createStatusCard("error", "Sonderkarten prüfen", specialErrors.join(" ")));
+      summary.append(createStatusCard("error", "Check Special Cards", specialErrors.join(" ")));
     }
 
-    const confirm = createButton("Ansagen bestätigen", "button-primary full-width bid-confirm-button", () => confirmBids(round.number));
+    const confirm = createButton("Confirm Bids", "button-primary full-width bid-confirm-button", () => confirmBids(round.number));
     confirm.disabled = !validSum || specialErrors.length > 0;
 
     panel.append(list, summary, confirm);
@@ -448,28 +448,28 @@
     renderGame();
   }
 
-  // Phase 2: ausgespielte Sonderkarten und ihre Abhängigkeiten erfassen
+  // Phase 2: record played special cards and their dependencies
   function renderPlay(round) {
     const bidsPanel = createPanel();
     bidsPanel.classList.add("bid-overview-panel");
-    bidsPanel.setAttribute("aria-label", "Ansagenübersicht");
+    bidsPanel.setAttribute("aria-label", "Bid overview");
     bidsPanel.append(createBidOverview(round));
 
     const specialPanel = createPanel();
     specialPanel.classList.add("special-panel");
-    specialPanel.setAttribute("aria-label", "Sonderkarten auswählen");
+    specialPanel.setAttribute("aria-label", "Select special cards");
     const cards = round.specialCards;
     const grid = document.createElement("div");
     grid.className = "special-card-grid";
 
-    const cloudButton = createSpecialButton("☁ Wolke", cards.cloud.active);
+    const cloudButton = createSpecialButton("☁ Cloud", cards.cloud.active);
     cloudButton.addEventListener("click", cards.cloud.active ? undoCloud : () => openCloudDialog("cloud"));
 
-    const bombButton = createSpecialButton("💣 Bombe", cards.bomb.active);
+    const bombButton = createSpecialButton("💣 Bomb", cards.bomb.active);
     bombButton.addEventListener("click", cards.bomb.active ? undoBomb : activateBomb);
 
     const canActivateWitch = cards.cloud.active || cards.bomb.active;
-    const witchButton = createSpecialButton("🧙 Hexe", cards.witch.active);
+    const witchButton = createSpecialButton("🧙 Witch", cards.witch.active);
     witchButton.disabled = !cards.witch.active && !canActivateWitch;
     witchButton.addEventListener("click", cards.witch.active ? undoWitch : activateWitch);
 
@@ -485,8 +485,8 @@
     const actions = document.createElement("div");
     actions.className = "round-actions special-actions";
     actions.append(
-      createButton("Ansagen bearbeiten", "button-secondary", () => setRoundPhase("bids")),
-      createButton("Stiche eintragen", "button-primary", () => setRoundPhase("tricks"), errors.length > 0)
+      createButton("Edit Bids", "button-secondary", () => setRoundPhase("bids")),
+      createButton("Enter Tricks", "button-primary", () => setRoundPhase("tricks"), errors.length > 0)
     );
     specialPanel.append(actions);
 
@@ -500,7 +500,7 @@
 
     const header = document.createElement("div");
     header.className = "score-row header";
-    header.innerHTML = "<span>Spieler</span><span class=\"number\">Ansage</span><span class=\"number\">Gesamt</span>";
+    header.innerHTML = "<span>Player</span><span class=\"number\">Bid</span><span class=\"number\">Total</span>";
     table.append(header);
 
     state.players.forEach((player) => {
@@ -517,20 +517,20 @@
       nameCell.append(name);
 
       if (player.id === round.startingPlayerId) {
-        nameCell.append(createSeatRoleBadge("Startspieler", "starter"));
+        nameCell.append(createSeatRoleBadge("Starting Player", "starter"));
       }
 
       const bid = document.createElement("span");
       bid.className = `number${result.currentBid !== result.originalBid ? " changed-bid" : ""}`;
       bid.textContent = String(result.currentBid);
       if (result.currentBid !== result.originalBid) {
-        bid.title = `Ursprünglich ${result.originalBid}`;
+        bid.title = `Originally ${result.originalBid}`;
       }
 
       const total = document.createElement("span");
       total.className = "number total-points";
       total.textContent = String(totals[player.id]);
-      total.setAttribute("aria-label", `${totals[player.id]} Gesamtpunkte`);
+      total.setAttribute("aria-label", `${totals[player.id]} total points`);
 
       row.append(nameCell, bid, total);
       table.append(row);
@@ -546,7 +546,7 @@
 
     const label = document.createElement("p");
     label.className = "second-effect-label";
-    label.textContent = "Durch die Hexe erneut ausgespielt:";
+    label.textContent = "Played again through the Witch:";
 
     const grid = document.createElement("div");
     grid.className = "second-effect-grid";
@@ -556,7 +556,7 @@
 
     if (cards.cloud.active) {
       const secondCloud = createSpecialButton(
-        "☁ 2. Wolke",
+        "☁ 2nd Cloud",
         secondCloudActive
       );
       secondCloud.disabled = Boolean(cards.witch.secondEffect) && !secondCloudActive;
@@ -566,7 +566,7 @@
 
     if (cards.bomb.active) {
       const secondBomb = createSpecialButton(
-        "💣 2. Bombe",
+        "💣 2nd Bomb",
         secondBombActive
       );
       secondBomb.disabled = Boolean(cards.witch.secondEffect) && !secondBombActive;
@@ -604,7 +604,7 @@
   function activateWitch() {
     const round = getCurrentRound();
     if (!round.specialCards.cloud.active && !round.specialCards.bomb.active) {
-      showToast("Die Hexe benötigt zuerst eine Wolke oder Bombe.");
+      showToast("The Witch requires a Cloud or Bomb first.");
       return;
     }
     round.specialCards.witch.active = true;
@@ -665,12 +665,12 @@
     if (!round) return;
 
     if (key === "secondCloud" && (!round.specialCards.witch.active || !round.specialCards.cloud.active)) {
-      showToast("Die zweite Wolke benötigt Hexe und erste Wolke.");
+      showToast("The second Cloud requires the Witch and the first Cloud.");
       return;
     }
 
     cloudDialogContext = { key, playerId: null };
-    elements["cloud-dialog-kicker"].textContent = key === "cloud" ? "Wolke" : "2. Wolke durch Hexe";
+    elements["cloud-dialog-kicker"].textContent = key === "cloud" ? "Cloud" : "2nd Cloud through Witch";
     elements["cloud-change-options"].hidden = true;
     renderCloudPlayerOptions(round);
     openDialog(elements["cloud-dialog"]);
@@ -757,7 +757,7 @@
     if (phase === "bids"
       && round.specialCards.witch.active
       && !round.specialCards.witch.secondEffect) {
-      showToast("Wähle zuerst die zweite Sonderkarte der Hexe aus oder entferne die Hexe.");
+      showToast("Choose the Witch's second special card first or remove the Witch.");
       return;
     }
 
@@ -779,11 +779,11 @@
     renderGame();
   }
 
-  // Phase 3: erzielte Stiche erfassen und auf die korrekte Summe prüfen
+  // Phase 3: record tricks and validate their total
   function renderTricks(round) {
     const panel = createPanel();
     panel.classList.add("tricks-panel");
-    panel.setAttribute("aria-label", "Stiche eintragen");
+    panel.setAttribute("aria-label", "Enter Tricks");
     const list = document.createElement("div");
     list.className = "entry-list";
     const maximumTricks = Logic.getExpectedTrickCount(round);
@@ -798,12 +798,12 @@
         max: round.number,
         onChange: (next) => updateTricks(round.number, player.id, next),
         quickAction: {
-          label: "Richtig",
+          label: "Correct",
           onClick: () => updateTricks(round.number, player.id, result.currentBid),
           disabled: result.tricks === result.currentBid || result.currentBid > maximumTricks,
           title: result.currentBid > maximumTricks
-            ? "Diese Ansage ist mit den verfügbaren Stichen nicht erreichbar."
-            : "Stichzahl auf die aktuelle Ansage setzen"
+            ? "This bid cannot be reached with the available tricks."
+            : "Set tricks to the current bid"
         }
       }));
     });
@@ -811,21 +811,21 @@
     const validation = Logic.validateTrickSum(round);
     let message;
     if (validation.valid) {
-      message = createStatusCard("success", "Alle Stiche sind vollständig verteilt.", "");
+      message = createStatusCard("success", "All tricks have been assigned.", "");
     } else if (validation.difference < 0) {
       const missing = Math.abs(validation.difference);
-      message = createStatusCard("error", `${missing} Stich${missing === 1 ? " fehlt" : "e fehlen"}.`, "");
+      message = createStatusCard("error", `${missing} ${missing === 1 ? "trick is" : "tricks are"} missing.`, "");
     } else {
       const excess = validation.difference;
-      message = createStatusCard("error", `${excess} Stich${excess === 1 ? " ist" : "e sind"} zu viel.`, "");
+      message = createStatusCard("error", `${excess} ${excess === 1 ? "trick is" : "tricks are"} over the limit.`, "");
     }
     message.classList.add("trick-status");
 
     const actions = document.createElement("div");
     actions.className = "round-actions";
     actions.append(
-      createButton("Zurück zu Sonderkarten", "button-secondary", () => setRoundPhase("play")),
-      createButton("Runde abschließen", "button-primary", completeRound, !validation.valid)
+      createButton("Back to Special Cards", "button-secondary", () => setRoundPhase("play")),
+      createButton("Complete Round", "button-primary", completeRound, !validation.valid)
     );
 
     panel.append(list, message, actions);
@@ -858,7 +858,7 @@
     }
 
     if (!tricks.valid) {
-      showToast("Die Stichsumme stimmt noch nicht.");
+      showToast("The trick total is not correct yet.");
       return;
     }
 
@@ -871,11 +871,11 @@
     renderGame();
   }
 
-  // Phase 4: Rundenergebnis anzeigen, korrigieren oder zur nächsten Runde wechseln
+  // Phase 4: show or edit the round result, or move to the next round
   function renderRoundResult(round) {
     const panel = createPanel();
     panel.classList.add("round-result-panel");
-    panel.setAttribute("aria-label", `Ergebnis Runde ${round.number}`);
+    panel.setAttribute("aria-label", `Result Round ${round.number}`);
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
     const tableWrap = document.createElement("div");
     tableWrap.className = "score-table-scroll";
@@ -884,7 +884,7 @@
 
     const header = document.createElement("div");
     header.className = "score-row header";
-    header.innerHTML = '<span>Spieler</span><span class="number">Ansage</span><span class="number">Stiche</span><span class="number">Runde</span><span class="number">Gesamt</span>';
+    header.innerHTML = '<span>Player</span><span class="number">Bid</span><span class="number">Tricks</span><span class="number">Round</span><span class="number">Total</span>';
     table.append(header);
 
     state.players.forEach((player) => {
@@ -902,10 +902,10 @@
       const tricks = numberCell(result.tricks);
       const points = numberCell(formatSigned(result.roundPoints), result.roundPoints >= 0 ? "positive" : "negative");
       const total = numberCell(totals[player.id], "total-points");
-      bid.dataset.label = "Ansage";
-      tricks.dataset.label = "Stiche";
-      points.dataset.label = "Runde";
-      total.dataset.label = "Gesamt";
+      bid.dataset.label = "Bid";
+      tricks.dataset.label = "Tricks";
+      points.dataset.label = "Round";
+      total.dataset.label = "Total";
 
       row.append(name, bid, tricks, points, total);
       table.append(row);
@@ -914,11 +914,11 @@
 
     const actions = document.createElement("div");
     actions.className = "round-actions result-actions";
-    actions.append(createButton("Runde bearbeiten", "button-secondary", openEditRoundDialog));
+    actions.append(createButton("Edit Round", "button-secondary", openEditRoundDialog));
 
     const isLastRound = round.number >= state.totalRounds;
     actions.append(createButton(
-      isLastRound ? "Spiel beenden" : "Nächste Runde",
+      isLastRound ? "Finish Game" : "Next Round",
       "button-primary",
       isLastRound ? finishGame : goToNextRound
     ));
@@ -985,7 +985,7 @@
     showScreen("finished");
   }
 
-  // Abschlussansicht mit Rangliste und vollständigem Punkteverlauf
+  // Final view with ranking and complete score history
   function renderFinished() {
     ensureState();
     const completedRounds = state.rounds.filter((round) => round.completed).sort((a, b) => a.number - b.number);
@@ -1018,7 +1018,7 @@
     closeDialog(elements["round-one-dialog"]);
   }
 
-  // Wiederverwendbare Bausteine für dynamisch erzeugte Oberflächen
+  // Reusable building blocks for dynamically generated interfaces
   function renderRoundOverview(phase) {
     const overviewPanel = elements["game-round-overview"];
     const container = elements["game-total-points"];
@@ -1033,7 +1033,7 @@
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
     const overview = document.createElement("div");
     overview.className = "points-grid";
-    overview.setAttribute("aria-label", "Aktuelle Gesamtpunktzahlen");
+    overview.setAttribute("aria-label", "Current total scores");
 
     state.players.forEach((player) => {
       const card = document.createElement("div");
@@ -1043,7 +1043,7 @@
       name.textContent = getPlayerDisplayNameById(player.id);
 
       const points = document.createElement("strong");
-      points.textContent = `${totals[player.id]} Punkte`;
+      points.textContent = `${totals[player.id]} Points`;
 
       card.append(name, points);
       overview.append(card);
@@ -1089,7 +1089,7 @@
 
   function getPlayerDisplayName(player, index) {
     const trimmed = player?.name?.trim();
-    return trimmed || `Spieler ${index + 1}`;
+    return trimmed || `Player ${index + 1}`;
   }
 
   function formatSigned(value) {
@@ -1099,7 +1099,7 @@
     return "0";
   }
 
-  // Zustands-, Speicher- und Browser-Helfer
+  // State, storage, and browser helpers
   function deepClone(value) {
     return JSON.parse(JSON.stringify(value));
   }
@@ -1118,7 +1118,7 @@
     const archived = Storage.saveCompletedGame(gameState);
     if (!archived) {
       const message = Storage.getStorageErrors?.().historyError
-        || "Die abgeschlossene Partie konnte nicht im lokalen Archiv gespeichert werden.";
+        || "The completed game could not be saved to the local archive.";
       updateStorageWarning(message);
       showToast(message);
     } else {
@@ -1142,7 +1142,7 @@
 
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./service-worker.js")
-        .catch((error) => console.warn("Service Worker konnte nicht registriert werden:", error));
+        .catch((error) => console.warn("The service worker could not be registered:", error));
     });
   }
 })();
