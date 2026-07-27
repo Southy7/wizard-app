@@ -19,6 +19,18 @@
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" sizes="180x180">
   <link rel="stylesheet" href="styles.css">
 
+  <!-- Reload once when an updated PWA worker takes control to avoid mixed app versions. -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      let isReloadingForUpdate = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (isReloadingForUpdate) return;
+        isReloadingForUpdate = true;
+        window.location.reload();
+      });
+    }
+  </script>
+
   <!-- Reihenfolge ist wichtig: app.js verwendet Logik und Speicher als Abhängigkeiten. -->
   <script defer src="js/game-logic.js"></script>
   <script defer src="js/storage.js"></script>
@@ -48,8 +60,10 @@
         <nav class="home-actions" aria-label="Hauptmenü">
           <button id="btn-new-game" class="button button-primary" type="button">Neues Spiel</button>
           <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Spiel fortsetzen</button>
-          <button id="btn-history" class="button button-secondary" type="button" disabled>History</button>
-          <button id="btn-import-game" class="button button-secondary" type="button">Import</button>
+          <div class="home-secondary-actions">
+            <button id="btn-history" class="button button-secondary" type="button" disabled>History</button>
+            <button id="btn-import-game" class="button button-secondary" type="button">Import</button>
+          </div>
         </nav>
 
         <!-- Der Dateidialog wird über den Import-Button geöffnet. -->
@@ -60,23 +74,12 @@
       <!-- ================== ENDE STARTSEITE ================== -->
 
       <!-- ================= SPIELEINRICHTUNG ================= -->
-      <section id="screen-setup" class="screen screen-setup" data-screen="setup" aria-labelledby="setup-title" hidden>
-        <div class="screen-heading">
-          <div>
-            <p class="eyebrow">Neues Spiel</p>
-            <h2 id="setup-title">Partie einrichten</h2>
-          </div>
-          <button id="btn-setup-home" class="button button-ghost button-small" type="button">Startseite</button>
-        </div>
-
+      <section id="screen-setup" class="screen screen-setup" data-screen="setup" aria-label="Neues Spiel" hidden>
         <form id="setup-form" novalidate>
           <!-- 1. Spieler erfassen und Sitzreihenfolge festlegen -->
           <section class="panel" aria-labelledby="players-title">
             <div class="panel-heading">
-              <div>
-                <h3 id="players-title">Spieler und Sitzreihenfolge</h3>
-                <p>Die Reihenfolge entspricht der Sitzordnung am Tisch.</p>
-              </div>
+              <h3 id="players-title">Spieler und Sitzreihenfolge</h3>
               <span id="player-count-badge" class="count-badge">3 / 6</span>
             </div>
 
@@ -88,21 +91,35 @@
           <!-- 2. Anzahl der zu spielenden Runden festlegen -->
           <section class="panel" aria-labelledby="rounds-title">
             <h3 id="rounds-title">Rundenzahl</h3>
-            <div class="stepper" aria-label="Rundenzahl einstellen">
-              <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Rundenzahl verringern">−</button>
-              <input id="rounds-input" class="stepper-input" type="number" inputmode="numeric" min="1" step="1" aria-label="Rundenzahl">
-              <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Rundenzahl erhöhen">+</button>
+            <div id="round-mode-toggle" class="round-mode-toggle" role="radiogroup" aria-label="Spielumfang auswählen" data-mode="full">
+              <span class="round-mode-slider" aria-hidden="true"></span>
+              <button id="btn-round-mode-full" class="round-mode-button" type="button" role="radio" aria-checked="true">
+                Full Game (<span id="full-game-rounds">–</span> Runden)
+              </button>
+              <button id="btn-round-mode-individual" class="round-mode-button" type="button" role="radio" aria-checked="false">
+                Individuell
+              </button>
             </div>
 
-            <div class="round-meta">
-              <p>Wizard-Standard: <strong id="standard-rounds-value">–</strong></p>
-              <p>Maximum mit 70 Karten: <strong id="maximum-rounds-value">–</strong></p>
+            <div id="custom-round-controls" hidden>
+              <div class="stepper" aria-label="Rundenzahl einstellen">
+                <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Rundenzahl verringern">−</button>
+                <input id="rounds-input" class="stepper-input" type="number" inputmode="numeric" min="1" step="1" aria-label="Rundenzahl">
+                <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Rundenzahl erhöhen">+</button>
+              </div>
+              <p id="rounds-message" class="status-message" aria-live="polite"></p>
             </div>
-            <p id="rounds-message" class="status-message" aria-live="polite"></p>
           </section>
 
           <div id="form-errors" class="form-errors" role="alert" aria-live="assertive" hidden></div>
-          <button class="button button-primary full-width" type="submit">Weiter</button>
+          <div class="setup-actions">
+            <button id="btn-setup-home" class="setup-home-button" type="button" aria-label="Zur Startseite" title="Zur Startseite">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
+              </svg>
+            </button>
+            <button class="button button-primary full-width" type="submit">Weiter</button>
+          </div>
         </form>
       </section>
       <!-- =============== ENDE SPIELEINRICHTUNG =============== -->
@@ -114,10 +131,12 @@
           <dl class="summary-list">
             <div><dt>Spieler</dt><dd id="summary-player-count">3</dd></div>
             <div><dt>Runden</dt><dd id="summary-round-count">20</dd></div>
-            <div><dt>Kartengeber (zufällig)</dt><dd id="summary-dealer">–</dd></div>
-            <div><dt>Startspieler</dt><dd id="summary-starter">–</dd></div>
           </dl>
-          <p id="summary-seat-order" class="seat-order">Sitzreihenfolge: –</p>
+          <section class="seat-order-section" aria-labelledby="seat-order-title">
+            <h3 id="seat-order-title">Sitzreihenfolge</h3>
+            <!-- Die nummerierten Spielerzeilen werden passend zur Einrichtung erzeugt. -->
+            <ol id="summary-seat-order" class="seat-order-list"></ol>
+          </section>
         </section>
 
         <div class="round-actions">
@@ -128,22 +147,20 @@
       <!-- =============== ENDE ZUSAMMENFASSUNG =============== -->
 
       <!-- ================= LAUFENDES SPIEL ================= -->
-      <section id="screen-game" class="screen screen-game" data-screen="game" aria-labelledby="game-title" hidden>
-        <div class="screen-heading">
-          <div>
-            <p id="game-phase-label" class="eyebrow">Ansagen</p>
-            <h2 id="game-title">Runde 1 von 20</h2>
-          </div>
-          <button id="btn-game-home" class="button button-ghost button-small" type="button">Startseite</button>
+      <section id="screen-game" class="screen screen-game" data-screen="game" aria-labelledby="game-phase-label game-title" hidden>
+        <div class="game-topbar">
+          <h2 id="game-phase-label" class="game-phase-title">Ansagen</h2>
+          <p id="game-title" class="game-round-title">Runde 1 von 20</p>
+          <button id="btn-game-home" class="setup-home-button game-home-button" type="button" aria-label="Zur Startseite" title="Zur Startseite">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+          </button>
         </div>
 
-        <div id="game-round-overview" class="panel compact-panel" aria-label="Runde und Gesamtpunktzahlen">
-          <div class="role-grid">
-            <div><span>Kartengeber</span><strong id="game-dealer">–</strong></div>
-            <div><span>Startspieler</span><strong id="game-starter">–</strong></div>
-          </div>
-          <!-- Gesamtpunkte werden ausschließlich während der Ansagen eingeblendet. -->
-          <div id="game-total-points" class="game-total-points" hidden></div>
+        <!-- Gesamtpunkte werden ausschließlich während der Ansagen eingeblendet. -->
+        <div id="game-round-overview" class="panel compact-panel" aria-label="Gesamtpunktzahlen" hidden>
+          <div id="game-total-points" class="game-total-points"></div>
         </div>
 
         <!-- Die aktuelle Phase (Ansagen, Sonderkarten, Stiche oder Ergebnis) rendert app.js. -->
@@ -172,22 +189,20 @@
       <!-- ================== ENDERGEBNIS ================== -->
       <section id="screen-finished" class="screen screen-finished" data-screen="finished" aria-labelledby="finished-title" hidden>
         <div class="screen-heading">
-          <div>
-            <p class="eyebrow">Partie beendet</p>
-            <h2 id="finished-title">Endergebnis</h2>
-          </div>
-          <button id="btn-finished-home" class="button button-ghost button-small" type="button">Startseite</button>
+          <h2 id="finished-title">Endergebnis</h2>
+          <button id="btn-finished-home" class="setup-home-button" type="button" aria-label="Zur Startseite" title="Zur Startseite">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+          </button>
         </div>
 
         <section class="panel">
-          <div id="winner-summary" class="winner-summary"></div>
-          <p id="final-game-meta" class="final-game-meta"></p>
           <div id="final-ranking" class="ranking-list" aria-label="Abschlusstabelle"></div>
         </section>
 
         <section class="panel" aria-labelledby="history-title">
           <h3 id="history-title">Punkteverlauf</h3>
-          <p>Rundenpunkte und abschließende Gesamtpunktzahl aller Spieler.</p>
           <div id="final-score-history" class="history-scroll"></div>
         </section>
 
@@ -225,7 +240,6 @@
         </div>
         <button id="btn-close-cloud-dialog" class="button button-ghost button-small" type="button">Schließen</button>
       </div>
-      <p id="cloud-dialog-help" class="dialog-help">Wähle den betroffenen Spieler.</p>
       <div id="cloud-player-options" class="choice-grid"></div>
       <div id="cloud-change-options" class="choice-grid two-columns" hidden>
         <button id="btn-cloud-minus" class="button button-secondary" type="button">Ansage −1</button>

@@ -423,6 +423,7 @@
       players,
       firstDealerId: players[0].id,
       setupDealerRandomized: false,
+      roundMode: "full",
       totalRounds: getStandardRounds(safeCount),
       currentRound: 1,
       roundOneHintConfirmed: false,

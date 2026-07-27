@@ -1,7 +1,7 @@
 "use strict";
 
 // Increment after app-shell changes so installed apps receive the latest files.
-const CACHE_NAME = "wizard-scoreboard-v1.0.9";
+const CACHE_NAME = "wizard-scoreboard-v1.0.25";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -53,20 +53,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Prefer matching online assets so HTML, CSS and JavaScript cannot come from different releases.
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) return cachedResponse;
-
-        return fetch(event.request).then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === "opaque") {
-            return networkResponse;
-          }
-
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === "opaque") {
           return networkResponse;
-        });
+        }
+
+        const copy = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return networkResponse;
       })
+      .catch(() => caches.match(event.request))
   );
 });

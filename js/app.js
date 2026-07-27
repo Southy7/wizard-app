@@ -34,17 +34,19 @@
       "btn-new-game", "btn-continue-game", "btn-history", "btn-import-game",
       "import-file-input", "storage-warning",
       "btn-setup-home", "setup-form", "player-list", "player-count-badge",
-      "btn-add-player", "btn-rounds-minus", "rounds-input", "btn-rounds-plus",
-      "standard-rounds-value", "maximum-rounds-value", "rounds-message",
-      "summary-player-count", "summary-round-count", "summary-dealer",
-      "summary-starter", "summary-seat-order", "btn-summary-back",
+      "btn-add-player", "round-mode-toggle", "btn-round-mode-full",
+      "btn-round-mode-individual", "full-game-rounds", "custom-round-controls",
+      "btn-rounds-minus", "rounds-input", "btn-rounds-plus",
+      "rounds-message",
+      "summary-player-count", "summary-round-count",
+      "summary-seat-order", "btn-summary-back",
       "btn-summary-start", "form-errors",
-      "btn-game-home", "game-phase-label", "game-title", "game-dealer",
-      "game-starter", "game-total-points", "game-content", "btn-history-home", "history-game-meta",
+      "btn-game-home", "game-phase-label", "game-title",
+      "game-round-overview", "game-total-points", "game-content", "btn-history-home", "history-game-meta",
       "history-score-content", "btn-finished-home",
-      "winner-summary", "final-ranking", "final-game-meta", "final-score-history", "btn-review-last-round",
+      "final-ranking", "final-score-history", "btn-review-last-round",
       "btn-finished-new-game", "round-one-dialog", "btn-confirm-round-one-hint",
-      "cloud-dialog", "cloud-dialog-kicker", "cloud-dialog-help",
+      "cloud-dialog", "cloud-dialog-kicker",
       "cloud-player-options", "cloud-change-options", "btn-cloud-minus",
       "btn-cloud-plus", "btn-close-cloud-dialog", "edit-round-dialog",
       "btn-close-edit-dialog", "btn-edit-bids", "btn-edit-specials",
@@ -69,6 +71,8 @@
     elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
     elements["btn-add-player"].addEventListener("click", addPlayer);
+    elements["btn-round-mode-full"].addEventListener("click", () => setRoundMode("full"));
+    elements["btn-round-mode-individual"].addEventListener("click", () => setRoundMode("individual"));
     elements["btn-rounds-minus"].addEventListener("click", () => changeRounds(-1));
     elements["btn-rounds-plus"].addEventListener("click", () => changeRounds(1));
     elements["rounds-input"].addEventListener("change", commitRoundInput);
@@ -155,7 +159,12 @@
     const firstDealerId = players.some((player) => player.id === savedState.firstDealerId)
       ? savedState.firstDealerId
       : players[0].id;
-    const totalRounds = Logic.clampRoundCount(savedState.totalRounds, playerCount, totalCards);
+    const clampedRounds = Logic.clampRoundCount(savedState.totalRounds, playerCount, totalCards);
+    const standardRounds = Logic.getStandardRounds(playerCount);
+    const roundMode = ["full", "individual"].includes(savedState.roundMode)
+      ? savedState.roundMode
+      : clampedRounds === standardRounds ? "full" : "individual";
+    const totalRounds = roundMode === "full" ? standardRounds : clampedRounds;
     const currentRound = Math.min(Math.max(Number.parseInt(savedState.currentRound, 10) || 1, 1), totalRounds);
 
     const hydrated = {
@@ -167,6 +176,7 @@
       players,
       firstDealerId,
       setupDealerRandomized: Boolean(savedState.setupDealerRandomized),
+      roundMode,
       totalRounds,
       currentRound,
       roundOneHintConfirmed: Boolean(savedState.roundOneHintConfirmed),
@@ -470,11 +480,6 @@
       const inputWrap = document.createElement("div");
       inputWrap.className = "player-input-wrap";
 
-      const label = document.createElement("label");
-      label.className = "player-label";
-      label.htmlFor = `player-name-${player.id}`;
-      label.textContent = `Sitzplatz ${index + 1}`;
-
       const input = document.createElement("input");
       input.id = `player-name-${player.id}`;
       input.className = "text-input";
@@ -482,6 +487,7 @@
       input.maxLength = 30;
       input.autocomplete = "off";
       input.placeholder = `Spieler ${index + 1}`;
+      input.setAttribute("aria-label", `Spieler ${index + 1}`);
       input.value = player.name;
       input.setAttribute("aria-invalid", String(!player.name.trim()));
       input.addEventListener("input", (event) => updatePlayerName(player.id, event.target.value));
@@ -490,7 +496,7 @@
       duplicateHint.className = "duplicate-hint";
       duplicateHint.textContent = duplicateIds.has(player.id) ? "Name wird mehrfach verwendet." : "";
 
-      inputWrap.append(label, input, duplicateHint);
+      inputWrap.append(input, duplicateHint);
 
       const actions = document.createElement("div");
       actions.className = "player-actions";
@@ -552,11 +558,10 @@
 
     state.players.push(Logic.createPlayer(state.players.length));
     state.setupDealerRandomized = false;
-    resetRoundsToStandard();
+    syncRoundsAfterPlayerChange();
     persistState();
     renderSetup();
     focusLastPlayerInput();
-    showToast(`Rundenzahl auf den Wizard-Standard für ${state.players.length} Spieler gesetzt.`);
   }
 
   function removePlayer(playerId) {
@@ -570,10 +575,9 @@
       state.firstDealerId = state.players[0].id;
     }
 
-    resetRoundsToStandard();
+    syncRoundsAfterPlayerChange();
     persistState();
     renderSetup();
-    showToast(`Rundenzahl auf den Wizard-Standard für ${state.players.length} Spieler gesetzt.`);
   }
 
   function reorderPlayer(playerId, direction) {
@@ -593,15 +597,37 @@
     const playerCount = state.players.length;
     const standard = Logic.getStandardRounds(playerCount);
     const maximum = Logic.getMaximumRounds(playerCount, state.totalCards);
+    const isIndividual = state.roundMode === "individual";
 
-    state.totalRounds = Logic.clampRoundCount(state.totalRounds, playerCount, state.totalCards);
+    state.roundMode = isIndividual ? "individual" : "full";
+    state.totalRounds = isIndividual
+      ? Logic.clampRoundCount(state.totalRounds, playerCount, state.totalCards)
+      : standard;
+
+    elements["round-mode-toggle"].dataset.mode = state.roundMode;
+    elements["btn-round-mode-full"].setAttribute("aria-checked", String(!isIndividual));
+    elements["btn-round-mode-individual"].setAttribute("aria-checked", String(isIndividual));
+    elements["full-game-rounds"].textContent = String(standard);
+    elements["custom-round-controls"].hidden = !isIndividual;
     elements["rounds-input"].value = String(state.totalRounds);
     elements["rounds-input"].max = String(maximum);
-    elements["standard-rounds-value"].textContent = `${standard} Runden`;
-    elements["maximum-rounds-value"].textContent = `${maximum} Runden`;
     elements["btn-rounds-minus"].disabled = state.totalRounds <= 1;
     elements["btn-rounds-plus"].disabled = state.totalRounds >= maximum;
     elements["rounds-message"].textContent = message;
+  }
+
+  function setRoundMode(mode) {
+    if (!["full", "individual"].includes(mode) || state.roundMode === mode) return;
+
+    state.roundMode = mode;
+    if (mode === "full") resetRoundsToStandard();
+    persistState();
+    renderRoundControls();
+    renderSummary();
+
+    if (mode === "individual") {
+      requestAnimationFrame(() => elements["rounds-input"].focus());
+    }
   }
 
   function changeRounds(delta) {
@@ -627,17 +653,60 @@
     state.totalRounds = Logic.getStandardRounds(state.players.length);
   }
 
+  function syncRoundsAfterPlayerChange() {
+    if (state.roundMode === "individual") {
+      state.totalRounds = Logic.clampRoundCount(state.totalRounds, state.players.length, state.totalCards);
+      return;
+    }
+
+    resetRoundsToStandard();
+  }
+
   function renderSummary() {
-    const dealer = state.players.find((player) => player.id === state.firstDealerId);
     const starter = Logic.getStartingPlayerForRound(state.players, state.firstDealerId, 1);
 
     elements["summary-player-count"].textContent = String(state.players.length);
     elements["summary-round-count"].textContent = String(state.totalRounds);
-    elements["summary-dealer"].textContent = dealer ? getPlayerDisplayNameById(dealer.id) : "–";
-    elements["summary-starter"].textContent = starter ? getPlayerDisplayNameById(starter.id) : "–";
-    elements["summary-seat-order"].textContent = `Sitzreihenfolge: ${state.players
-      .map((player) => getPlayerDisplayNameById(player.id))
-      .join(" → ")}`;
+    renderSummarySeatOrder(starter?.id ?? null);
+  }
+
+  function renderSummarySeatOrder(starterId) {
+    const seatOrder = elements["summary-seat-order"];
+    seatOrder.innerHTML = "";
+
+    state.players.forEach((player, index) => {
+      const item = document.createElement("li");
+      item.className = "seat-order-item";
+
+      const position = document.createElement("span");
+      position.className = "seat-position";
+      position.textContent = String(index + 1);
+      position.setAttribute("aria-label", `Sitzplatz ${index + 1}`);
+
+      const name = document.createElement("span");
+      name.className = "seat-player-name";
+      name.textContent = getPlayerDisplayNameById(player.id);
+
+      const roles = document.createElement("span");
+      roles.className = "seat-role-badges";
+
+      if (player.id === state.firstDealerId) {
+        roles.append(createSeatRoleBadge("Kartengeber", "dealer"));
+      }
+      if (player.id === starterId) {
+        roles.append(createSeatRoleBadge("Startspieler", "starter"));
+      }
+
+      item.append(position, name, roles);
+      seatOrder.append(item);
+    });
+  }
+
+  function createSeatRoleBadge(label, role) {
+    const badge = document.createElement("span");
+    badge.className = `seat-role-badge ${role}`;
+    badge.textContent = label;
+    return badge;
   }
 
   function submitSetup(event) {
@@ -731,8 +800,6 @@
     replaceRound(round);
 
     elements["game-title"].textContent = `Runde ${round.number} von ${state.totalRounds}`;
-    elements["game-dealer"].textContent = getPlayerDisplayNameById(round.dealerId);
-    elements["game-starter"].textContent = getPlayerDisplayNameById(round.startingPlayerId);
 
     const labels = {
       bids: "Ansagen",
@@ -751,16 +818,21 @@
 
   // Phase 1: Ansagen aller Spieler erfassen
   function renderBids(round) {
-    const panel = createPanel("Ansagen", "Die Eingabe beginnt beim Startspieler. Die Ansagesumme darf nicht der Rundennummer entsprechen.");
+    const panel = createPanel();
+    panel.classList.add("bid-panel");
+    panel.setAttribute("aria-label", "Ansagen eintragen");
     const list = document.createElement("div");
     list.className = "entry-list";
 
     const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
-    order.forEach((player, index) => {
+    order.forEach((player) => {
       const result = round.playerResults[player.id];
       list.append(createValueEntry({
         name: getPlayerDisplayNameById(player.id),
-        meta: index === 0 ? "Beginnt mit der Ansage" : "",
+        badges: [
+          ...(player.id === round.dealerId ? [{ label: "Kartengeber", role: "dealer" }] : []),
+          ...(player.id === round.startingPlayerId ? [{ label: "Startspieler", role: "starter" }] : [])
+        ],
         value: result.originalBid,
         min: 0,
         max: round.number,
@@ -769,25 +841,22 @@
     });
 
     const sum = Logic.getBidSum(round);
-    const difference = Logic.getBidDifference(round);
     const validSum = Logic.isBidSumValid(round);
     const specialErrors = Logic.getSpecialCardErrors(round, state.players);
 
     const summary = document.createElement("div");
     summary.className = "phase-summary";
     summary.append(createStatusCard(
-      validSum ? "success" : "error",
+      validSum ? "neutral" : "error",
       `Summe der Ansagen: ${sum}`,
-      validSum
-        ? `Abweichung zur Runde: ${formatSigned(difference)}. Die Ansagesumme ist zulässig.`
-        : "Die Summe entspricht der Rundennummer. Mindestens eine Ansage muss geändert werden."
+      ""
     ));
 
     if (specialErrors.length > 0) {
       summary.append(createStatusCard("error", "Sonderkarten prüfen", specialErrors.join(" ")));
     }
 
-    const confirm = createButton("Ansagen bestätigen", "button-primary full-width", () => confirmBids(round.number));
+    const confirm = createButton("Ansagen bestätigen", "button-primary full-width bid-confirm-button", () => confirmBids(round.number));
     confirm.disabled = !validSum || specialErrors.length > 0;
 
     panel.append(list, summary, confirm);
@@ -828,27 +897,26 @@
 
   // Phase 2: ausgespielte Sonderkarten und ihre Abhängigkeiten erfassen
   function renderPlay(round) {
-    const bidsPanel = createPanel("Aktuelle Ansagen");
+    const bidsPanel = createPanel();
+    bidsPanel.classList.add("bid-overview-panel");
+    bidsPanel.setAttribute("aria-label", "Ansagenübersicht");
     bidsPanel.append(createBidOverview(round));
 
-    const specialPanel = createPanel("Sonderkarten", "Nur Wolke, Bombe und Hexe verändern die Punkteverwaltung.");
+    const specialPanel = createPanel();
+    specialPanel.classList.add("special-panel");
+    specialPanel.setAttribute("aria-label", "Sonderkarten auswählen");
     const cards = round.specialCards;
     const grid = document.createElement("div");
     grid.className = "special-card-grid";
 
-    const cloudButton = createSpecialButton("☁ Wolke", cards.cloud.active, cards.cloud.active ? "erneut klicken zum Entfernen" : "auswählen");
+    const cloudButton = createSpecialButton("☁ Wolke", cards.cloud.active);
     cloudButton.addEventListener("click", cards.cloud.active ? undoCloud : () => openCloudDialog("cloud"));
 
-    const bombButton = createSpecialButton("💣 Bombe", cards.bomb.active, cards.bomb.active ? "erneut klicken zum Entfernen" : "auswählen");
+    const bombButton = createSpecialButton("💣 Bombe", cards.bomb.active);
     bombButton.addEventListener("click", cards.bomb.active ? undoBomb : activateBomb);
 
     const canActivateWitch = cards.cloud.active || cards.bomb.active;
-    const witchHelper = cards.witch.active
-      ? "erneut klicken zum Entfernen"
-      : canActivateWitch
-        ? "auswählen"
-        : "erst Wolke oder Bombe wählen";
-    const witchButton = createSpecialButton("🧙 Hexe", cards.witch.active, witchHelper);
+    const witchButton = createSpecialButton("🧙 Hexe", cards.witch.active);
     witchButton.disabled = !cards.witch.active && !canActivateWitch;
     witchButton.addEventListener("click", cards.witch.active ? undoWitch : activateWitch);
 
@@ -860,12 +928,9 @@
     }
 
     const errors = Logic.getSpecialCardErrors(round, state.players);
-    if (errors.length > 0) {
-      specialPanel.append(createStatusCard("error", "Eingaben prüfen", errors.join(" ")));
-    }
 
     const actions = document.createElement("div");
-    actions.className = "round-actions";
+    actions.className = "round-actions special-actions";
     actions.append(
       createButton("Ansagen bearbeiten", "button-secondary", () => setRoundPhase("bids")),
       createButton("Stiche eintragen", "button-primary", () => setRoundPhase("tricks"), errors.length > 0)
@@ -890,8 +955,17 @@
       const row = document.createElement("div");
       row.className = "score-row";
 
+      const nameCell = document.createElement("div");
+      nameCell.className = "score-player-with-badge";
+
       const name = document.createElement("span");
+      name.className = "score-player-name";
       name.textContent = getPlayerDisplayNameById(player.id);
+      nameCell.append(name);
+
+      if (player.id === round.startingPlayerId) {
+        nameCell.append(createSeatRoleBadge("Startspieler", "starter"));
+      }
 
       const bid = document.createElement("span");
       bid.className = `number${result.currentBid !== result.originalBid ? " changed-bid" : ""}`;
@@ -905,7 +979,7 @@
       total.textContent = String(totals[player.id]);
       total.setAttribute("aria-label", `${totals[player.id]} Gesamtpunkte`);
 
-      row.append(name, bid, total);
+      row.append(nameCell, bid, total);
       table.append(row);
     });
 
@@ -929,9 +1003,8 @@
 
     if (cards.cloud.active) {
       const secondCloud = createSpecialButton(
-        "2. Wolke",
-        secondCloudActive,
-        secondCloudActive ? "erneut klicken zum Entfernen" : "auswählen"
+        "☁ 2. Wolke",
+        secondCloudActive
       );
       secondCloud.disabled = Boolean(cards.witch.secondEffect) && !secondCloudActive;
       secondCloud.addEventListener("click", secondCloudActive ? undoSecondEffect : () => openCloudDialog("secondCloud"));
@@ -940,9 +1013,8 @@
 
     if (cards.bomb.active) {
       const secondBomb = createSpecialButton(
-        "2. Bombe",
-        secondBombActive,
-        secondBombActive ? "erneut klicken zum Entfernen" : "auswählen"
+        "💣 2. Bombe",
+        secondBombActive
       );
       secondBomb.disabled = Boolean(cards.witch.secondEffect) && !secondBombActive;
       secondBomb.addEventListener("click", secondBombActive ? undoSecondEffect : activateSecondBomb);
@@ -1048,7 +1120,6 @@
 
     cloudDialogContext = { key, playerId: null };
     elements["cloud-dialog-kicker"].textContent = key === "cloud" ? "Wolke" : "2. Wolke durch Hexe";
-    elements["cloud-dialog-help"].textContent = "Wähle den betroffenen Spieler.";
     elements["cloud-change-options"].hidden = true;
     renderCloudPlayerOptions(round);
     openDialog(elements["cloud-dialog"]);
@@ -1075,7 +1146,6 @@
     elements["cloud-change-options"].hidden = false;
 
     const before = getBidBeforeCloud(round, cloudDialogContext.key, playerId);
-    elements["cloud-dialog-help"].textContent = `${getPlayerDisplayNameById(playerId)} hat vor dieser Wolke die Ansage ${before}.`;
     elements["btn-cloud-minus"].disabled = before <= 0;
   }
 
@@ -1154,20 +1224,18 @@
 
   // Phase 3: erzielte Stiche erfassen und auf die korrekte Summe prüfen
   function renderTricks(round) {
-    const panel = createPanel("Stiche eintragen", "Trage für jeden Spieler nur die endgültige Stichzahl dieser Runde ein.");
+    const panel = createPanel();
+    panel.classList.add("tricks-panel");
+    panel.setAttribute("aria-label", "Stiche eintragen");
     const list = document.createElement("div");
     list.className = "entry-list";
     const maximumTricks = Logic.getExpectedTrickCount(round);
 
     state.players.forEach((player) => {
       const result = round.playerResults[player.id];
-      const bidMeta = result.currentBid === result.originalBid
-        ? `Ansage: ${result.currentBid}`
-        : `Ansage: ${result.currentBid} · ursprünglich ${result.originalBid}`;
 
       list.append(createValueEntry({
         name: getPlayerDisplayNameById(player.id),
-        meta: bidMeta,
         value: result.tricks,
         min: 0,
         max: round.number,
@@ -1186,14 +1254,15 @@
     const validation = Logic.validateTrickSum(round);
     let message;
     if (validation.valid) {
-      message = createStatusCard("success", "Alle Stiche sind vollständig verteilt.", `${validation.actual} von ${validation.expected} Stichen eingetragen.`);
+      message = createStatusCard("success", "Alle Stiche sind vollständig verteilt.", "");
     } else if (validation.difference < 0) {
       const missing = Math.abs(validation.difference);
-      message = createStatusCard("error", `${missing} Stich${missing === 1 ? " fehlt" : "e fehlen"}.`, `${validation.actual} eingetragen, ${validation.expected} erwartet.`);
+      message = createStatusCard("error", `${missing} Stich${missing === 1 ? " fehlt" : "e fehlen"}.`, "");
     } else {
       const excess = validation.difference;
-      message = createStatusCard("error", `${excess} Stich${excess === 1 ? " ist" : "e sind"} zu viel.`, `${validation.actual} eingetragen, ${validation.expected} erwartet.`);
+      message = createStatusCard("error", `${excess} Stich${excess === 1 ? " ist" : "e sind"} zu viel.`, "");
     }
+    message.classList.add("trick-status");
 
     const actions = document.createElement("div");
     actions.className = "round-actions";
@@ -1247,7 +1316,9 @@
 
   // Phase 4: Rundenergebnis anzeigen, korrigieren oder zur nächsten Runde wechseln
   function renderRoundResult(round) {
-    const panel = createPanel(`Ergebnis Runde ${round.number}`, "Rundenpunkte und aktuelle Gesamtpunktzahl nach dieser Runde.");
+    const panel = createPanel();
+    panel.classList.add("round-result-panel");
+    panel.setAttribute("aria-label", `Ergebnis Runde ${round.number}`);
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
     const tableWrap = document.createElement("div");
     tableWrap.className = "score-table-scroll";
@@ -1285,7 +1356,7 @@
     tableWrap.append(table);
 
     const actions = document.createElement("div");
-    actions.className = "round-actions";
+    actions.className = "round-actions result-actions";
     actions.append(createButton("Runde bearbeiten", "button-secondary", openEditRoundDialog));
 
     const isLastRound = round.number >= state.totalRounds;
@@ -1365,23 +1436,11 @@
       .map((player) => ({ player, points: totals[player.id] }))
       .sort((a, b) => b.points - a.points);
 
-    const topScore = ranking[0]?.points ?? 0;
-    const winners = ranking.filter((entry) => entry.points === topScore);
-    const winnerNames = winners.map((entry) => getPlayerDisplayNameById(entry.player.id)).join(" und ");
-
-    elements["winner-summary"].replaceChildren();
-    const winnerStrong = document.createElement("strong");
-    winnerStrong.textContent = winners.length > 1 ? `Gleichstand: ${winnerNames}` : `${winnerNames} gewinnt!`;
-    const winnerPoints = document.createElement("span");
-    winnerPoints.textContent = `${topScore} Punkte`;
-    elements["winner-summary"].append(winnerStrong, winnerPoints);
-
-    elements["final-game-meta"].textContent = `${state.players.length} Spieler · ${completedRounds.length} Runden · Sitzreihenfolge beibehalten`;
-
     const list = elements["final-ranking"];
     list.replaceChildren();
     let displayedPosition = 0;
     let previousPoints = null;
+    const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
     ranking.forEach((entry, index) => {
       if (entry.points !== previousPoints) displayedPosition = index + 1;
@@ -1392,7 +1451,8 @@
 
       const position = document.createElement("span");
       position.className = "ranking-position";
-      position.textContent = String(displayedPosition);
+      position.textContent = medals[displayedPosition] ?? String(displayedPosition);
+      position.setAttribute("aria-label", `Platz ${displayedPosition}`);
 
       const name = document.createElement("span");
       name.className = "ranking-name";
@@ -1489,14 +1549,13 @@
 
   // Wiederverwendbare Bausteine für dynamisch erzeugte Oberflächen
   function renderRoundOverview(phase) {
+    const overviewPanel = elements["game-round-overview"];
     const container = elements["game-total-points"];
     container.replaceChildren();
-    container.hidden = phase !== "bids";
-    if (container.hidden) return;
+    overviewPanel.hidden = phase !== "bids";
+    if (overviewPanel.hidden) return;
 
-    const heading = document.createElement("h3");
-    heading.textContent = "Aktuelle Gesamtpunktzahl";
-    container.append(heading, createTotalPointsGrid());
+    container.append(createTotalPointsGrid());
   }
 
   function createTotalPointsGrid() {
@@ -1526,9 +1585,11 @@
     const panel = document.createElement("section");
     panel.className = "panel";
 
-    const heading = document.createElement("h3");
-    heading.textContent = title;
-    panel.append(heading);
+    if (title) {
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      panel.append(heading);
+    }
 
     if (description) {
       const text = document.createElement("p");
@@ -1539,11 +1600,12 @@
     return panel;
   }
 
-  function createValueEntry({ name, meta, value, min, max, onChange, quickAction = null }) {
+  function createValueEntry({ name, meta, badges = [], value, min, max, onChange, quickAction = null }) {
     const row = document.createElement("div");
     row.className = "entry-row";
 
     const info = document.createElement("div");
+    if (badges.length > 0) info.className = "entry-player-info";
     const nameElement = document.createElement("span");
     nameElement.className = "entry-name";
     nameElement.textContent = name;
@@ -1554,6 +1616,13 @@
       metaElement.className = "entry-meta";
       metaElement.textContent = meta;
       info.append(metaElement);
+    }
+
+    if (badges.length > 0) {
+      const badgeContainer = document.createElement("span");
+      badgeContainer.className = "entry-role-badges";
+      badges.forEach(({ label, role }) => badgeContainer.append(createSeatRoleBadge(label, role)));
+      info.append(badgeContainer);
     }
 
     const stepper = document.createElement("div");
@@ -1584,7 +1653,6 @@
 
     const controls = document.createElement("div");
     controls.className = "entry-controls";
-    controls.append(stepper);
 
     if (quickAction) {
       const quickButton = createButton(
@@ -1597,6 +1665,7 @@
       controls.append(quickButton);
     }
 
+    controls.append(stepper);
     row.append(info, controls);
     return row;
   }
@@ -1606,26 +1675,25 @@
     card.className = `status-card ${type}`;
     const strong = document.createElement("strong");
     strong.textContent = title;
-    const body = document.createElement("span");
-    body.textContent = text;
-    card.append(strong, body);
+    card.append(strong);
+
+    if (text) {
+      const body = document.createElement("span");
+      body.textContent = text;
+      card.append(body);
+    }
     return card;
   }
 
-  function createSpecialButton(label, active, helper = "") {
+  function createSpecialButton(label, active) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `special-button${active ? " active" : ""}`;
+    button.setAttribute("aria-pressed", String(active));
 
     const title = document.createElement("strong");
-    title.textContent = active ? `✓ ${label}` : label;
+    title.textContent = label;
     button.append(title);
-
-    if (helper) {
-      const help = document.createElement("span");
-      help.textContent = helper;
-      button.append(help);
-    }
 
     return button;
   }
