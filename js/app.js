@@ -114,7 +114,8 @@
 
   function startNewGame(forceReplace) {
     const savedGame = Storage.loadGame();
-    if (!forceReplace && savedGame) {
+    const hasStoredGameData = Storage.hasStoredData();
+    if (!forceReplace && hasStoredGameData) {
       const shouldReplace = window.confirm(
         "Es ist bereits ein Spiel gespeichert. Beim Starten eines neuen Spiels wird der bisherige Spielstand ersetzt. Fortfahren?"
       );
@@ -125,8 +126,17 @@
       archiveCompletedGame(hydrateState(savedGame));
     }
 
+    // Ein abgelehnter Altbestand wird erst nach der obigen Bestätigung entfernt.
+    if (!savedGame && hasStoredGameData && !Storage.deleteGame()) {
+      updateStorageWarning("Der beschädigte Spielstand konnte nicht ersetzt werden.");
+      return;
+    }
+
     state = Logic.createInitialGameState();
-    persistState({ expectedUpdatedAt: savedGame?.updatedAt ?? null });
+    persistState({
+      expectedUpdatedAt: savedGame?.updatedAt ?? null,
+      expectedGameId: savedGame?.gameId ?? null
+    });
     renderSetup();
     showScreen("setup");
   }
@@ -195,7 +205,10 @@
       const completedState = hydrateState(savedState);
       const needsMigration = !savedState.gameId || Number(savedState.schemaVersion) !== 4;
       if (needsMigration) {
-        Storage.saveGame(completedState);
+        Storage.saveGame(completedState, {
+          expectedUpdatedAt: savedState.updatedAt ?? null,
+          expectedGameId: savedState.gameId ?? null
+        });
         archiveCompletedGame(completedState);
       }
       savedState = completedState;
@@ -485,14 +498,20 @@
       if (validationErrors.length > 0) throw new Error(validationErrors[0]);
 
       const savedBeforeImport = Storage.loadGame();
-      const shouldReplace = !savedBeforeImport || window.confirm(
+      const hasStoredGameData = Storage.hasStoredData();
+      const shouldReplace = !hasStoredGameData || window.confirm(
         "Der vorhandene Spielstand wird durch den importierten Spielstand ersetzt. Fortfahren?"
       );
       if (!shouldReplace) return;
 
+      if (!savedBeforeImport && hasStoredGameData && !Storage.deleteGame()) {
+        throw new Error("Der beschädigte Spielstand konnte nicht ersetzt werden.");
+      }
+
       const importedState = hydrateState(candidate);
       if (!Storage.saveGame(importedState, {
-        expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null
+        expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
+        expectedGameId: savedBeforeImport?.gameId ?? null
       })) {
         throw new Error("Der importierte Spielstand konnte nicht lokal gespeichert werden.");
       }

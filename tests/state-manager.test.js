@@ -14,6 +14,20 @@ assert.equal(hydratedCompletedGame.rounds.length, completedGame.totalRounds);
 assert.equal(hydratedCompletedGame.rounds[0].dealerId, completedGame.firstDealerId);
 assert.equal(hydratedCompletedGame.rounds[0].phase, "result");
 
+const duplicatePlayerState = JSON.parse(JSON.stringify(completedGame));
+duplicatePlayerState.players[1].id = duplicatePlayerState.players[0].id;
+assert.throws(
+  () => StateManager.hydrateState(duplicatePlayerState),
+  /Spieler-IDs.*eindeutig/
+);
+
+const duplicateRoundState = JSON.parse(JSON.stringify(completedGame));
+duplicateRoundState.rounds[1].number = duplicateRoundState.rounds[0].number;
+assert.throws(
+  () => StateManager.hydrateState(duplicateRoundState),
+  /Rundennummern.*eindeutig/
+);
+
 const legacyRunningGame = global.WizardGameLogic.createInitialGameState(3);
 legacyRunningGame.schemaVersion = 2;
 delete legacyRunningGame.updatedAt;

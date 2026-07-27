@@ -58,14 +58,26 @@
     try {
       const rawStoredState = localStorage.getItem(STORAGE_KEY);
       const storedState = rawStoredState ? safelyParseStoredGame(rawStoredState) : null;
-      const expectedUpdatedAt = Object.prototype.hasOwnProperty.call(options, "expectedUpdatedAt")
+      const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(options, "expectedUpdatedAt");
+      const expectedUpdatedAt = hasExpectedUpdatedAt
         ? options.expectedUpdatedAt
         : state?.updatedAt ?? null;
+      const storedUpdatedAt = storedState?.updatedAt ?? null;
+      const expectedGameId = Object.prototype.hasOwnProperty.call(options, "expectedGameId")
+        ? options.expectedGameId
+        : state?.gameId ?? null;
+      const storedGameId = storedState?.gameId ?? null;
+      const storedValueIsDamaged = rawStoredState !== null && !isValidStoredGame(storedState);
+      const implicitInitialWrite = rawStoredState === null && !hasExpectedUpdatedAt;
+      const storedIdentityChanged = rawStoredState !== null && storedGameId !== expectedGameId;
 
-      if (storedState && (storedState.updatedAt ?? null) !== expectedUpdatedAt) {
+      if (storedValueIsDamaged
+        || implicitInitialWrite
+        || storedIdentityChanged
+        || storedUpdatedAt !== expectedUpdatedAt) {
         setError(
           "gameError",
-          "Der Spielstand wurde in einem anderen Tab geändert. Diese Seite wurde nicht gespeichert; lade sie neu, bevor du weiterarbeitest."
+          "Der Spielstand wurde in einem anderen Tab geändert oder gelöscht. Diese Seite wurde nicht gespeichert; lade sie neu, bevor du weiterarbeitest."
         );
         return false;
       }
@@ -96,6 +108,13 @@
     }
   }
 
+  function isValidStoredGame(candidate) {
+    const validateStoredGame = root.WizardGameLogic?.validateStoredGameState;
+    return Boolean(candidate)
+      && typeof validateStoredGame === "function"
+      && validateStoredGame(candidate).length === 0;
+  }
+
   function createNextUpdatedAt(previousUpdatedAt) {
     const previousTime = Date.parse(previousUpdatedAt);
     const nextTime = Number.isNaN(previousTime)
@@ -117,6 +136,15 @@
       const parsed = JSON.parse(raw);
       if (!parsed || parsed.version !== "1.0" || !Array.isArray(parsed.players)) {
         throw new Error("Unbekanntes oder beschädigtes Speicherformat.");
+      }
+
+      const validateStoredGame = root.WizardGameLogic?.validateStoredGameState;
+      if (typeof validateStoredGame !== "function") {
+        throw new Error("Die Spielstandvalidierung ist nicht verfügbar.");
+      }
+      const validationErrors = validateStoredGame(parsed);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors[0]);
       }
 
       clearError("gameError");

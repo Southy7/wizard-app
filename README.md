@@ -48,6 +48,8 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 
 - Sicherheitsabfrage vor dem Überschreiben eines vorhandenen Spiels
 - verständliche Warnung bei nicht verfügbarem oder beschädigtem Browser-Speicher
+- strikte Validierung aktiver lokaler Spielstände vor Hydrierung und Darstellung
+- keine automatische Reparatur mehrdeutiger Spieler-IDs oder Rundennummern
 - unabhängige Fehlerzustände für aktiven Spielstand und History
 - Konfliktschutz und sichtbare Warnung bei Änderungen aus einem anderen Browser-Tab
 - Daten- und Schema-Version im Spielstand

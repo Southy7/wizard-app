@@ -65,7 +65,15 @@ def main() -> None:
         for script in scripts:
             page.add_script_tag(content=script)
         page.evaluate(
-            """localStorage.setItem("wizard-punkte-app:game-state:v1", "{invalid-json")"""
+            """
+            const damagedState = WizardGameLogic.createInitialGameState(3);
+            damagedState.players[1].id = damagedState.players[0].id;
+            damagedState.updatedAt = "2026-01-01T00:00:00.000Z";
+            localStorage.setItem(
+              WizardStorage.STORAGE_KEY,
+              JSON.stringify(damagedState)
+            );
+            """
         )
         page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
 
@@ -81,9 +89,17 @@ def main() -> None:
         assert abs(history_box["y"] - import_box["y"]) < 1
         assert abs(new_game_box["width"] - secondary_row_box["width"]) < 1
 
-        page.evaluate("localStorage.clear()")
+        page.once("dialog", lambda dialog: dialog.accept())
         page.click("#btn-new-game")
         assert page.locator("#storage-warning").is_hidden()
+        assert page.evaluate(
+            """
+            (() => {
+              const saved = JSON.parse(localStorage.getItem(WizardStorage.STORAGE_KEY));
+              return new Set(saved.players.map((player) => player.id)).size === saved.players.length;
+            })()
+            """
+        )
         page.evaluate(
             """
             // localStorage ist in diesem isolierten Test ein Mock und damit kein

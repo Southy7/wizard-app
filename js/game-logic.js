@@ -158,7 +158,7 @@
   }
 
   // Importdaten werden vor der Hydrierung strikt geprüft, damit keine mehrdeutigen IDs oder Runden entstehen.
-  function validateImportedGameState(candidate) {
+  function validateImportedGameState(candidate, options = {}) {
     const errors = [];
     const allowedStatuses = new Set(["setup", "running", "completed"]);
     const allowedPhases = new Set(["bids", "play", "tricks", "result"]);
@@ -310,7 +310,7 @@
         specialCards
       };
 
-      getSpecialCardErrors(normalizedRound, players)
+      getSpecialCardErrors(normalizedRound, players, options)
         .forEach((error) => errors.push(`Runde ${roundNumber}: ${error}`));
 
       const recalculated = recalculateCurrentBids(normalizedRound, players);
@@ -351,6 +351,12 @@
 
     validateImportedRoundSequence(candidate, validatedRounds, errors);
     return [...new Set(errors)];
+  }
+
+  // Lokale Spielstände dürfen die bewusst zwischengespeicherte Hexen-Auswahl
+  // enthalten. Alle strukturellen und übrigen fachlichen Regeln bleiben strikt.
+  function validateStoredGameState(candidate) {
+    return validateImportedGameState(candidate, { allowIncompleteWitchSelection: true });
   }
 
   function validateImportedPlayerResults(rawResults, players, roundNumber, completed, errors) {
@@ -615,7 +621,7 @@
     };
   }
 
-  function getSpecialCardErrors(round, players) {
+  function getSpecialCardErrors(round, players, options = {}) {
     const errors = [];
     const cards = round?.specialCards ?? {};
     const playerIds = new Set(players.map((player) => player.id));
@@ -635,7 +641,9 @@
       errors.push("Die Hexe benötigt zuerst eine Wolke oder Bombe.");
     }
 
-    if (cards.witch?.active && !cards.witch?.secondEffect) {
+    if (cards.witch?.active
+      && !cards.witch?.secondEffect
+      && !(options.allowIncompleteWitchSelection && round?.phase === "play")) {
       errors.push("Wähle für die Hexe eine zweite Wolke oder Bombe aus.");
     }
 
@@ -780,6 +788,7 @@
     getDuplicateNameIds,
     validateSetup,
     validateImportedGameState,
+    validateStoredGameState,
     createPlayerResult,
     createRound,
     getBidSum,

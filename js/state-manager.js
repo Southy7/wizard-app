@@ -13,11 +13,13 @@
     throw new Error("WizardGameLogic wird für die Zustandsverwaltung benötigt.");
   }
 
-  // Gespeicherte Daten werden bereinigt, damit auch ältere Spielstände sicher geladen werden.
+  // Die Hydrierung setzt eine vorherige Validierung voraus. Mehrdeutige IDs und
+  // Rundennummern werden zusätzlich defensiv abgelehnt und niemals still repariert.
   function hydrateState(savedState) {
     const rawPlayers = Array.isArray(savedState.players)
       ? savedState.players.slice(0, Logic.MAX_PLAYERS)
       : [];
+    rejectAmbiguousIdentifiers(rawPlayers, savedState.rounds);
 
     const sanitizedPlayers = rawPlayers.map((player, index) => ({
       id: typeof player?.id === "string" && player.id ? player.id : Logic.createPlayer(index).id,
@@ -79,6 +81,22 @@
     }
 
     return hydrated;
+  }
+
+  function rejectAmbiguousIdentifiers(players, rounds) {
+    const existingPlayerIds = players
+      .map((player) => player?.id)
+      .filter((id) => typeof id === "string" && id);
+    if (new Set(existingPlayerIds).size !== existingPlayerIds.length) {
+      throw new Error("Spieler-IDs müssen vor der Hydrierung eindeutig sein.");
+    }
+
+    const existingRoundNumbers = (Array.isArray(rounds) ? rounds : [])
+      .map((round) => Number.parseInt(round?.number, 10))
+      .filter(Number.isInteger);
+    if (new Set(existingRoundNumbers).size !== existingRoundNumbers.length) {
+      throw new Error("Rundennummern müssen vor der Hydrierung eindeutig sein.");
+    }
   }
 
   function hydrateRound(rawRound, players, firstDealerId) {
