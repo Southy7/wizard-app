@@ -845,9 +845,10 @@ select:focus-visible {
 .entry-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
-  padding: 12px;
+  min-height: 70px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
   background: var(--surface-soft);
@@ -882,8 +883,8 @@ select:focus-visible {
 
 .value-stepper {
   display: grid;
-  grid-template-columns: 44px minmax(42px, 56px) 44px;
-  gap: 6px;
+  grid-template-columns: 44px minmax(34px, 44px) 44px;
+  gap: 5px;
   align-items: center;
 }
 
@@ -908,12 +909,18 @@ select:focus-visible {
   min-height: 44px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  font-size: 1.05rem;
+  font-size: 1.35rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+}
+
+.value-button {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 1;
 }
 
 .phase-summary {
@@ -1491,12 +1498,40 @@ select:focus-visible {
   }
 
   .entry-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+    padding-inline: 9px;
   }
 
   .value-stepper {
-    width: 100%;
-    grid-template-columns: 48px minmax(50px, 1fr) 48px;
+    grid-template-columns: 42px minmax(30px, 38px) 42px;
+    gap: 4px;
+  }
+
+  .value-button {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .entry-row.has-quick-action .entry-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .entry-row.has-quick-action .value-stepper {
+    grid-row: 1;
+  }
+
+  .entry-row.has-quick-action .correct-button {
+    grid-row: 2;
+  }
+
+  .entry-player-info {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
   }
 
   .choice-grid {

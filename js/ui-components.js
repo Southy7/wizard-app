@@ -39,7 +39,7 @@
     colorIndex = null
   }) {
     const row = document.createElement("div");
-    row.className = "entry-row";
+    row.className = `entry-row${quickAction ? " has-quick-action" : ""}`;
     if (Number.isInteger(colorIndex)) {
       row.dataset.playerColor = String(colorIndex);
     }
@@ -70,7 +70,7 @@
 
     const minus = document.createElement("button");
     minus.type = "button";
-    minus.className = "value-button";
+    minus.className = "value-button value-button-minus";
     minus.textContent = "−";
     minus.disabled = value <= min;
     minus.setAttribute("aria-label", `${name}: decrease value`);
@@ -83,7 +83,7 @@
 
     const plus = document.createElement("button");
     plus.type = "button";
-    plus.className = "value-button";
+    plus.className = "value-button value-button-plus";
     plus.textContent = "+";
     plus.disabled = value >= max;
     plus.setAttribute("aria-label", `${name}: increase value`);
