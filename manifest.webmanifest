@@ -1,8 +1,8 @@
 {
-  "name": "Wizard – Digitaler Punkteblock",
-  "short_name": "Wizard Punkte",
-  "description": "Leichtgewichtiger digitaler Punkteblock für Wizard mit 70 Karten.",
-  "lang": "de-DE",
+  "name": "Wizard Scoreboard",
+  "short_name": "Wizard",
+  "description": "Digital Scoreboard for Wizard",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,7 +1,7 @@
 "use strict";
 
-// Bei Änderungen am App-Shell erhöhen, damit installierte Apps neue Dateien laden.
-const CACHE_NAME = "wizard-punkte-v1.0.8";
+// Increment after app-shell changes so installed apps receive the latest files.
+const CACHE_NAME = "wizard-scoreboard-v1.0.9";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -10,6 +10,8 @@ const APP_SHELL = [
   "./js/storage.js",
   "./js/app.js",
   "./manifest.webmanifest",
+  "./assets/icons/favicon-32.png",
+  "./assets/icons/apple-touch-icon.png",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png"
