@@ -495,14 +495,8 @@
       const text = await file.text();
       const parsed = JSON.parse(text);
       const candidate = parsed?.exportFormat === "wizard-punkte-app" ? parsed.gameState : parsed;
-
-      if (!candidate || candidate.version !== "1.0" || !Array.isArray(candidate.players)) {
-        throw new Error("Die Datei ist kein gültiger Wizard-Spielstand der Version 1.0.");
-      }
-
-      if (candidate.players.length < Logic.MIN_PLAYERS || candidate.players.length > Logic.MAX_PLAYERS) {
-        throw new Error(`Der Spielstand muss ${Logic.MIN_PLAYERS} bis ${Logic.MAX_PLAYERS} Spieler enthalten.`);
-      }
+      const validationErrors = Logic.validateImportedGameState(candidate);
+      if (validationErrors.length > 0) throw new Error(validationErrors[0]);
 
       const shouldReplace = !Storage.hasSavedGame() || window.confirm(
         "Der vorhandene Spielstand wird durch den importierten Spielstand ersetzt. Fortfahren?"

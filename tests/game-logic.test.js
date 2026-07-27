@@ -216,4 +216,64 @@ const totalsWithoutSecond = Logic.calculateTotalPoints([round, completedSecond],
 assert.equal(totalsWithoutSecond.anna, -10);
 assert.equal(totalsWithoutSecond.ben, 30);
 
+// Importvalidierung
+const validImport = require("../examples/history-game-1.json").gameState;
+assert.deepEqual(Logic.validateImportedGameState(validImport), []);
+assert.deepEqual(Logic.validateImportedGameState(Logic.createInitialGameState()), []);
+
+function invalidImport(mutator) {
+  const candidate = JSON.parse(JSON.stringify(validImport));
+  mutator(candidate);
+  return Logic.validateImportedGameState(candidate);
+}
+
+assert.ok(invalidImport((candidate) => {
+  candidate.players[1].id = candidate.players[0].id;
+}).some((error) => error.includes("eindeutig")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.players[0].id = "__proto__";
+}).some((error) => error.includes("gültige ID")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds.push(JSON.parse(JSON.stringify(candidate.rounds[0])));
+}).some((error) => error.includes("mehrfach")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds[0].playerResults["example-1-lena"].originalBid = 999;
+  candidate.rounds[0].playerResults["example-1-lena"].currentBid = 999;
+  candidate.rounds[0].playerResults["example-1-lena"].tricks = 999;
+}).some((error) => error.includes("zwischen 0 und 1")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.firstDealerId = "missing";
+}).some((error) => error.includes("Kartengeber")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds[0].phase = "invalid";
+}).some((error) => error.includes("Phase")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds[0].specialCards = {
+    witch: { active: true, secondEffect: null }
+  };
+}).some((error) => error.includes("Hexe")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds[0].playerResults["example-1-lena"].tricks = 0;
+}).some((error) => error.includes("Stichsumme")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds.splice(0, 1);
+}).some((error) => error.includes("ohne Lücken")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.rounds[0].completed = false;
+  candidate.rounds[0].phase = "tricks";
+  candidate.rounds[0].completedAt = null;
+  Object.values(candidate.rounds[0].playerResults).forEach((result) => {
+    result.roundPoints = null;
+  });
+}).some((error) => error.includes("vollständig abgeschlossene")));
+
 console.log("Alle Tests der Spiellogik wurden erfolgreich ausgeführt.");
