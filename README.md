@@ -66,6 +66,7 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - Unterstützung für Hoch- und Querformat
 - automatischer Hell- und Dunkelmodus
 - PWA-Manifest und Offline-Cache
+- Offline-Cache ausschließlich für den eigenen App-Scope und die feste App-Shell
 
 ## Lokal starten
 

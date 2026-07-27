@@ -4,6 +4,6 @@
   "private": true,
   "description": "Leichtgewichtiger Wizard-Punkteblock – vollständige Version 1.0",
   "scripts": {
-    "test": "node tests/game-logic.test.js && node tests/storage.test.js"
+    "test": "node tests/game-logic.test.js && node tests/storage.test.js && node tests/service-worker.test.js"
   }
 }

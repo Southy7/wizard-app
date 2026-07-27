@@ -10,6 +10,7 @@ global.localStorage = {
   clear() { values.clear(); }
 };
 
+global.WizardGameLogic = require("../js/game-logic.js");
 require("../js/storage.js");
 const Storage = global.WizardStorage;
 
@@ -39,26 +40,48 @@ assert.equal(loaded.players[0].name, "Anna");
 assert.equal(typeof loaded.updatedAt, "string");
 assert.equal(Storage.getLastError(), "");
 
-const completedGame = {
-  ...loaded,
-  gameId: "game-1",
-  status: "completed",
-  rounds: [{ number: 1, completed: true }]
-};
+const completedGame = require("../examples/history-game-1.json").gameState;
 assert.equal(Storage.saveCompletedGame(completedGame), true);
 assert.equal(Storage.hasGameHistory(), true);
 assert.equal(Storage.loadGameHistory().length, 1);
-assert.equal(Storage.loadGameHistory()[0].gameId, "game-1");
+assert.equal(Storage.loadGameHistory()[0].gameId, completedGame.gameId);
 assert.equal(typeof Storage.loadGameHistory()[0].archivedAt, "string");
 
 const updatedCompletedGame = {
   ...completedGame,
-  players: [{ id: "a", name: "Anna aktualisiert", seatPosition: 0 }]
+  players: completedGame.players.map((player, index) => (
+    index === 0 ? { ...player, name: "Lena aktualisiert" } : player
+  ))
 };
 assert.equal(Storage.saveCompletedGame(updatedCompletedGame), true);
 assert.equal(Storage.loadGameHistory().length, 1);
-assert.equal(Storage.loadGameHistory()[0].players[0].name, "Anna aktualisiert");
+assert.equal(Storage.loadGameHistory()[0].players[0].name, "Lena aktualisiert");
 assert.equal(Storage.saveCompletedGame(state), false);
+
+for (const mutate of [
+  (game) => game.rounds.pop(),
+  (game) => { game.rounds[1].number = 1; },
+  (game) => { game.rounds[0].completed = false; },
+  (game) => { game.currentRound = 1; },
+  (game) => { game.rounds[0].playerResults["example-1-lena"].tricks = 0; },
+  (game) => { game.rounds[0].specialCards = { witch: { active: true, secondEffect: null } }; }
+]) {
+  const inconsistentGame = JSON.parse(JSON.stringify(completedGame));
+  mutate(inconsistentGame);
+  assert.equal(Storage.saveCompletedGame(inconsistentGame), false);
+}
+
+const validHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
+const inconsistentArchive = JSON.parse(JSON.stringify(completedGame));
+inconsistentArchive.rounds.pop();
+localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify([inconsistentArchive]));
+const archiveConsoleError = console.error;
+console.error = () => {};
+assert.deepEqual(Storage.loadGameHistory(), []);
+assert.match(Storage.getStorageErrors().historyError, /inkonsistent|nicht lesbar/i);
+console.error = archiveConsoleError;
+localStorage.setItem(Storage.HISTORY_KEY, validHistoryValue);
+assert.equal(Storage.loadGameHistory().length, 1);
 
 localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
 const originalConsoleError = console.error;

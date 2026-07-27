@@ -1,7 +1,8 @@
 "use strict";
 
 // Increment after app-shell changes so installed apps receive the latest files.
-const CACHE_NAME = "wizard-scoreboard-v1.0.29";
+const CACHE_PREFIX = "wizard-scoreboard-";
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.30`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -16,6 +17,9 @@ const APP_SHELL = [
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png"
 ];
+const SCOPE_URL = new URL(self.registration.scope);
+const INDEX_URL = new URL("./index.html", SCOPE_URL).href;
+const APP_ASSET_URLS = new Set(APP_SHELL.map((path) => new URL(path, SCOPE_URL).href));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -30,7 +34,7 @@ self.addEventListener("activate", (event) => {
     caches.keys()
       .then((keys) => Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
@@ -40,31 +44,51 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
-          return response;
-        })
-        .catch(() => caches.match("./index.html"))
-    );
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== SCOPE_URL.origin || !requestUrl.href.startsWith(SCOPE_URL.href)) {
     return;
   }
 
-  // Prefer matching online assets so HTML, CSS and JavaScript cannot come from different releases.
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === "opaque") {
-          return networkResponse;
-        }
+  if (event.request.mode === "navigate") {
+    event.respondWith(handleNavigationRequest(event.request, requestUrl));
+    return;
+  }
 
-        const copy = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
-  );
+  if (!APP_ASSET_URLS.has(requestUrl.href)) return;
+  event.respondWith(handleStaticAssetRequest(event.request));
 });
+
+async function handleNavigationRequest(request, requestUrl) {
+  try {
+    const networkResponse = await fetch(request);
+    if (!networkResponse.ok) {
+      return (await caches.match(INDEX_URL)) ?? networkResponse;
+    }
+
+    const isAppEntry = requestUrl.href === SCOPE_URL.href || requestUrl.href === INDEX_URL;
+    const isHtml = networkResponse.headers.get("content-type")?.includes("text/html");
+    if (isAppEntry && isHtml) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(INDEX_URL, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch {
+    return (await caches.match(INDEX_URL)) ?? Response.error();
+  }
+}
+
+// Only the fixed app shell is refreshed; future API responses remain outside this cache.
+async function handleStaticAssetRequest(request) {
+  try {
+    const networkResponse = await fetch(request);
+    if (!networkResponse.ok || networkResponse.type === "opaque") {
+      return (await caches.match(request)) ?? networkResponse;
+    }
+
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, networkResponse.clone());
+    return networkResponse;
+  } catch {
+    return (await caches.match(request)) ?? Response.error();
+  }
+}

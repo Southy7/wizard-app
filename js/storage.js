@@ -139,17 +139,12 @@
         throw new Error("Unbekanntes Archivformat.");
       }
 
-      const games = parsed.filter((game) =>
-        game
-        && game.version === "1.0"
-        && typeof game.gameId === "string"
-        && game.status === "completed"
-        && Array.isArray(game.players)
-        && Array.isArray(game.rounds)
-        && game.rounds.some((round) => round?.completed)
-      );
+      if (parsed.some((game) => !isCompletedGameConsistent(game))) {
+        throw new Error("Das Archiv enthält eine unvollständige oder inkonsistente Partie.");
+      }
+
       clearError("historyError");
-      return games;
+      return parsed;
     } catch (error) {
       setError("historyError", "Das gespeicherte Partienarchiv ist beschädigt oder nicht lesbar.", error);
       return [];
@@ -157,15 +152,8 @@
   }
 
   function saveCompletedGame(state) {
-    if (
-      !state
-      || state.status !== "completed"
-      || !Array.isArray(state.players)
-      || !Array.isArray(state.rounds)
-      || !state.rounds.some((round) => round?.completed)
-    ) {
-      return false;
-    }
+    if (!isCompletedGameConsistent(state)) return false;
+
     if (!isStorageAvailable()) return false;
 
     try {
@@ -196,6 +184,45 @@
       setError("historyError", "Die abgeschlossene Partie konnte nicht im Archiv gespeichert werden.", error);
       return false;
     }
+  }
+
+  function hasCompleteRoundSequence(state) {
+    if (!state
+      || state.status !== "completed"
+      || !Number.isInteger(state.totalRounds)
+      || state.totalRounds < 1
+      || state.currentRound !== state.totalRounds
+      || !Array.isArray(state.players)
+      || !Array.isArray(state.rounds)
+      || state.rounds.length !== state.totalRounds) {
+      return false;
+    }
+
+    const roundNumbers = new Set();
+    for (const round of state.rounds) {
+      if (!Number.isInteger(round?.number)
+        || round.number < 1
+        || round.number > state.totalRounds
+        || roundNumbers.has(round.number)
+        || round.completed !== true) {
+        return false;
+      }
+      roundNumbers.add(round.number);
+    }
+
+    return roundNumbers.size === state.totalRounds;
+  }
+
+  function isCompletedGameConsistent(state) {
+    if (!hasCompleteRoundSequence(state)
+      || state.version !== "1.0"
+      || typeof state.gameId !== "string"
+      || !state.gameId) {
+      return false;
+    }
+
+    const validateGameState = root.WizardGameLogic?.validateImportedGameState;
+    return typeof validateGameState !== "function" || validateGameState(state).length === 0;
   }
 
   function hasGameHistory() {

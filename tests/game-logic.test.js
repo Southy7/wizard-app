@@ -258,6 +258,10 @@ assert.ok(invalidImport((candidate) => {
 }).some((error) => error.includes("ohne Lücken")));
 
 assert.ok(invalidImport((candidate) => {
+  candidate.currentRound = 1;
+}).some((error) => error.includes("vollständig abgeschlossene")));
+
+assert.ok(invalidImport((candidate) => {
   candidate.rounds[0].completed = false;
   candidate.rounds[0].phase = "tricks";
   candidate.rounds[0].completedAt = null;
