@@ -53,6 +53,7 @@
         const row = document.createElement("div");
         row.className = "player-row";
         row.dataset.playerId = player.id;
+        row.dataset.playerColor = String(index + 1);
 
         const inputWrap = document.createElement("div");
         inputWrap.className = "player-input-wrap";
@@ -218,6 +219,7 @@
       state.players.forEach((player, index) => {
         const item = document.createElement("li");
         item.className = "seat-order-item";
+        item.dataset.playerColor = String(index + 1);
         const position = document.createElement("span");
         position.className = "seat-position";
         position.textContent = String(index + 1);

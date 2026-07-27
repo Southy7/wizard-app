@@ -390,6 +390,7 @@
         value: result.originalBid,
         min: 0,
         max: round.number,
+        colorIndex: getPlayerColorIndex(player.id),
         onChange: (next) => updateBid(round.number, player.id, next)
       }));
     });
@@ -508,6 +509,7 @@
       const result = round.playerResults[player.id];
       const row = document.createElement("div");
       row.className = "score-row";
+      row.dataset.playerColor = String(getPlayerColorIndex(player.id));
 
       const nameCell = document.createElement("div");
       nameCell.className = "score-player-with-badge";
@@ -684,6 +686,7 @@
 
     order.forEach((player) => {
       const button = createButton(getPlayerDisplayNameById(player.id), "button-secondary choice-button", () => selectCloudPlayer(player.id));
+      button.dataset.playerColor = String(getPlayerColorIndex(player.id));
       if (cloudDialogContext?.playerId === player.id) button.classList.add("selected");
       container.append(button);
     });
@@ -797,6 +800,7 @@
         value: result.tricks,
         min: 0,
         max: round.number,
+        colorIndex: getPlayerColorIndex(player.id),
         onChange: (next) => updateTricks(round.number, player.id, next),
         quickAction: {
           label: "Correct",
@@ -892,6 +896,7 @@
       const result = round.playerResults[player.id];
       const row = document.createElement("div");
       row.className = "score-row";
+      row.dataset.playerColor = String(getPlayerColorIndex(player.id));
 
       const name = document.createElement("span");
       name.className = "score-player";
@@ -1039,6 +1044,7 @@
     state.players.forEach((player) => {
       const card = document.createElement("div");
       card.className = "points-card";
+      card.dataset.playerColor = String(getPlayerColorIndex(player.id));
 
       const name = document.createElement("span");
       name.textContent = getPlayerDisplayNameById(player.id);
@@ -1055,6 +1061,11 @@
 
   function getRound(roundNumber) {
     return state.rounds.find((round) => round.number === roundNumber) ?? null;
+  }
+
+  function getPlayerColorIndex(playerId) {
+    const index = state.players.findIndex((player) => player.id === playerId);
+    return (index >= 0 ? index : 0) + 1;
   }
 
   function getCurrentRound() {

@@ -35,10 +35,14 @@
     min,
     max,
     onChange,
-    quickAction = null
+    quickAction = null,
+    colorIndex = null
   }) {
     const row = document.createElement("div");
     row.className = "entry-row";
+    if (Number.isInteger(colorIndex)) {
+      row.dataset.playerColor = String(colorIndex);
+    }
 
     const info = document.createElement("div");
     if (badges.length > 0) info.className = "entry-player-info";

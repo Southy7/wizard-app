@@ -17,6 +17,9 @@
 
       const row = document.createElement("div");
       row.className = "ranking-row";
+      row.dataset.playerColor = String(
+        gameState.players.findIndex((player) => player.id === entry.player.id) + 1
+      );
 
       const position = document.createElement("span");
       position.className = "ranking-position";
@@ -52,6 +55,7 @@
     gameState.players.forEach((player, index) => {
       const th = document.createElement("th");
       th.scope = "col";
+      th.dataset.playerColor = String(index + 1);
       th.textContent = getPlayerDisplayName(gameState, player.id, index);
       headRow.append(th);
     });
@@ -65,9 +69,10 @@
       roundCell.textContent = String(round.number);
       row.append(roundCell);
 
-      gameState.players.forEach((player) => {
+      gameState.players.forEach((player, index) => {
         const points = Number(round.playerResults?.[player.id]?.roundPoints) || 0;
         const cell = document.createElement("td");
+        cell.dataset.playerColor = String(index + 1);
         cell.textContent = formatSigned(points);
         cell.className = points >= 0 ? "positive" : "negative";
         row.append(cell);
@@ -81,8 +86,9 @@
     totalLabel.scope = "row";
     totalLabel.textContent = "Total";
     totalRow.append(totalLabel);
-    gameState.players.forEach((player) => {
+    gameState.players.forEach((player, index) => {
       const cell = document.createElement("td");
+      cell.dataset.playerColor = String(index + 1);
       cell.textContent = String(totals[player.id]);
       totalRow.append(cell);
     });

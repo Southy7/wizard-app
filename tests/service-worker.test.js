@@ -39,8 +39,8 @@ const context = vm.createContext({
     },
     async keys() {
       return [
-        "wizard-scoreboard-v1.0.42",
         "wizard-scoreboard-v1.0.43",
+        "wizard-scoreboard-v1.0.44",
         "another-application-cache"
       ];
     },
@@ -124,7 +124,7 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(!installedAppShell.includes("./js/history-controller.js"));
 
   await dispatchLifecycle("activate");
-  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.42"]);
+  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.43"]);
 
   assert.equal(dispatchFetch({
     method: "GET",

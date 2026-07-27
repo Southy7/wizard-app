@@ -112,6 +112,7 @@ def main() -> None:
         )
         assert page.locator("#screen-setup").is_visible()
         assert page.locator("#screen-setup h2").count() == 0
+        assert page.locator("#rounds-title").text_content() == "Game Length"
         assert page.get_by_text("The order matches the seating order at the table.").count() == 0
         assert page.get_by_text("Wizard-Standard:").count() == 0
         assert page.get_by_text("Maximum with 70 cards:").count() == 0
@@ -128,6 +129,9 @@ def main() -> None:
         for index, name in enumerate(("Anna", "Ben", "Chris")):
             assert page.locator("#player-list .text-input").nth(index).get_attribute("placeholder") == f"Player {index + 1}"
             page.locator("#player-list .text-input").nth(index).fill(name)
+        assert page.locator("#player-list .player-row").evaluate_all(
+            "(rows) => rows.map((row) => row.dataset.playerColor)"
+        ) == ["1", "2", "3"]
         page.fill("#rounds-input", "1")
         page.dispatch_event("#rounds-input", "change")
         page.click("#setup-form button[type=submit]")
@@ -138,6 +142,9 @@ def main() -> None:
         assert seat_rows.count() == 3
         assert page.locator("#summary-seat-order .seat-position").all_text_contents() == ["1", "2", "3"]
         assert page.locator("#summary-seat-order .seat-player-name").all_text_contents() == ["Anna", "Ben", "Chris"]
+        assert seat_rows.evaluate_all(
+            "(rows) => rows.map((row) => row.dataset.playerColor)"
+        ) == ["1", "2", "3"]
         assert page.locator("#summary-seat-order .seat-role-badge.dealer").count() == 1
         assert page.locator("#summary-seat-order .seat-role-badge.starter").count() == 1
         dealer = page.locator(".seat-role-badge.dealer").locator("xpath=..").locator("xpath=..").locator(".seat-player-name").text_content()
@@ -160,6 +167,12 @@ def main() -> None:
         assert page.locator("#game-starter").count() == 0
         assert page.locator("#game-content h3").count() == 0
         assert page.locator("#game-round-overview #game-total-points .points-card").count() == 3
+        assert page.locator("#game-total-points .points-card").evaluate_all(
+            "(cards) => cards.map((card) => card.dataset.playerColor)"
+        ) == ["1", "2", "3"]
+        assert sorted(page.locator(".bid-panel .entry-row").evaluate_all(
+            "(rows) => rows.map((row) => row.dataset.playerColor)"
+        )) == ["1", "2", "3"]
         assert page.locator(".bid-panel .entry-role-badges .dealer").count() == 1
         assert page.locator(".bid-panel .entry-role-badges .starter").count() == 1
         bid_dealer = page.locator(".bid-panel .dealer").locator("xpath=../..").locator(".entry-name").text_content()
@@ -193,6 +206,9 @@ def main() -> None:
         assert page.locator(".bid-overview .score-row.header span").all_text_contents() == [
             "Player", "Bid", "Total"
         ]
+        assert page.locator(".bid-overview .score-row:not(.header)").evaluate_all(
+            "(rows) => rows.map((row) => row.dataset.playerColor)"
+        ) == ["1", "2", "3"]
         overview_starter = page.locator(".bid-overview .starter")
         assert overview_starter.count() == 1
         overview_starter_row = overview_starter.locator("xpath=../..")
@@ -384,6 +400,9 @@ def main() -> None:
         assert page.locator(".score-row.header span").all_text_contents() == [
             "Player", "Bid", "Tricks", "Round", "Total"
         ]
+        assert page.locator(".score-table .score-row:not(.header)").evaluate_all(
+            "(rows) => rows.map((row) => row.dataset.playerColor)"
+        ) == ["1", "2", "3"]
         result_table_box = page.locator(".round-result-panel .score-table-scroll").bounding_box()
         result_actions_box = page.locator(".round-result-panel .result-actions").bounding_box()
         assert result_table_box and result_actions_box
