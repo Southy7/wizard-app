@@ -29,13 +29,13 @@ assert.equal(Storage.saveGame(state), true);
 assert.equal(Storage.hasStoredData(), true);
 const loaded = Storage.loadGame();
 assert.equal(loaded.version, "1.0");
-assert.equal(loaded.schemaVersion, 3);
+assert.equal(loaded.schemaVersion, 4);
 assert.equal(loaded.players[0].name, "Anna");
 assert.equal(typeof loaded.updatedAt, "string");
 assert.equal(Storage.getLastError(), "");
 
 const completedGame = {
-  ...state,
+  ...loaded,
   gameId: "game-1",
   status: "completed",
   rounds: [{ number: 1, completed: true }]

@@ -171,6 +171,13 @@
       errors.push("Die Datei ist kein gültiger Wizard-Spielstand der Version 1.0.");
     }
 
+    if (candidate.schemaVersion !== undefined
+      && (!Number.isInteger(candidate.schemaVersion)
+        || candidate.schemaVersion < 1
+        || candidate.schemaVersion > 4)) {
+      errors.push("Die Schema-Version des Spielstands wird nicht unterstützt.");
+    }
+
     const players = Array.isArray(candidate.players) ? candidate.players : [];
     if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
       errors.push(`Der Spielstand muss ${MIN_PLAYERS} bis ${MAX_PLAYERS} Spieler enthalten.`);
@@ -416,17 +423,13 @@
       normalized[key] = {
         active: rawCloud.active,
         playerId: rawCloud.playerId ?? null,
-        change: rawCloud.change ?? 0,
-        suppressedByBomb: rawCloud.suppressedByBomb ?? false
+        change: rawCloud.change ?? 0
       };
 
-      if (typeof normalized[key].suppressedByBomb !== "boolean"
-        || normalized[key].suppressedByBomb
-        || (rawCloud.active && (!players.some((player) => player.id === normalized[key].playerId)
+      if ((rawCloud.active && (!players.some((player) => player.id === normalized[key].playerId)
           || ![-1, 1].includes(normalized[key].change)))
         || (!rawCloud.active && (normalized[key].playerId !== null
-          || normalized[key].change !== 0
-          || normalized[key].suppressedByBomb))) {
+          || normalized[key].change !== 0))) {
         errors.push(`Die Sonderkarte ${key} in Runde ${roundNumber} ist inkonsistent.`);
       }
     }
@@ -519,8 +522,7 @@
         cloud: {
           active: false,
           playerId: null,
-          change: 0,
-          suppressedByBomb: false
+          change: 0
         },
         bomb: {
           active: false
@@ -532,8 +534,7 @@
         secondCloud: {
           active: false,
           playerId: null,
-          change: 0,
-          suppressedByBomb: false
+          change: 0
         },
         secondBomb: {
           active: false
@@ -588,7 +589,7 @@
     }
 
     for (const event of getCloudEvents(round)) {
-      if (!event.suppressedByBomb && Object.prototype.hasOwnProperty.call(currentBids, event.playerId)) {
+      if (Object.prototype.hasOwnProperty.call(currentBids, event.playerId)) {
         currentBids[event.playerId] += Number(event.change) || 0;
       }
     }
@@ -663,11 +664,6 @@
 
     if (cards.secondCloud?.active && cards.secondBomb?.active) {
       errors.push("Durch die Hexe darf nur eine zweite Sonderkarte gewählt werden.");
-    }
-
-    const suppressedClouds = getCloudEvents(round).filter((event) => event.suppressedByBomb).length;
-    if (suppressedClouds > getActiveBombCount(round)) {
-      errors.push("Mehr Wolken wurden mit einer Bombe kombiniert als Bombenstiche vorhanden sind.");
     }
 
     const currentBids = calculateCurrentBidMap(round, players);
@@ -750,7 +746,7 @@
 
     return {
       version: "1.0",
-      schemaVersion: 3,
+      schemaVersion: 4,
       gameId: createId("game"),
       status: "setup",
       totalCards: TOTAL_CARDS,

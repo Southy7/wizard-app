@@ -39,7 +39,7 @@
       const payload = {
         ...state,
         version: "1.0",
-        schemaVersion: Math.max(Number(state?.schemaVersion) || 0, 3),
+        schemaVersion: Math.max(Number(state?.schemaVersion) || 0, 4),
         updatedAt: new Date().toISOString()
       };
 

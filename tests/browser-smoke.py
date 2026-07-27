@@ -218,7 +218,6 @@ def main() -> None:
         page.locator(".special-button", has_text="Bombe").click()
         page.locator(".special-button", has_text="Wolke").click()
         assert page.locator("button", has_text="Rückgängig").count() == 0
-        assert page.get_by_text("Wolke und Bombe im selben Stich").count() == 0
 
         page.click('button:has-text("Stiche eintragen")')
         assert page.locator("#game-round-overview").is_hidden()

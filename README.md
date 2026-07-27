@@ -28,7 +28,6 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - Wolke, Bombe und Hexe als direkt umschaltbare Karten
 - Hexe erst nach einer Wolke oder Bombe, anschließend mit genau einer umschaltbaren Wiederholung
 - gesperrte Sticheingabe, solange bei aktiver Hexe keine zweite Karte gewählt wurde
-- Wolke und Bombe im selben Stich
 - Eingabe der endgültigen Stiche
 - „Richtig“-Schnellaktion zum Übernehmen der aktuellen Ansage als Stichzahl
 - automatische Stichsummenprüfung
@@ -120,6 +119,12 @@ Der aktive Spielstand und das getrennte Archiv abgeschlossener Partien liegen in
 - Wechsel zu einem anderen Browser oder Gerät
 
 Deshalb empfiehlt sich bei längeren Partien oder vor einem Gerätewechsel ein Export.
+
+### Datenmigration auf Schema 4
+
+Die frühere Regel „Wolke und Bombe im selben Stich“ wird nicht mehr unterstützt. Das frühere Feld `suppressedByBomb` wird beim Laden oder Import älterer Spielstände ignoriert und beim nächsten Speichern entfernt. Eine Wolke verändert die Ansage daher immer um −1 oder +1; eine Bombe reduziert ausschließlich die Anzahl der zu verteilenden Stiche.
+
+Aktive ältere Spielstände werden beim Fortsetzen automatisch auf Schema 4 gespeichert. Archivierte Partien werden beim Öffnen der History hydriert und anschließend im aktuellen Schema gesichert.
 
 ## Projektstruktur
 

@@ -3,7 +3,7 @@
   "exportVersion": 1,
   "gameState": {
     "version": "1.0",
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "gameId": "example-history-nora-paul-sofia-yusuf",
     "status": "completed",
     "totalCards": 70,

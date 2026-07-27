@@ -98,8 +98,7 @@ assert.ok(Logic.getSpecialCardErrors(invalidWitchRound, players).some((error) =>
 round.specialCards.cloud = {
   active: true,
   playerId: "anna",
-  change: 1,
-  suppressedByBomb: false
+  change: 1
 };
 round = Logic.recalculateCurrentBids(round, players);
 assert.equal(round.playerResults.anna.originalBid, 2);
@@ -111,34 +110,26 @@ round.specialCards.witch = { active: true, secondEffect: "cloud" };
 round.specialCards.secondCloud = {
   active: true,
   playerId: "anna",
-  change: -1,
-  suppressedByBomb: false
+  change: -1
 };
 round = Logic.recalculateCurrentBids(round, players);
 assert.equal(round.playerResults.anna.currentBid, 2);
 assert.equal(Logic.getSpecialCardErrors(round, players).length, 0);
 
-// Bombe unterdrückt eine Wolke
+// Eine Bombe verändert nur die erwartete Stichsumme, nicht die Wolkenänderung
 round.specialCards.bomb.active = true;
-round.specialCards.cloud.suppressedByBomb = true;
 round = Logic.recalculateCurrentBids(round, players);
-assert.equal(round.playerResults.anna.currentBid, 1);
+assert.equal(round.playerResults.anna.currentBid, 2);
 assert.equal(Logic.getActiveBombCount(round), 1);
 assert.equal(Logic.getExpectedTrickCount(round), 4);
 assert.equal(Logic.getSpecialCardErrors(round, players).length, 0);
-
-// Eine Bombe darf nicht zwei Wolken in zwei verschiedenen Stichen unterdrücken
-round.specialCards.secondCloud.suppressedByBomb = true;
-assert.ok(Logic.getSpecialCardErrors(round, players).some((error) => error.includes("Mehr Wolken")));
-round.specialCards.secondCloud.suppressedByBomb = false;
 
 // Zweite Bombe durch Hexe statt zweiter Wolke
 round.specialCards.witch.secondEffect = "bomb";
 round.specialCards.secondCloud = {
   active: false,
   playerId: null,
-  change: 0,
-  suppressedByBomb: false
+  change: 0
 };
 round.specialCards.secondBomb.active = true;
 round = Logic.recalculateCurrentBids(round, players);
@@ -151,8 +142,7 @@ let negativeRound = Logic.createRound(players, "anna", 2);
 negativeRound.specialCards.cloud = {
   active: true,
   playerId: "ben",
-  change: -1,
-  suppressedByBomb: false
+  change: -1
 };
 negativeRound = Logic.recalculateCurrentBids(negativeRound, players);
 assert.equal(negativeRound.playerResults.ben.currentBid, -1);
@@ -189,7 +179,7 @@ assert.equal(Logic.calculatePoints(2, 4), -20);
 assert.equal(Logic.calculatePoints(0, 3), -30);
 
 round = Logic.calculateRoundPoints(round, players);
-assert.equal(round.playerResults.anna.roundPoints, -10); // aktuelle Ansage 2, ein Stich
+assert.equal(round.playerResults.anna.roundPoints, -20); // aktuelle Ansage 3, ein Stich
 assert.equal(round.playerResults.ben.roundPoints, 30);   // Ansage 1, ein Stich
 assert.equal(round.playerResults.chris.roundPoints, -10);
 assert.equal(round.playerResults.david.roundPoints, -10);
@@ -205,7 +195,7 @@ let completedSecond = Logic.calculateRoundPoints(secondRound, players);
 completedSecond.completed = true;
 
 const totals = Logic.calculateTotalPoints([round, completedSecond], players);
-assert.equal(totals.anna, 10);
+assert.equal(totals.anna, 0);
 assert.equal(totals.ben, 50);
 assert.equal(totals.chris, 10);
 assert.equal(totals.david, 10);
@@ -213,7 +203,7 @@ assert.equal(totals.david, 10);
 // Nicht abgeschlossene Runden dürfen den Gesamtstand nicht beeinflussen
 completedSecond.completed = false;
 const totalsWithoutSecond = Logic.calculateTotalPoints([round, completedSecond], players);
-assert.equal(totalsWithoutSecond.anna, -10);
+assert.equal(totalsWithoutSecond.anna, -20);
 assert.equal(totalsWithoutSecond.ben, 30);
 
 // Importvalidierung

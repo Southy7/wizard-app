@@ -179,7 +179,7 @@
       ...initialState,
       ...savedState,
       version: "1.0",
-      schemaVersion: 3,
+      schemaVersion: 4,
       gameId: typeof savedState.gameId === "string" && savedState.gameId ? savedState.gameId : initialState.gameId,
       totalCards,
       players,
@@ -271,9 +271,7 @@
     return {
       active: Boolean(rawCloud?.active),
       playerId: typeof rawCloud?.playerId === "string" ? rawCloud.playerId : null,
-      change: rawCloud?.change === -1 ? -1 : rawCloud?.change === 1 ? 1 : 0,
-      // Die frühere Kombination „Wolke und Bombe im selben Stich“ wird nicht mehr übernommen.
-      suppressedByBomb: false
+      change: rawCloud?.change === -1 ? -1 : rawCloud?.change === 1 ? 1 : 0
     };
   }
 
@@ -281,10 +279,10 @@
     const cards = round.specialCards;
 
     if (!cards.cloud.active) {
-      Object.assign(cards.cloud, { playerId: null, change: 0, suppressedByBomb: false });
+      Object.assign(cards.cloud, { playerId: null, change: 0 });
       if (cards.witch.secondEffect === "cloud") {
         cards.witch.secondEffect = null;
-        Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+        Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0 });
       }
     }
 
@@ -300,7 +298,7 @@
 
     if (!cards.witch.active) {
       cards.witch.secondEffect = null;
-      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0 });
       cards.secondBomb.active = false;
     }
 
@@ -313,34 +311,13 @@
     }
 
     if (cards.witch.secondEffect !== "cloud") {
-      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0 });
     }
 
     if (cards.witch.secondEffect !== "bomb") {
       cards.secondBomb.active = false;
     }
 
-    normalizeSuppressedClouds(round);
-  }
-
-  function normalizeSuppressedClouds(round) {
-    const bombs = Logic.getActiveBombCount(round);
-    const cloudKeys = ["cloud", "secondCloud"];
-    let used = 0;
-
-    for (const key of cloudKeys) {
-      const cloud = round.specialCards[key];
-      if (!cloud.active) {
-        cloud.suppressedByBomb = false;
-        continue;
-      }
-
-      if (cloud.suppressedByBomb && used < bombs) {
-        used += 1;
-      } else if (cloud.suppressedByBomb) {
-        cloud.suppressedByBomb = false;
-      }
-    }
   }
 
   // Navigation zwischen den sechs Ansichten aus index.html
@@ -376,7 +353,9 @@
     // Migriert einen bereits vorhandenen abgeschlossenen Einzelspielstand in das neue Archiv.
     if (savedState?.status === "completed") {
       const completedState = hydrateState(savedState);
-      if (!savedState.gameId) Storage.saveGame(completedState);
+      if (!savedState.gameId || Number(savedState.schemaVersion) !== 4) {
+        Storage.saveGame(completedState);
+      }
       archiveCompletedGame(completedState);
       savedState = completedState;
     }
@@ -418,6 +397,9 @@
 
     games.forEach((archivedGame) => {
       const gameState = hydrateState(archivedGame);
+      if (Number(archivedGame.schemaVersion) !== 4) {
+        Storage.saveCompletedGame(gameState);
+      }
       const completedRounds = gameState.rounds.filter((round) => round.completed);
       if (completedRounds.length === 0) return;
 
@@ -1126,9 +1108,8 @@
     const round = getCurrentRound();
     round.specialCards.witch.active = false;
     round.specialCards.witch.secondEffect = null;
-    Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0 });
     round.specialCards.secondBomb.active = false;
-    normalizeSuppressedClouds(round);
     replaceRound(Logic.recalculateCurrentBids(round, state.players));
     persistState();
     renderGame();
@@ -1148,9 +1129,8 @@
   function undoSecondEffect() {
     const round = getCurrentRound();
     round.specialCards.witch.secondEffect = null;
-    Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0 });
     round.specialCards.secondBomb.active = false;
-    normalizeSuppressedClouds(round);
     replaceRound(Logic.recalculateCurrentBids(round, state.players));
     persistState();
     renderGame();
@@ -1158,11 +1138,11 @@
 
   function undoCloud() {
     const round = getCurrentRound();
-    Object.assign(round.specialCards.cloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+    Object.assign(round.specialCards.cloud, { active: false, playerId: null, change: 0 });
 
     if (round.specialCards.witch.secondEffect === "cloud") {
       round.specialCards.witch.secondEffect = null;
-      Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
+      Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0 });
     }
 
     normalizeSpecialDependencies(round);
@@ -1216,7 +1196,7 @@
 
     if (key === "secondCloud") {
       const first = round.specialCards.cloud;
-      if (first.active && !first.suppressedByBomb && first.playerId === playerId) {
+      if (first.active && first.playerId === playerId) {
         bid += first.change;
       }
     }
@@ -1235,8 +1215,7 @@
     Object.assign(cloud, {
       active: true,
       playerId: cloudDialogContext.playerId,
-      change,
-      suppressedByBomb: false
+      change
     });
 
     if (key === "secondCloud") {
