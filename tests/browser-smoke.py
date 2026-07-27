@@ -86,11 +86,15 @@ def main() -> None:
         assert page.locator("#storage-warning").is_hidden()
         page.evaluate(
             """
-            window.dispatchEvent(new StorageEvent("storage", {
-              key: WizardStorage.STORAGE_KEY,
-              newValue: "{}",
-              storageArea: localStorage
-            }))
+            // localStorage ist in diesem isolierten Test ein Mock und damit kein
+            // natives Storage-Objekt. Ein echtes StorageEvent würde es ablehnen.
+            const storageEvent = new Event("storage");
+            Object.defineProperties(storageEvent, {
+              key: { value: WizardStorage.STORAGE_KEY },
+              newValue: { value: "{}" },
+              storageArea: { value: localStorage }
+            });
+            window.dispatchEvent(storageEvent);
             """
         )
         assert page.locator("#storage-warning").is_visible()

@@ -96,7 +96,20 @@ http://localhost:8080
 
 ## Tests
 
-Die App selbst benötigt Node.js nicht. Die vollständige Testsuite führt Unit- und Browser-Tests gemeinsam aus:
+Die App selbst benötigt Node.js nicht. Für die Tests werden Node.js 24 sowie Python 3.13 verwendet. Die Python-Abhängigkeiten und der zugehörige Chromium-Browser werden einmalig installiert:
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m playwright install chromium
+```
+
+Unter Linux kann Playwright die benötigten Systembibliotheken mitinstallieren:
+
+```bash
+python -m playwright install --with-deps chromium
+```
+
+Danach führt die vollständige Testsuite Unit- und Browser-Tests gemeinsam aus:
 
 ```bash
 npm test
@@ -109,7 +122,7 @@ npm run test:unit
 npm run test:browser
 ```
 
-Der Browser-Smoke-Test benötigt Python, Playwright und Chromium.
+Playwright ist in `requirements-test.txt` fest versioniert. Die GitHub-Actions-Konfiguration führt `npm test` zusätzlich bei jedem Push und Pull Request in einer reproduzierbaren Umgebung aus.
 
 ## History und Import
 
