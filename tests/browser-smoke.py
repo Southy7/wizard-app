@@ -270,7 +270,15 @@ def main() -> None:
         page.click("#btn-finished-home")
         assert page.locator("#btn-history").is_enabled()
         page.click("#btn-history")
+        assert page.locator("#history-game-list .history-game-card").count() == 1
+        assert page.locator("#history-list-view").is_visible()
+        assert page.locator("#history-detail-view").is_hidden()
+        page.locator("#history-game-list .history-game-card").click()
+        assert page.locator("#history-detail-view").is_visible()
+        assert page.locator("#history-detail-ranking .ranking-position").all_text_contents() == ["🥇", "🥈", "🥉"]
         assert page.locator("#history-score-content .history-table tbody tr").count() == 1
+        page.click("#btn-history-list-back")
+        assert page.locator("#history-list-view").is_visible()
         browser.close()
 
     print("Browser-Smoke-Test erfolgreich.")

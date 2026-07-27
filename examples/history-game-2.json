@@ -1,0 +1,138 @@
+{
+  "exportFormat": "wizard-punkte-app",
+  "exportVersion": 1,
+  "gameState": {
+    "version": "1.0",
+    "schemaVersion": 3,
+    "gameId": "example-history-nora-paul-sofia-yusuf",
+    "status": "completed",
+    "totalCards": 70,
+    "players": [
+      {
+        "id": "example-2-nora",
+        "name": "Nora",
+        "seatPosition": 0
+      },
+      {
+        "id": "example-2-paul",
+        "name": "Paul",
+        "seatPosition": 1
+      },
+      {
+        "id": "example-2-sofia",
+        "name": "Sofia",
+        "seatPosition": 2
+      },
+      {
+        "id": "example-2-yusuf",
+        "name": "Yusuf",
+        "seatPosition": 3
+      }
+    ],
+    "firstDealerId": "example-2-paul",
+    "setupDealerRandomized": true,
+    "roundMode": "individual",
+    "totalRounds": 3,
+    "currentRound": 3,
+    "roundOneHintConfirmed": true,
+    "rounds": [
+      {
+        "number": 1,
+        "phase": "result",
+        "playerResults": {
+          "example-2-nora": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          },
+          "example-2-paul": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 1,
+            "roundPoints": 30
+          },
+          "example-2-sofia": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 0,
+            "roundPoints": -10
+          },
+          "example-2-yusuf": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          }
+        },
+        "completed": true,
+        "completedAt": "2026-07-21T20:10:00.000Z"
+      },
+      {
+        "number": 2,
+        "phase": "result",
+        "playerResults": {
+          "example-2-nora": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 1,
+            "roundPoints": 30
+          },
+          "example-2-paul": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          },
+          "example-2-sofia": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          },
+          "example-2-yusuf": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 1,
+            "roundPoints": -10
+          }
+        },
+        "completed": true,
+        "completedAt": "2026-07-21T20:20:00.000Z"
+      },
+      {
+        "number": 3,
+        "phase": "result",
+        "playerResults": {
+          "example-2-nora": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          },
+          "example-2-paul": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 1,
+            "roundPoints": 30
+          },
+          "example-2-sofia": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 2,
+            "roundPoints": -10
+          },
+          "example-2-yusuf": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          }
+        },
+        "completed": true,
+        "completedAt": "2026-07-21T20:30:00.000Z"
+      }
+    ],
+    "updatedAt": "2026-07-21T20:30:00.000Z"
+  }
+}

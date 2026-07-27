@@ -42,8 +42,9 @@
       "summary-seat-order", "btn-summary-back",
       "btn-summary-start", "form-errors",
       "btn-game-home", "game-phase-label", "game-title",
-      "game-round-overview", "game-total-points", "game-content", "btn-history-home", "history-game-meta",
-      "history-score-content", "btn-finished-home",
+      "game-round-overview", "game-total-points", "game-content", "btn-history-home",
+      "history-list-view", "history-game-list", "history-detail-view", "btn-history-list-back",
+      "history-detail-ranking", "history-score-content", "btn-finished-home",
       "final-ranking", "final-score-history", "btn-review-last-round",
       "btn-finished-new-game", "round-one-dialog", "btn-confirm-round-one-hint",
       "cloud-dialog", "cloud-dialog-kicker",
@@ -67,6 +68,7 @@
     elements["btn-setup-home"].addEventListener("click", goHome);
     elements["btn-game-home"].addEventListener("click", goHome);
     elements["btn-history-home"].addEventListener("click", goHome);
+    elements["btn-history-list-back"].addEventListener("click", showHistoryList);
     elements["btn-finished-home"].addEventListener("click", goHome);
     elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
@@ -95,11 +97,16 @@
   }
 
   function startNewGame(forceReplace) {
-    if (!forceReplace && Storage.hasSavedGame()) {
+    const savedGame = Storage.loadGame();
+    if (!forceReplace && savedGame) {
       const shouldReplace = window.confirm(
         "Es ist bereits ein Spiel gespeichert. Beim Starten eines neuen Spiels wird der bisherige Spielstand ersetzt. Fortfahren?"
       );
       if (!shouldReplace) return;
+    }
+
+    if (savedGame?.status === "completed") {
+      archiveCompletedGame(hydrateState(savedGame));
     }
 
     state = Logic.createInitialGameState();
@@ -167,11 +174,13 @@
     const totalRounds = roundMode === "full" ? standardRounds : clampedRounds;
     const currentRound = Math.min(Math.max(Number.parseInt(savedState.currentRound, 10) || 1, 1), totalRounds);
 
+    const initialState = Logic.createInitialGameState(playerCount);
     const hydrated = {
-      ...Logic.createInitialGameState(playerCount),
+      ...initialState,
       ...savedState,
       version: "1.0",
       schemaVersion: 3,
+      gameId: typeof savedState.gameId === "string" && savedState.gameId ? savedState.gameId : initialState.gameId,
       totalCards,
       players,
       firstDealerId,
@@ -360,19 +369,20 @@
 
   // Startseite und lokaler Spielstand
   function refreshHomeScreen() {
-    const savedState = Storage.loadGame();
+    let savedState = Storage.loadGame();
     const continueButton = elements["btn-continue-game"];
     const historyButton = elements["btn-history"];
 
-    if (!savedState) {
-      continueButton.disabled = true;
-      historyButton.disabled = true;
-      updateStorageWarning();
-      return;
+    // Migriert einen bereits vorhandenen abgeschlossenen Einzelspielstand in das neue Archiv.
+    if (savedState?.status === "completed") {
+      const completedState = hydrateState(savedState);
+      if (!savedState.gameId) Storage.saveGame(completedState);
+      archiveCompletedGame(completedState);
+      savedState = completedState;
     }
 
-    continueButton.disabled = false;
-    historyButton.disabled = !savedState.rounds?.some((round) => round?.completed);
+    continueButton.disabled = !savedState;
+    historyButton.disabled = !Storage.hasGameHistory();
     updateStorageWarning();
   }
 
@@ -390,29 +400,84 @@
   }
 
   function openHistory() {
-    const savedState = Storage.loadGame();
-    if (!savedState) {
-      showToast("Es ist kein Spielverlauf vorhanden.");
+    const games = Storage.loadGameHistory();
+    if (games.length === 0) {
+      showToast("Es sind noch keine abgeschlossenen Partien vorhanden.");
       refreshHomeScreen();
       return;
     }
 
-    state = hydrateState(savedState);
-    const completedRounds = state.rounds
+    renderHistoryGameList(games);
+    showHistoryList();
+    showScreen("history");
+  }
+
+  function renderHistoryGameList(games) {
+    const container = elements["history-game-list"];
+    container.replaceChildren();
+
+    games.forEach((archivedGame) => {
+      const gameState = hydrateState(archivedGame);
+      const completedRounds = gameState.rounds.filter((round) => round.completed);
+      if (completedRounds.length === 0) return;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "history-game-card";
+
+      const main = document.createElement("span");
+      main.className = "history-game-card-main";
+      const title = document.createElement("strong");
+      title.textContent = formatArchivedGameDate(archivedGame);
+      const players = document.createElement("span");
+      players.textContent = gameState.players
+        .map((player, index) => getPlayerDisplayName(player, index))
+        .join(", ");
+      main.append(title, players);
+
+      const rounds = document.createElement("span");
+      rounds.className = "history-game-card-rounds";
+      rounds.textContent = `${completedRounds.length} ${completedRounds.length === 1 ? "Runde" : "Runden"}`;
+
+      button.append(main, rounds);
+      button.setAttribute("aria-label", `${title.textContent} öffnen`);
+      button.addEventListener("click", () => showArchivedGame(gameState));
+      container.append(button);
+    });
+  }
+
+  function showHistoryList() {
+    elements["history-list-view"].hidden = false;
+    elements["history-detail-view"].hidden = true;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function showArchivedGame(gameState) {
+    const completedRounds = gameState.rounds
       .filter((round) => round.completed)
       .sort((a, b) => a.number - b.number);
+    const totals = Logic.calculateTotalPoints(completedRounds, gameState.players);
 
-    if (completedRounds.length === 0) {
-      showToast("Es wurden noch keine Runden abgeschlossen.");
-      refreshHomeScreen();
-      return;
-    }
+    renderRanking(elements["history-detail-ranking"], gameState, totals);
+    renderScoreHistory(elements["history-score-content"], completedRounds, totals, gameState);
+    elements["history-list-view"].hidden = true;
+    elements["history-detail-view"].hidden = false;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
 
-    const totals = Logic.calculateTotalPoints(completedRounds, state.players);
-    elements["history-game-meta"].textContent =
-      `${state.players.length} Spieler · ${completedRounds.length} abgeschlossene Runden`;
-    renderScoreHistory(elements["history-score-content"], completedRounds, totals);
-    showScreen("history");
+  function formatArchivedGameDate(gameState) {
+    const completedDates = gameState.rounds
+      .filter((round) => round?.completed && typeof round.completedAt === "string")
+      .map((round) => round.completedAt)
+      .sort();
+    const rawDate = completedDates.at(-1) ?? gameState.archivedAt ?? gameState.updatedAt;
+    const date = new Date(rawDate);
+    if (Number.isNaN(date.getTime())) return "Abgeschlossene Partie";
+
+    return new Intl.DateTimeFormat("de-DE", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(date);
   }
 
   async function importGameFromFile(event) {
@@ -447,6 +512,9 @@
       const importedState = hydrateState(candidate);
       if (!Storage.saveGame(importedState)) {
         throw new Error("Der importierte Spielstand konnte nicht lokal gespeichert werden.");
+      }
+      if (importedState.status === "completed") {
+        archiveCompletedGame(importedState);
       }
 
       state = importedState;
@@ -1423,6 +1491,7 @@
 
     state.status = "completed";
     persistState();
+    archiveCompletedGame(state);
     renderFinished();
     showScreen("finished");
   }
@@ -1432,12 +1501,17 @@
     ensureState();
     const completedRounds = state.rounds.filter((round) => round.completed).sort((a, b) => a.number - b.number);
     const totals = Logic.calculateTotalPoints(completedRounds, state.players);
-    const ranking = [...state.players]
+
+    renderRanking(elements["final-ranking"], state, totals);
+    renderScoreHistory(elements["final-score-history"], completedRounds, totals, state);
+  }
+
+  function renderRanking(container, gameState, totals) {
+    const ranking = [...gameState.players]
       .map((player) => ({ player, points: totals[player.id] }))
       .sort((a, b) => b.points - a.points);
 
-    const list = elements["final-ranking"];
-    list.replaceChildren();
+    container.replaceChildren();
     let displayedPosition = 0;
     let previousPoints = null;
     const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -1456,20 +1530,18 @@
 
       const name = document.createElement("span");
       name.className = "ranking-name";
-      name.textContent = getPlayerDisplayNameById(entry.player.id);
+      name.textContent = getPlayerDisplayNameFromState(gameState, entry.player.id);
 
       const points = document.createElement("span");
       points.className = "ranking-points";
       points.textContent = `${entry.points} Punkte`;
 
       row.append(position, name, points);
-      list.append(row);
+      container.append(row);
     });
-
-    renderScoreHistory(elements["final-score-history"], completedRounds, totals);
   }
 
-  function renderScoreHistory(container, completedRounds, totals) {
+  function renderScoreHistory(container, completedRounds, totals, gameState = state) {
     container.replaceChildren();
 
     const table = document.createElement("table");
@@ -1482,10 +1554,10 @@
     roundHead.textContent = "Runde";
     headRow.append(roundHead);
 
-    state.players.forEach((player) => {
+    gameState.players.forEach((player, index) => {
       const th = document.createElement("th");
       th.scope = "col";
-      th.textContent = getPlayerDisplayNameById(player.id);
+      th.textContent = getPlayerDisplayName(player, index);
       headRow.append(th);
     });
     head.append(headRow);
@@ -1498,7 +1570,7 @@
       roundCell.textContent = String(round.number);
       row.append(roundCell);
 
-      state.players.forEach((player) => {
+      gameState.players.forEach((player) => {
         const points = Number(round.playerResults?.[player.id]?.roundPoints) || 0;
         const cell = document.createElement("td");
         cell.textContent = formatSigned(points);
@@ -1514,7 +1586,7 @@
     totalLabel.scope = "row";
     totalLabel.textContent = "Gesamt";
     totalRow.append(totalLabel);
-    state.players.forEach((player) => {
+    gameState.players.forEach((player) => {
       const cell = document.createElement("td");
       cell.textContent = String(totals[player.id]);
       totalRow.append(cell);
@@ -1759,9 +1831,13 @@
   }
 
   function getPlayerDisplayNameById(playerId) {
-    const index = state.players.findIndex((player) => player.id === playerId);
+    return getPlayerDisplayNameFromState(state, playerId);
+  }
+
+  function getPlayerDisplayNameFromState(gameState, playerId) {
+    const index = gameState.players.findIndex((player) => player.id === playerId);
     if (index === -1) return "–";
-    return getPlayerDisplayName(state.players[index], index);
+    return getPlayerDisplayName(gameState.players[index], index);
   }
 
   function getPlayerDisplayName(player, index) {
@@ -1794,6 +1870,16 @@
     } else {
       updateStorageWarning();
     }
+  }
+
+  function archiveCompletedGame(gameState) {
+    if (gameState?.status !== "completed") return true;
+
+    const archived = Storage.saveCompletedGame(gameState);
+    if (!archived) {
+      updateStorageWarning("Die abgeschlossene Partie konnte nicht im lokalen Archiv gespeichert werden.");
+    }
+    return archived;
   }
 
   function showToast(message) {

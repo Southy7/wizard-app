@@ -16,6 +16,8 @@ const Storage = global.WizardStorage;
 assert.equal(Storage.isStorageAvailable(), true);
 assert.equal(Storage.loadGame(), null);
 assert.equal(Storage.hasStoredData(), false);
+assert.deepEqual(Storage.loadGameHistory(), []);
+assert.equal(Storage.hasGameHistory(), false);
 
 const state = {
   version: "1.0",
@@ -31,6 +33,27 @@ assert.equal(loaded.schemaVersion, 3);
 assert.equal(loaded.players[0].name, "Anna");
 assert.equal(typeof loaded.updatedAt, "string");
 assert.equal(Storage.getLastError(), "");
+
+const completedGame = {
+  ...state,
+  gameId: "game-1",
+  status: "completed",
+  rounds: [{ number: 1, completed: true }]
+};
+assert.equal(Storage.saveCompletedGame(completedGame), true);
+assert.equal(Storage.hasGameHistory(), true);
+assert.equal(Storage.loadGameHistory().length, 1);
+assert.equal(Storage.loadGameHistory()[0].gameId, "game-1");
+assert.equal(typeof Storage.loadGameHistory()[0].archivedAt, "string");
+
+const updatedCompletedGame = {
+  ...completedGame,
+  players: [{ id: "a", name: "Anna aktualisiert", seatPosition: 0 }]
+};
+assert.equal(Storage.saveCompletedGame(updatedCompletedGame), true);
+assert.equal(Storage.loadGameHistory().length, 1);
+assert.equal(Storage.loadGameHistory()[0].players[0].name, "Anna aktualisiert");
+assert.equal(Storage.saveCompletedGame(state), false);
 
 localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
 const originalConsoleError = console.error;

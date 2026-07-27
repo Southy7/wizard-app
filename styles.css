@@ -1029,6 +1029,59 @@ select:focus-visible {
 }
 
 /* Endergebnis und Punkteverlauf */
+.history-game-list,
+.history-detail-view {
+  display: grid;
+  gap: 12px;
+}
+
+.history-game-list {
+  margin-top: 14px;
+}
+
+.history-game-card {
+  width: 100%;
+  min-height: var(--touch-target);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-game-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.history-game-card-main {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.history-game-card-main strong,
+.history-game-card-main span {
+  overflow-wrap: anywhere;
+}
+
+.history-game-card-main span,
+.history-game-card-rounds {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.history-game-card-rounds {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .ranking-list {
   display: grid;
   gap: 10px;

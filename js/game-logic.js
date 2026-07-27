@@ -418,6 +418,7 @@
     return {
       version: "1.0",
       schemaVersion: 3,
+      gameId: createId("game"),
       status: "setup",
       totalCards: TOTAL_CARDS,
       players,

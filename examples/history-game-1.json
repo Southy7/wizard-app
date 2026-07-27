@@ -1,0 +1,89 @@
+{
+  "exportFormat": "wizard-punkte-app",
+  "exportVersion": 1,
+  "gameState": {
+    "version": "1.0",
+    "schemaVersion": 3,
+    "gameId": "example-history-lena-max-tom",
+    "status": "completed",
+    "totalCards": 70,
+    "players": [
+      {
+        "id": "example-1-lena",
+        "name": "Lena",
+        "seatPosition": 0
+      },
+      {
+        "id": "example-1-max",
+        "name": "Max",
+        "seatPosition": 1
+      },
+      {
+        "id": "example-1-tom",
+        "name": "Tom",
+        "seatPosition": 2
+      }
+    ],
+    "firstDealerId": "example-1-lena",
+    "setupDealerRandomized": true,
+    "roundMode": "individual",
+    "totalRounds": 2,
+    "currentRound": 2,
+    "roundOneHintConfirmed": true,
+    "rounds": [
+      {
+        "number": 1,
+        "phase": "result",
+        "playerResults": {
+          "example-1-lena": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 1,
+            "roundPoints": 30
+          },
+          "example-1-max": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 0,
+            "roundPoints": -10
+          },
+          "example-1-tom": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          }
+        },
+        "completed": true,
+        "completedAt": "2026-07-20T18:35:00.000Z"
+      },
+      {
+        "number": 2,
+        "phase": "result",
+        "playerResults": {
+          "example-1-lena": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 0,
+            "roundPoints": 20
+          },
+          "example-1-max": {
+            "originalBid": 1,
+            "currentBid": 1,
+            "tricks": 1,
+            "roundPoints": 30
+          },
+          "example-1-tom": {
+            "originalBid": 0,
+            "currentBid": 0,
+            "tricks": 1,
+            "roundPoints": -10
+          }
+        },
+        "completed": true,
+        "completedAt": "2026-07-20T18:45:00.000Z"
+      }
+    ],
+    "updatedAt": "2026-07-20T18:45:00.000Z"
+  }
+}

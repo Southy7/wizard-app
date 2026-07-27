@@ -105,14 +105,14 @@ Optional liegt unter `tests/browser-smoke.py` ein Browser-Smoke-Test. Dieser ben
 
 Die reduzierte Startseite bietet direkten Zugriff auf den Spielverlauf und den Import:
 
-- **History** zeigt den Punkteverlauf aller bereits abgeschlossenen Runden.
+- **History** listet alle lokal archivierten, abgeschlossenen Partien auf. Ein Klick öffnet das jeweilige Endergebnis mit Rangliste und Punkteverlauf.
 - **Import** liest eine zuvor exportierte oder kompatible JSON-Datei ein.
 
 Die JSON-Datei enthält nur Spielinformationen wie Namen, Runden, Ansagen, Sonderkarten, Stiche und Punkte. Sie wird nicht automatisch an einen Server übertragen.
 
 ## Speicherung
 
-Der aktive Spielstand liegt in `localStorage`. Er bleibt normalerweise nach dem Schließen des Browsers erhalten. Folgende Fälle können trotzdem zum Datenverlust führen:
+Der aktive Spielstand und das getrennte Archiv abgeschlossener Partien liegen in `localStorage`. Sie bleiben normalerweise nach dem Schließen des Browsers erhalten. Folgende Fälle können trotzdem zum Datenverlust führen:
 
 - manuelles Löschen der Browserdaten
 - private Browsermodi

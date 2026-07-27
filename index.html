@@ -178,11 +178,26 @@
           <button id="btn-history-home" class="button button-ghost button-small" type="button">Startseite</button>
         </div>
 
-        <section class="panel" aria-labelledby="history-score-title">
-          <h3 id="history-score-title">Punkteverlauf</h3>
-          <p id="history-game-meta"></p>
-          <div id="history-score-content" class="history-scroll"></div>
-        </section>
+        <div id="history-list-view">
+          <section class="panel" aria-labelledby="history-list-title">
+            <h3 id="history-list-title">Partien</h3>
+            <div id="history-game-list" class="history-game-list"></div>
+          </section>
+        </div>
+
+        <div id="history-detail-view" class="history-detail-view" hidden>
+          <button id="btn-history-list-back" class="button button-secondary full-width" type="button">Zur Übersicht</button>
+
+          <section class="panel" aria-labelledby="history-detail-title">
+            <h3 id="history-detail-title">Endergebnis</h3>
+            <div id="history-detail-ranking" class="ranking-list" aria-label="Abschlusstabelle"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="history-score-title">
+            <h3 id="history-score-title">Punkteverlauf</h3>
+            <div id="history-score-content" class="history-scroll"></div>
+          </section>
+        </div>
       </section>
       <!-- ================== ENDE HISTORY ================== -->
 

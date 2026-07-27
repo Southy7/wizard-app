@@ -63,6 +63,7 @@ const validState = { players, firstDealerId: "anna", totalRounds: 15, totalCards
 assert.deepEqual(Logic.validateSetup(validState), []);
 assert.equal(Logic.createInitialGameState().setupDealerRandomized, false);
 assert.equal(Logic.createInitialGameState().roundMode, "full");
+assert.match(Logic.createInitialGameState().gameId, /^game-/);
 
 const invalidState = {
   players: [player("1", ""), player("2", "Ben")],
