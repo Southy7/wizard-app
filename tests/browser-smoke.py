@@ -136,6 +136,8 @@ def main() -> None:
         page.dispatch_event("#rounds-input", "change")
         page.click("#setup-form button[type=submit]")
         assert page.locator("#screen-setup-summary").is_visible()
+        assert page.locator("#summary-player-count").text_content() == "3 Players"
+        assert page.locator("#summary-round-count").text_content() == "1 Round"
         assert page.locator("#summary-dealer").count() == 0
         assert page.locator("#summary-starter").count() == 0
         seat_rows = page.locator("#summary-seat-order .seat-order-item")
@@ -145,6 +147,9 @@ def main() -> None:
         assert seat_rows.evaluate_all(
             "(rows) => rows.map((row) => row.dataset.playerColor)"
         ) == ["1", "2", "3"]
+        assert page.locator("#summary-seat-order .seat-player-main").count() == 3
+        assert page.locator("#summary-seat-order .seat-player-main > .seat-player-name").count() == 3
+        assert page.locator("#summary-seat-order .seat-player-main > .seat-role-badges").count() == 3
         assert page.locator("#summary-seat-order .seat-role-badge.dealer").count() == 1
         assert page.locator("#summary-seat-order .seat-role-badge.starter").count() == 1
         dealer = page.locator(".seat-role-badge.dealer").locator("xpath=..").locator("xpath=..").locator(".seat-player-name").text_content()
@@ -158,6 +163,8 @@ def main() -> None:
 
         assert page.locator("#game-phase-label").text_content() == "Bids"
         assert page.locator("#game-title").text_content() == "Round 1 of 1"
+        assert page.locator("#btn-game-help").is_visible()
+        assert page.locator("#btn-game-help").text_content().strip() == "?"
         assert page.locator("#btn-game-home").get_attribute("aria-label") == "Home"
         assert page.locator("#btn-game-home").text_content().strip() == ""
         assert page.get_by_text("Current Total Score").count() == 0
@@ -165,11 +172,15 @@ def main() -> None:
         assert page.get_by_text("Starts the bidding").count() == 0
         assert page.locator("#game-dealer").count() == 0
         assert page.locator("#game-starter").count() == 0
-        assert page.locator("#game-content h3").count() == 0
+        assert page.locator("#game-content h3").all_text_contents() == ["Bids"]
         assert page.locator("#game-round-overview #game-total-points .points-card").count() == 3
+        assert page.locator("#game-total-points > .points-strip").count() == 1
         assert page.locator("#game-total-points .points-card").evaluate_all(
             "(cards) => cards.map((card) => card.dataset.playerColor)"
         ) == ["1", "2", "3"]
+        assert len(set(page.locator("#game-total-points .points-card").evaluate_all(
+            "(cards) => cards.map((card) => Math.round(card.getBoundingClientRect().top))"
+        ))) == 1
         assert sorted(page.locator(".bid-panel .entry-row").evaluate_all(
             "(rows) => rows.map((row) => row.dataset.playerColor)"
         )) == ["1", "2", "3"]
@@ -186,15 +197,14 @@ def main() -> None:
         assert starter_badge_box["x"] >= starter_name_box["x"] + starter_name_box["width"]
         bid_status = page.locator(".bid-panel .status-card")
         assert bid_status.text_content().strip() == "Bid Total: 0"
-        assert "neutral" in bid_status.get_attribute("class")
+        assert "success" in bid_status.get_attribute("class")
         page.locator(".entry-row").nth(0).locator(".value-button").nth(1).click()
         assert bid_status.text_content().strip() == "Bid Total: 1"
         assert "error" in bid_status.get_attribute("class")
         assert page.get_by_role("button", name="Confirm Bids").is_disabled()
         page.locator(".entry-row").nth(1).locator(".value-button").nth(1).click()
         assert bid_status.text_content().strip() == "Bid Total: 2"
-        assert "neutral" in bid_status.get_attribute("class")
-        assert "success" not in bid_status.get_attribute("class")
+        assert "success" in bid_status.get_attribute("class")
         assert page.get_by_role("button", name="Confirm Bids").is_enabled()
         page.click('button:has-text("Confirm Bids")')
         assert page.locator("#game-round-overview").is_hidden()
@@ -371,7 +381,7 @@ def main() -> None:
         page.click('button:has-text("Enter Tricks")')
         assert page.locator("#game-round-overview").is_hidden()
         assert page.locator("#game-phase-label").text_content() == "Tricks"
-        assert page.locator("#game-content h3").count() == 0
+        assert page.locator("#game-content h3").all_text_contents() == ["Tricks"]
         assert page.get_by_text("Enter only each player's final trick count for this round.").count() == 0
         assert page.locator(".tricks-panel .entry-meta").count() == 0
         trick_status = page.locator(".trick-status")
@@ -390,12 +400,15 @@ def main() -> None:
         assert correct_button_box["x"] + correct_button_box["width"] <= correct_stepper_box["x"]
         correct_button.click()
         assert "1" in page.locator(".value-display").all_text_contents()
+        assert page.locator(".correct-button.correct:disabled").count() >= 1
         assert trick_status.text_content().strip() == "All tricks have been assigned."
         assert trick_status.locator(":scope > *").count() == 1
         page.click('button:has-text("Complete Round")')
 
         assert page.locator("#game-phase-label").text_content() == "Round Result"
-        assert page.locator("#game-content h3").count() == 0
+        assert page.locator("#btn-game-help").is_visible()
+        assert page.locator("#game-content h3").all_text_contents() == ["Round Result"]
+        assert page.locator(".round-result-panel .leader-crown").count() >= 1
         assert page.get_by_text("Round points and current total score after this round.").count() == 0
         assert page.locator(".score-row.header span").all_text_contents() == [
             "Player", "Bid", "Tricks", "Round", "Total"

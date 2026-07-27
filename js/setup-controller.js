@@ -211,8 +211,10 @@
     function renderSummary() {
       state = getState();
       const starter = Logic.getStartingPlayerForRound(state.players, state.firstDealerId, 1);
-      elements["summary-player-count"].textContent = String(state.players.length);
-      elements["summary-round-count"].textContent = String(state.totalRounds);
+      elements["summary-player-count"].textContent =
+        `${state.players.length} ${state.players.length === 1 ? "Player" : "Players"}`;
+      elements["summary-round-count"].textContent =
+        `${state.totalRounds} ${state.totalRounds === 1 ? "Round" : "Rounds"}`;
       const seatOrder = elements["summary-seat-order"];
       seatOrder.innerHTML = "";
 
@@ -231,7 +233,10 @@
         roles.className = "seat-role-badges";
         if (player.id === state.firstDealerId) roles.append(createSeatRoleBadge("Dealer", "dealer"));
         if (player.id === starter?.id) roles.append(createSeatRoleBadge("Starting Player", "starter"));
-        item.append(position, name, roles);
+        const playerMain = document.createElement("span");
+        playerMain.className = "seat-player-main";
+        playerMain.append(name, roles);
+        item.append(position, playerMain);
         seatOrder.append(item);
       });
     }

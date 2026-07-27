@@ -143,10 +143,10 @@
       <section id="screen-setup-summary" class="screen screen-setup-summary" data-screen="setup-summary" aria-labelledby="summary-title" hidden>
         <section class="panel summary-panel">
           <h2 id="summary-title">Summary</h2>
-          <dl class="summary-list">
-            <div><dt>Players</dt><dd id="summary-player-count">3</dd></div>
-            <div><dt>Rounds</dt><dd id="summary-round-count">20</dd></div>
-          </dl>
+          <div class="summary-list" aria-label="Game details">
+            <div id="summary-player-count">3 Players</div>
+            <div id="summary-round-count">20 Rounds</div>
+          </div>
           <section class="seat-order-section" aria-labelledby="seat-order-title">
             <h3 id="seat-order-title">Seating Order</h3>
             <!-- Numbered player rows are created dynamically for the summary. -->
@@ -164,7 +164,7 @@
       <!-- ================= ACTIVE GAME ================= -->
       <section id="screen-game" class="screen screen-game" data-screen="game" aria-labelledby="game-phase-label game-title" hidden>
         <div class="game-topbar">
-          <h2 id="game-phase-label" class="game-phase-title">Bids</h2>
+          <button id="btn-game-help" class="setup-home-button game-help-button" type="button" aria-label="Help" title="Help">?</button>
           <p id="game-title" class="game-round-title">Round 1 of 20</p>
           <button id="btn-game-home" class="setup-home-button game-home-button" type="button" aria-label="Home" title="Home">
             <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -172,6 +172,7 @@
             </svg>
           </button>
         </div>
+        <h2 id="game-phase-label" class="visually-hidden">Bids</h2>
 
         <!-- Total scores are displayed only during the bidding phase. -->
         <div id="game-round-overview" class="panel compact-panel" aria-label="Total scores" hidden>

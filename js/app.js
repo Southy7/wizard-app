@@ -101,7 +101,7 @@
       "summary-player-count", "summary-round-count",
       "summary-seat-order", "btn-summary-back",
       "btn-summary-start", "form-errors",
-      "btn-game-home", "game-phase-label", "game-title",
+      "btn-game-help", "btn-game-home", "game-phase-label", "game-title",
       "game-round-overview", "game-total-points", "game-content", "btn-history-home",
       "history-list-view", "history-game-list", "history-detail-view", "btn-history-list-back",
       "history-detail-ranking", "history-score-content",
@@ -361,6 +361,7 @@
       result: "Round Result"
     };
     elements["game-phase-label"].textContent = labels[round.phase] ?? "Active Game";
+    elements["btn-game-help"].hidden = false;
     renderRoundOverview(round.phase);
 
     if (round.phase === "bids") renderBids(round);
@@ -372,7 +373,7 @@
 
   // Phase 1: record every player's bid
   function renderBids(round) {
-    const panel = createPanel();
+    const panel = createPanel("Bids");
     panel.classList.add("bid-panel");
     panel.setAttribute("aria-label", "Enter bids");
     const list = document.createElement("div");
@@ -402,7 +403,7 @@
     const summary = document.createElement("div");
     summary.className = "phase-summary";
     summary.append(createStatusCard(
-      validSum ? "neutral" : "error",
+      validSum ? "success" : "error",
       `Bid Total: ${sum}`,
       ""
     ));
@@ -785,7 +786,7 @@
 
   // Phase 3: record tricks and validate their total
   function renderTricks(round) {
-    const panel = createPanel();
+    const panel = createPanel("Tricks");
     panel.classList.add("tricks-panel");
     panel.setAttribute("aria-label", "Enter Tricks");
     const list = document.createElement("div");
@@ -794,6 +795,7 @@
 
     state.players.forEach((player) => {
       const result = round.playerResults[player.id];
+      const predictionIsCorrect = result.tricks === result.currentBid;
 
       list.append(createValueEntry({
         name: getPlayerDisplayNameById(player.id),
@@ -805,7 +807,8 @@
         quickAction: {
           label: "Correct",
           onClick: () => updateTricks(round.number, player.id, result.currentBid),
-          disabled: result.tricks === result.currentBid || result.currentBid > maximumTricks,
+          disabled: predictionIsCorrect || result.currentBid > maximumTricks,
+          completed: predictionIsCorrect,
           title: result.currentBid > maximumTricks
             ? "This bid cannot be reached with the available tricks."
             : "Set tricks to the current bid"
@@ -878,10 +881,11 @@
 
   // Phase 4: show or edit the round result, or move to the next round
   function renderRoundResult(round) {
-    const panel = createPanel();
+    const panel = createPanel("Round Result");
     panel.classList.add("round-result-panel");
     panel.setAttribute("aria-label", `Result Round ${round.number}`);
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
+    const leadingTotal = Math.max(...Object.values(totals));
     const tableWrap = document.createElement("div");
     tableWrap.className = "score-table-scroll";
     const table = document.createElement("div");
@@ -903,6 +907,13 @@
       const nameStrong = document.createElement("strong");
       nameStrong.textContent = getPlayerDisplayNameById(player.id);
       name.append(nameStrong);
+      if (totals[player.id] === leadingTotal) {
+        const crown = document.createElement("span");
+        crown.className = "leader-crown";
+        crown.textContent = "👑";
+        crown.setAttribute("aria-label", "Current leader");
+        name.append(crown);
+      }
 
       const bid = numberCell(result.currentBid, result.currentBid !== result.originalBid ? "changed-bid" : "");
       const tricks = numberCell(result.tricks);
@@ -1038,7 +1049,8 @@
   function createTotalPointsGrid() {
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
     const overview = document.createElement("div");
-    overview.className = "points-grid";
+    overview.className = "points-strip";
+    overview.style.setProperty("--player-count", String(state.players.length));
     overview.setAttribute("aria-label", "Current total scores");
 
     state.players.forEach((player) => {
@@ -1050,7 +1062,7 @@
       name.textContent = getPlayerDisplayNameById(player.id);
 
       const points = document.createElement("strong");
-      points.textContent = `${totals[player.id]} Points`;
+      points.textContent = String(totals[player.id]);
 
       card.append(name, points);
       overview.append(card);

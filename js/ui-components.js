@@ -102,6 +102,7 @@
         Boolean(quickAction.disabled)
       );
       if (quickAction.title) quickButton.title = quickAction.title;
+      if (quickAction.completed) quickButton.classList.add("correct");
       controls.append(quickButton);
     }
 
