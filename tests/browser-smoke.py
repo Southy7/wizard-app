@@ -6,6 +6,7 @@ Partie an und prüft Ansagen, Gesamtpunkte, Rundenergebnis und Endtabelle.
 """
 
 from pathlib import Path
+import json
 import shutil
 from playwright.sync_api import sync_playwright
 
@@ -297,8 +298,42 @@ def main() -> None:
         assert page.locator("#history-detail-view").is_visible()
         assert page.locator("#history-detail-ranking .ranking-position").all_text_contents() == ["🥇", "🥈", "🥉"]
         assert page.locator("#history-score-content .history-table tbody tr").count() == 1
+
+        with page.expect_download() as single_download_info:
+            page.click("#btn-history-export-game")
+        single_download = single_download_info.value
+        assert single_download.suggested_filename.startswith("wizard-partie-")
+        single_export = json.loads(Path(single_download.path()).read_text(encoding="utf-8"))
+        assert single_export["exportFormat"] == "wizard-punkte-app"
+
         page.click("#btn-history-list-back")
         assert page.locator("#history-list-view").is_visible()
+
+        with page.expect_download() as archive_download_info:
+            page.click("#btn-history-export-all")
+        archive_download = archive_download_info.value
+        archive_path = archive_download.path()
+        archive_export = json.loads(Path(archive_path).read_text(encoding="utf-8"))
+        assert archive_export["exportFormat"] == "wizard-punkte-history"
+        assert len(archive_export["games"]) == 1
+
+        page.locator("#history-game-list .history-game-card").click()
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.click("#btn-history-delete-game")
+        assert page.get_by_text("Keine archivierten Partien vorhanden.").is_visible()
+        assert page.locator("#btn-history-export-all").is_disabled()
+        assert page.locator("#btn-history-clear").is_disabled()
+        assert page.locator("#btn-history").is_disabled()
+
+        page.set_input_files("#import-file-input", archive_path)
+        page.locator("#history-game-list .history-game-card").wait_for(state="visible")
+        assert page.locator("#history-game-list .history-game-card").count() == 1
+        assert page.locator("#btn-history-export-all").is_enabled()
+
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.click("#btn-history-clear")
+        assert page.get_by_text("Keine archivierten Partien vorhanden.").is_visible()
+        assert page.locator("#btn-history").is_disabled()
         browser.close()
 
     print("Browser-Smoke-Test erfolgreich.")

@@ -1039,6 +1039,31 @@ select:focus-visible {
   margin-top: 14px;
 }
 
+.history-toolbar,
+.history-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.history-storage-status {
+  min-height: 1.2em;
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.history-empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+#btn-history-clear {
+  margin-top: 12px;
+}
+
 .history-game-card {
   width: 100%;
   min-height: var(--touch-target);

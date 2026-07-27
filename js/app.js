@@ -18,6 +18,8 @@
   let cloudDialogContext = null;
   let externalGameWarning = "";
   let externalHistoryWarning = "";
+  let historyCapacityWarning = "";
+  let selectedArchivedGame = null;
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -50,7 +52,10 @@
       "btn-game-home", "game-phase-label", "game-title",
       "game-round-overview", "game-total-points", "game-content", "btn-history-home",
       "history-list-view", "history-game-list", "history-detail-view", "btn-history-list-back",
-      "history-detail-ranking", "history-score-content", "btn-finished-home",
+      "history-detail-ranking", "history-score-content",
+      "btn-history-export-all", "btn-history-import", "history-storage-status",
+      "btn-history-clear", "btn-history-export-game", "btn-history-delete-game",
+      "btn-finished-home",
       "final-ranking", "final-score-history", "btn-review-last-round",
       "btn-finished-new-game", "round-one-dialog", "btn-confirm-round-one-hint",
       "cloud-dialog", "cloud-dialog-kicker",
@@ -75,6 +80,11 @@
     elements["btn-game-home"].addEventListener("click", goHome);
     elements["btn-history-home"].addEventListener("click", goHome);
     elements["btn-history-list-back"].addEventListener("click", showHistoryList);
+    elements["btn-history-export-all"].addEventListener("click", exportGameHistory);
+    elements["btn-history-import"].addEventListener("click", () => elements["import-file-input"].click());
+    elements["btn-history-clear"].addEventListener("click", clearGameHistory);
+    elements["btn-history-export-game"].addEventListener("click", exportSelectedArchivedGame);
+    elements["btn-history-delete-game"].addEventListener("click", deleteSelectedArchivedGame);
     elements["btn-finished-home"].addEventListener("click", goHome);
     elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
@@ -183,15 +193,18 @@
     // Migriert einen bereits vorhandenen abgeschlossenen Einzelspielstand in das neue Archiv.
     if (savedState?.status === "completed") {
       const completedState = hydrateState(savedState);
-      if (!savedState.gameId || Number(savedState.schemaVersion) !== 4) {
+      const needsMigration = !savedState.gameId || Number(savedState.schemaVersion) !== 4;
+      if (needsMigration) {
         Storage.saveGame(completedState);
+        archiveCompletedGame(completedState);
       }
-      archiveCompletedGame(completedState);
       savedState = completedState;
     }
 
+    const games = Storage.loadGameHistory();
     continueButton.disabled = !savedState;
-    historyButton.disabled = !Storage.hasGameHistory();
+    historyButton.disabled = games.length === 0;
+    updateHistoryControls(games);
     updateStorageWarning();
   }
 
@@ -201,7 +214,11 @@
 
     const storageAvailable = Storage.isStorageAvailable();
     const storageError = Storage.getLastError?.();
-    const externalWarning = [externalGameWarning, externalHistoryWarning].filter(Boolean).join(" ");
+    const externalWarning = [
+      externalGameWarning,
+      externalHistoryWarning,
+      historyCapacityWarning
+    ].filter(Boolean).join(" ");
     const text = message || externalWarning || storageError || (!storageAvailable
       ? "Der Browser stellt keinen dauerhaften lokalen Speicher bereit. Änderungen können beim Schließen verloren gehen."
       : "");
@@ -227,7 +244,9 @@
 
   function openHistory() {
     const games = Storage.loadGameHistory();
+    updateHistoryControls(games);
     externalHistoryWarning = "";
+    updateStorageWarning();
     if (games.length === 0) {
       showToast("Es sind noch keine abgeschlossenen Partien vorhanden.");
       refreshHomeScreen();
@@ -242,6 +261,14 @@
   function renderHistoryGameList(games) {
     const container = elements["history-game-list"];
     container.replaceChildren();
+
+    if (games.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "history-empty";
+      empty.textContent = "Keine archivierten Partien vorhanden.";
+      container.append(empty);
+      return;
+    }
 
     games.forEach((archivedGame) => {
       const gameState = hydrateState(archivedGame);
@@ -277,12 +304,14 @@
   }
 
   function showHistoryList() {
+    selectedArchivedGame = null;
     elements["history-list-view"].hidden = false;
     elements["history-detail-view"].hidden = true;
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   function showArchivedGame(gameState) {
+    selectedArchivedGame = gameState;
     const completedRounds = gameState.rounds
       .filter((round) => round.completed)
       .sort((a, b) => a.number - b.number);
@@ -293,6 +322,124 @@
     elements["history-list-view"].hidden = true;
     elements["history-detail-view"].hidden = false;
     window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function updateHistoryControls(games = Storage.loadGameHistory()) {
+    const status = Storage.getHistoryStorageStatus(games);
+    const hasGames = status.count > 0;
+
+    elements["btn-history-export-all"].disabled = !hasGames;
+    elements["btn-history-clear"].disabled = !hasGames;
+    elements["history-storage-status"].textContent = `${status.count} ${status.count === 1 ? "Partie" : "Partien"} · ${formatStorageSize(status.bytes)}`;
+    historyCapacityWarning = status.softLimitReached
+      ? `Die History enthält ${status.count} Partien und belegt etwa ${formatStorageSize(status.bytes)}. Exportiere oder lösche ältere Partien, bevor der lokale Speicher voll ist.`
+      : "";
+  }
+
+  function formatStorageSize(bytes) {
+    if (bytes < 1_000) return `${bytes} B`;
+    if (bytes < 1_000_000) return `${(bytes / 1_000).toFixed(1)} KB`;
+    return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  }
+
+  function exportGameHistory() {
+    const games = Storage.loadGameHistory();
+    if (games.length === 0) {
+      showToast("Es sind keine Partien zum Exportieren vorhanden.");
+      return;
+    }
+
+    downloadJson({
+      exportFormat: "wizard-punkte-history",
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      games
+    }, `wizard-history-${formatFileTimestamp(new Date())}.json`);
+    showToast("Die gesamte History wurde exportiert.");
+  }
+
+  function exportSelectedArchivedGame() {
+    if (!selectedArchivedGame) return;
+
+    downloadJson({
+      exportFormat: "wizard-punkte-app",
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      gameState: selectedArchivedGame
+    }, `wizard-partie-${formatFileTimestamp(new Date())}.json`);
+    showToast("Die Partie wurde exportiert.");
+  }
+
+  function downloadJson(payload, filename) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function formatFileTimestamp(date) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return [
+      date.getFullYear(),
+      pad(date.getMonth() + 1),
+      pad(date.getDate())
+    ].join("-") + `-${pad(date.getHours())}${pad(date.getMinutes())}`;
+  }
+
+  function deleteSelectedArchivedGame() {
+    if (!selectedArchivedGame) return;
+
+    const label = formatArchivedGameDate(selectedArchivedGame);
+    if (!window.confirm(`Möchtest du die Partie „${label}“ wirklich aus der History löschen?`)) return;
+
+    if (!Storage.deleteCompletedGame(selectedArchivedGame.gameId)) {
+      showHistoryStorageError("Die Partie konnte nicht gelöscht werden.");
+      return;
+    }
+
+    selectedArchivedGame = null;
+    refreshHistoryAfterMutation();
+    showToast("Die Partie wurde aus der History gelöscht.");
+  }
+
+  function clearGameHistory() {
+    const games = Storage.loadGameHistory();
+    if (games.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Möchtest du wirklich alle ${games.length} Partien löschen? Exportiere das Archiv vorher, wenn du es später wiederherstellen möchtest.`
+    );
+    if (!confirmed) return;
+
+    if (!Storage.clearGameHistory()) {
+      showHistoryStorageError("Die History konnte nicht gelöscht werden.");
+      return;
+    }
+
+    selectedArchivedGame = null;
+    refreshHistoryAfterMutation();
+    showToast("Die gesamte History wurde gelöscht.");
+  }
+
+  function refreshHistoryAfterMutation() {
+    const games = Storage.loadGameHistory();
+    renderHistoryGameList(games);
+    updateHistoryControls(games);
+    showHistoryList();
+    refreshHomeScreen();
+    showScreen("history");
+  }
+
+  function showHistoryStorageError(fallback) {
+    const message = Storage.getStorageErrors?.().historyError || fallback;
+    updateHistoryControls();
+    updateStorageWarning(message);
+    showToast(message);
   }
 
   function formatArchivedGameDate(gameState) {
@@ -316,7 +463,7 @@
     input.value = "";
     if (!file) return;
 
-    if (file.size > 2_000_000) {
+    if (file.size > 10_000_000) {
       showToast("Die Importdatei ist ungewöhnlich groß und wurde abgelehnt.");
       return;
     }
@@ -324,6 +471,15 @@
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
+      if (parsed?.exportFormat === "wizard-punkte-history") {
+        importGameHistoryArchive(parsed);
+        return;
+      }
+
+      if (file.size > 2_000_000) {
+        throw new Error("Der einzelne Spielstand ist ungewöhnlich groß und wurde abgelehnt.");
+      }
+
       const candidate = parsed?.exportFormat === "wizard-punkte-app" ? parsed.gameState : parsed;
       const validationErrors = Logic.validateImportedGameState(candidate);
       if (validationErrors.length > 0) throw new Error(validationErrors[0]);
@@ -351,6 +507,38 @@
       console.error("Import fehlgeschlagen:", error);
       showToast(error instanceof Error ? error.message : "Die Importdatei konnte nicht gelesen werden.");
     }
+  }
+
+  function importGameHistoryArchive(parsed) {
+    if (parsed.exportVersion !== 1 || !Array.isArray(parsed.games)) {
+      throw new Error("Die Datei ist kein gültiges Wizard-History-Archiv.");
+    }
+
+    const hydratedGames = [];
+    const gameIds = new Set();
+    for (const candidate of parsed.games) {
+      const validationErrors = Logic.validateImportedGameState(candidate);
+      if (validationErrors.length > 0) throw new Error(validationErrors[0]);
+      if (gameIds.has(candidate.gameId)) {
+        throw new Error("Das History-Archiv enthält eine Partie mehrfach.");
+      }
+      gameIds.add(candidate.gameId);
+      hydratedGames.push(hydrateState(candidate));
+    }
+
+    const result = Storage.mergeGameHistory(hydratedGames);
+    if (!result.success) {
+      throw new Error(
+        Storage.getStorageErrors?.().historyError
+          || "Das History-Archiv konnte nicht importiert werden."
+      );
+    }
+
+    refreshHomeScreen();
+    if (Storage.hasGameHistory()) openHistory();
+    showToast(
+      `History importiert: ${result.added} neu, ${result.updated} aktualisiert, ${result.skipped} bereits vorhanden.`
+    );
   }
 
   // Spieleinrichtung: Spieler, Sitzordnung und Rundenzahl
@@ -1704,7 +1892,13 @@
 
     const archived = Storage.saveCompletedGame(gameState);
     if (!archived) {
-      updateStorageWarning("Die abgeschlossene Partie konnte nicht im lokalen Archiv gespeichert werden.");
+      const message = Storage.getStorageErrors?.().historyError
+        || "Die abgeschlossene Partie konnte nicht im lokalen Archiv gespeichert werden.";
+      updateStorageWarning(message);
+      showToast(message);
+    } else {
+      updateHistoryControls(Storage.loadGameHistory());
+      updateStorageWarning();
     }
     return archived;
   }

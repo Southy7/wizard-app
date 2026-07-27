@@ -180,10 +180,18 @@
         </div>
 
         <div id="history-list-view">
+          <div class="history-toolbar">
+            <button id="btn-history-export-all" class="button button-secondary" type="button">Archiv exportieren</button>
+            <button id="btn-history-import" class="button button-secondary" type="button">Archiv importieren</button>
+          </div>
+          <p id="history-storage-status" class="history-storage-status" aria-live="polite"></p>
+
           <section class="panel" aria-labelledby="history-list-title">
             <h3 id="history-list-title">Partien</h3>
             <div id="history-game-list" class="history-game-list"></div>
           </section>
+
+          <button id="btn-history-clear" class="button button-danger full-width" type="button">Gesamte History löschen</button>
         </div>
 
         <div id="history-detail-view" class="history-detail-view" hidden>
@@ -198,6 +206,11 @@
             <h3 id="history-score-title">Punkteverlauf</h3>
             <div id="history-score-content" class="history-scroll"></div>
           </section>
+
+          <div class="round-actions history-detail-actions">
+            <button id="btn-history-export-game" class="button button-secondary" type="button">Partie exportieren</button>
+            <button id="btn-history-delete-game" class="button button-danger" type="button">Partie löschen</button>
+          </div>
         </div>
       </section>
       <!-- ================== ENDE HISTORY ================== -->

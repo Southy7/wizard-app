@@ -3,8 +3,16 @@
 const assert = require("node:assert/strict");
 
 const values = new Map();
+let failHistoryWrites = false;
 global.localStorage = {
-  setItem(key, value) { values.set(String(key), String(value)); },
+  setItem(key, value) {
+    if (failHistoryWrites && String(key) === "wizard-punkte-app:game-history:v1") {
+      const error = new Error("Quota exceeded");
+      error.name = "QuotaExceededError";
+      throw error;
+    }
+    values.set(String(key), String(value));
+  },
   getItem(key) { return values.has(String(key)) ? values.get(String(key)) : null; },
   removeItem(key) { values.delete(String(key)); },
   clear() { values.clear(); }
@@ -70,6 +78,56 @@ assert.equal(Storage.loadGameHistory().length, 1);
 assert.equal(Storage.loadGameHistory()[0].players[0].name, "Lena aktualisiert");
 assert.equal(Storage.saveCompletedGame(state), false);
 
+const secondCompletedGame = require("../examples/history-game-2.json").gameState;
+assert.deepEqual(Storage.mergeGameHistory([secondCompletedGame]), {
+  success: true,
+  added: 1,
+  updated: 0,
+  skipped: 0
+});
+assert.equal(Storage.loadGameHistory().length, 2);
+assert.deepEqual(Storage.mergeGameHistory([secondCompletedGame]), {
+  success: true,
+  added: 0,
+  updated: 0,
+  skipped: 1
+});
+const newerSecondGame = JSON.parse(JSON.stringify(secondCompletedGame));
+newerSecondGame.updatedAt = "2099-01-01T00:00:00.000Z";
+newerSecondGame.players[0].name = "Neuere Fassung";
+assert.deepEqual(Storage.mergeGameHistory([newerSecondGame]), {
+  success: true,
+  added: 0,
+  updated: 1,
+  skipped: 0
+});
+assert.equal(
+  Storage.loadGameHistory().find((game) => game.gameId === secondCompletedGame.gameId).players[0].name,
+  "Neuere Fassung"
+);
+assert.equal(Storage.mergeGameHistory([secondCompletedGame, secondCompletedGame]).success, false);
+assert.equal(Storage.deleteCompletedGame(secondCompletedGame.gameId), true);
+assert.equal(Storage.deleteCompletedGame("missing-game"), false);
+assert.equal(Storage.loadGameHistory().length, 1);
+
+const historyStatus = Storage.getHistoryStorageStatus();
+assert.equal(historyStatus.count, 1);
+assert.equal(historyStatus.softLimitReached, false);
+const oversizedHistory = Array.from({ length: 100 }, (_, index) => ({
+  ...completedGame,
+  gameId: `soft-limit-${index}`
+}));
+assert.equal(Storage.getHistoryStorageStatus(oversizedHistory).softLimitReached, true);
+
+failHistoryWrites = true;
+const quotaConsoleError = console.error;
+console.error = () => {};
+assert.equal(Storage.saveCompletedGame(secondCompletedGame), false);
+assert.match(Storage.getStorageErrors().historyError, /Speicher ist voll/i);
+console.error = quotaConsoleError;
+failHistoryWrites = false;
+assert.equal(Storage.loadGameHistory().length, 1);
+
 for (const mutate of [
   (game) => game.rounds.pop(),
   (game) => { game.rounds[1].number = 1; },
@@ -128,7 +186,8 @@ assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
 assert.equal(Storage.getStorageErrors().gameError, "");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
-localStorage.removeItem(Storage.HISTORY_KEY);
+assert.equal(Storage.clearGameHistory(), true);
+assert.deepEqual(Storage.loadGameHistory(), []);
 Storage.clearLastError();
 assert.equal(Storage.getLastError(), "");
 

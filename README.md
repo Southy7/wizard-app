@@ -116,7 +116,10 @@ Der Browser-Smoke-Test benötigt Python, Playwright und Chromium.
 Die reduzierte Startseite bietet direkten Zugriff auf den Spielverlauf und den Import:
 
 - **History** listet alle lokal archivierten, abgeschlossenen Partien auf. Ein Klick öffnet das jeweilige Endergebnis mit Rangliste und Punkteverlauf.
-- **Import** liest eine zuvor exportierte oder kompatible JSON-Datei ein.
+- Einzelne Partien sowie das gesamte Archiv können als JSON-Datei exportiert werden.
+- Archivdateien lassen sich wieder importieren. Dabei werden Partien anhand ihrer `gameId` zusammengeführt; neuere vorhandene Fassungen werden nicht durch ältere überschrieben.
+- Einzelne Partien oder die gesamte History können nach einer Sicherheitsabfrage gelöscht werden.
+- **Import** erkennt sowohl einzelne Spielstände als auch vollständige History-Archive.
 
 Die JSON-Datei enthält nur Spielinformationen wie Namen, Runden, Ansagen, Sonderkarten, Stiche und Punkte. Sie wird nicht automatisch an einen Server übertragen.
 
@@ -130,6 +133,8 @@ Der aktive Spielstand und das getrennte Archiv abgeschlossener Partien liegen in
 - Wechsel zu einem anderen Browser oder Gerät
 
 Deshalb empfiehlt sich bei längeren Partien oder vor einem Gerätewechsel ein Export.
+
+Ab 100 archivierten Partien oder ungefähr 3 MB Archivgröße zeigt die App eine Warnung an. Es werden keine Partien automatisch gelöscht. Ist das Browserkontingent erschöpft, bleibt der aktive Spielstand erhalten und die App fordert zum Exportieren oder Löschen älterer Partien auf.
 
 ### Datenmigration auf Schema 4
 
