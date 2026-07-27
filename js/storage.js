@@ -4,6 +4,7 @@
   const STORAGE_KEY = "wizard-punkte-app:game-state:v1";
   let lastError = "";
 
+  // Speicherfehler werden zentral gehalten, damit die Oberfläche sie anzeigen kann.
   function setError(message, error) {
     lastError = message;
     if (error) console.error(message, error);
@@ -29,6 +30,7 @@
     }
   }
 
+  // Alle Speicherzugriffe bleiben in diesem Modul gekapselt.
   function saveGame(state) {
     if (!isStorageAvailable()) return false;
 
@@ -84,7 +86,6 @@
       return false;
     }
   }
-
 
   function hasStoredData() {
     if (!isStorageAvailable()) return false;

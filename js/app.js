@@ -16,6 +16,7 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
+  // Initialisierung und zentrale DOM-Verknüpfungen
   function init() {
     cacheElements();
     bindEvents();
@@ -129,6 +130,7 @@
     showScreen("setup");
   }
 
+  // Gespeicherte Daten werden bereinigt, damit auch ältere Spielstände sicher geladen werden.
   function hydrateState(savedState) {
     const rawPlayers = Array.isArray(savedState.players)
       ? savedState.players.slice(0, Logic.MAX_PLAYERS)
@@ -312,6 +314,7 @@
     }
   }
 
+  // Navigation zwischen den vier Ansichten aus index.html
   function goHome() {
     persistState();
     refreshHomeScreen();
@@ -333,6 +336,7 @@
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
+  // Startseite und lokale Spielstand-Verwaltung
   function refreshHomeScreen() {
     const savedState = Storage.loadGame();
     const continueButton = elements["btn-continue-game"];
@@ -473,6 +477,7 @@
     showToast("Gespeichertes Spiel wurde gelöscht.");
   }
 
+  // Spieleinrichtung: Spieler, Sitzordnung, Rollen und Rundenzahl
   function renderSetup() {
     ensureState();
     renderPlayerList();
@@ -748,6 +753,7 @@
     elements["dealer-select"].focus();
   }
 
+  // Laufendes Spiel: wählt passend zum Rundenstatus die aktuelle Phasenansicht.
   function renderGame() {
     ensureState();
     let round = ensureCurrentRound();
@@ -772,6 +778,7 @@
     else renderRoundResult(round);
   }
 
+  // Phase 1: Ansagen aller Spieler erfassen
   function renderBids(round) {
     const panel = createPanel("Ansagen", "Die Eingabe beginnt beim Startspieler. Die Ansagesumme darf nicht der Rundennummer entsprechen.");
     const list = document.createElement("div");
@@ -850,6 +857,7 @@
     renderGame();
   }
 
+  // Phase 2: ausgespielte Sonderkarten und ihre Abhängigkeiten erfassen
   function renderPlay(round) {
     const bidsPanel = createPanel("Aktuelle Ansagen");
     bidsPanel.append(createBidOverview(round));
@@ -1267,6 +1275,7 @@
     renderGame();
   }
 
+  // Phase 3: erzielte Stiche erfassen und auf die korrekte Summe prüfen
   function renderTricks(round) {
     const panel = createPanel("Stiche eintragen", "Trage für jeden Spieler nur die endgültige Stichzahl dieser Runde ein.");
     const list = document.createElement("div");
@@ -1350,6 +1359,7 @@
     renderGame();
   }
 
+  // Phase 4: Rundenergebnis anzeigen, korrigieren oder zur nächsten Runde wechseln
   function renderRoundResult(round) {
     const panel = createPanel(`Ergebnis Runde ${round.number}`, "Rundenpunkte und aktuelle Gesamtpunktzahl nach dieser Runde.");
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
@@ -1460,6 +1470,7 @@
     showScreen("finished");
   }
 
+  // Abschlussansicht mit Rangliste und vollständigem Punkteverlauf
   function renderFinished() {
     ensureState();
     const completedRounds = state.rounds.filter((round) => round.completed).sort((a, b) => a.number - b.number);
@@ -1591,6 +1602,7 @@
     closeDialog(elements["round-one-dialog"]);
   }
 
+  // Wiederverwendbare Bausteine für dynamisch erzeugte Oberflächen
   function createPanel(title, description = "") {
     const panel = document.createElement("section");
     panel.className = "panel";
@@ -1788,6 +1800,7 @@
     return "0";
   }
 
+  // Zustands-, Speicher- und Browser-Helfer
   function deepClone(value) {
     return JSON.parse(JSON.stringify(value));
   }

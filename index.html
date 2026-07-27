@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="de">
 <head>
+  <!-- Grundlegende Dokument- und PWA-Metadaten -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f4f46">
@@ -17,6 +18,7 @@
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 
+  <!-- Reihenfolge ist wichtig: app.js verwendet Logik und Speicher als Abhängigkeiten. -->
   <script defer src="js/game-logic.js"></script>
   <script defer src="js/storage.js"></script>
   <script defer src="js/app.js"></script>
@@ -27,6 +29,7 @@
   </noscript>
 
   <div class="app-shell">
+    <!-- Globaler App-Kopf: auf allen Ansichten sichtbar -->
     <header class="app-header">
       <div>
         <p class="eyebrow">Digitaler Punkteblock</p>
@@ -37,8 +40,14 @@
 
     <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
 
+    <!--
+      Ansichtsbereich der Single-Page-App.
+      JavaScript blendet immer genau eine der folgenden vier Ansichten ein.
+    -->
     <main id="app" class="app-main">
-      <section id="screen-home" class="screen" aria-labelledby="home-title">
+      <!-- ==================== STARTSEITE ==================== -->
+      <section id="screen-home" class="screen screen-home" data-screen="home" aria-labelledby="home-title">
+        <!-- Primäre Aktionen der Startseite -->
         <div class="hero-card">
           <h2 id="home-title">Bereit für eine Partie?</h2>
           <p>Ein Gerät verwaltet Ansagen, Sonderkarten, Stiche und Punkte.</p>
@@ -51,6 +60,7 @@
           <p id="saved-game-summary" class="saved-summary" hidden></p>
         </div>
 
+        <!-- Spielstand-Verwaltung gehört ebenfalls ausschließlich zur Startseite. -->
         <section class="panel compact-panel" aria-labelledby="backup-title">
           <div class="panel-heading">
             <div>
@@ -68,8 +78,10 @@
           <p class="field-help">Export und Import verwenden eine kleine JSON-Datei. Beim Import wird ein vorhandener Spielstand erst nach Bestätigung ersetzt.</p>
         </section>
       </section>
+      <!-- ================== ENDE STARTSEITE ================== -->
 
-      <section id="screen-setup" class="screen" aria-labelledby="setup-title" hidden>
+      <!-- ================= SPIELEINRICHTUNG ================= -->
+      <section id="screen-setup" class="screen screen-setup" data-screen="setup" aria-labelledby="setup-title" hidden>
         <div class="screen-heading">
           <div>
             <p class="eyebrow">Neues Spiel</p>
@@ -79,6 +91,7 @@
         </div>
 
         <form id="setup-form" novalidate>
+          <!-- 1. Spieler erfassen und Sitzreihenfolge festlegen -->
           <section class="panel" aria-labelledby="players-title">
             <div class="panel-heading">
               <div>
@@ -88,10 +101,12 @@
               <span id="player-count-badge" class="count-badge">3 / 6</span>
             </div>
 
+            <!-- Die Spielereingaben werden in app.js dynamisch erzeugt. -->
             <div id="player-list" class="player-list"></div>
             <button id="btn-add-player" class="button button-secondary full-width" type="button">Spieler hinzufügen</button>
           </section>
 
+          <!-- 2. Rollen für den Beginn der Partie bestimmen -->
           <section class="panel" aria-labelledby="roles-title">
             <h3 id="roles-title">Kartengeber und Startspieler</h3>
             <label class="field-label" for="dealer-select">Kartengeber in Runde 1</label>
@@ -104,6 +119,7 @@
             <p class="field-help">Der Startspieler sitzt direkt nach dem Kartengeber.</p>
           </section>
 
+          <!-- 3. Anzahl der zu spielenden Runden festlegen -->
           <section class="panel" aria-labelledby="rounds-title">
             <h3 id="rounds-title">Rundenzahl</h3>
             <div class="stepper" aria-label="Rundenzahl einstellen">
@@ -119,6 +135,7 @@
             <p id="rounds-message" class="status-message" aria-live="polite"></p>
           </section>
 
+          <!-- 4. Einstellungen vor dem Spielstart kontrollieren -->
           <section class="panel summary-panel" aria-labelledby="summary-title">
             <h3 id="summary-title">Zusammenfassung</h3>
             <dl class="summary-list">
@@ -134,8 +151,10 @@
           <button class="button button-primary full-width" type="submit">Spiel starten</button>
         </form>
       </section>
+      <!-- =============== ENDE SPIELEINRICHTUNG =============== -->
 
-      <section id="screen-game" class="screen" aria-labelledby="game-title" hidden>
+      <!-- ================= LAUFENDES SPIEL ================= -->
+      <section id="screen-game" class="screen screen-game" data-screen="game" aria-labelledby="game-title" hidden>
         <div class="screen-heading">
           <div>
             <p id="game-phase-label" class="eyebrow">Ansagen</p>
@@ -151,10 +170,13 @@
           </div>
         </section>
 
+        <!-- Die aktuelle Phase (Ansagen, Sonderkarten, Stiche oder Ergebnis) rendert app.js. -->
         <div id="game-content" class="game-content"></div>
       </section>
+      <!-- =============== ENDE LAUFENDES SPIEL =============== -->
 
-      <section id="screen-finished" class="screen" aria-labelledby="finished-title" hidden>
+      <!-- ================== ENDERGEBNIS ================== -->
+      <section id="screen-finished" class="screen screen-finished" data-screen="finished" aria-labelledby="finished-title" hidden>
         <div class="screen-heading">
           <div>
             <p class="eyebrow">Partie beendet</p>
@@ -180,13 +202,20 @@
           <button id="btn-finished-new-game" class="button button-primary" type="button">Neues Spiel</button>
         </div>
       </section>
+      <!-- ================ ENDE ENDERGEBNIS ================ -->
     </main>
 
+    <!-- Globaler App-Fuß: auf allen Ansichten sichtbar -->
     <footer class="app-footer">
       <span>70 Karten · 3–6 Spieler · lokal gespeichert</span>
     </footer>
   </div>
 
+  <!--
+    Globale Dialoge liegen außerhalb der Ansichten, weil sie aus mehreren
+    Spielphasen heraus geöffnet werden können.
+  -->
+  <!-- Hinweis vor der ersten Runde -->
   <dialog id="round-one-dialog" class="app-dialog">
     <div class="dialog-content">
       <p class="dialog-icon" aria-hidden="true">🃏</p>
@@ -197,6 +226,7 @@
     </div>
   </dialog>
 
+  <!-- Auswahl für die Sonderkarte „Wolke“ -->
   <dialog id="cloud-dialog" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -215,6 +245,7 @@
     </div>
   </dialog>
 
+  <!-- Auswahl der zu korrigierenden Rundendaten -->
   <dialog id="edit-round-dialog" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -233,6 +264,7 @@
     </div>
   </dialog>
 
+  <!-- Globale, kurz eingeblendete Statusmeldung -->
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

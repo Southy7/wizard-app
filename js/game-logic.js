@@ -20,6 +20,7 @@
     6: 10
   });
 
+  // Spieler, Sitzordnung und Rundengrenzen
   function createId(prefix = "player") {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       return `${prefix}-${crypto.randomUUID()}`;
@@ -156,6 +157,7 @@
     return errors;
   }
 
+  // Grundstruktur einer Runde einschließlich aller möglichen Sonderkarten
   function createPlayerResult() {
     return {
       originalBid: 0,
@@ -209,6 +211,7 @@
     };
   }
 
+  // Ansagen und Auswirkungen der Sonderkarten
   function getBidSum(round) {
     return Object.values(round?.playerResults ?? {})
       .reduce((sum, result) => sum + (Number(result?.originalBid) || 0), 0);
@@ -334,6 +337,7 @@
     return errors;
   }
 
+  // Stichprüfung und Punkteberechnung
   function getExpectedTrickCount(round) {
     return Math.max(0, (Number(round?.number) || 0) - getActiveBombCount(round));
   }
@@ -398,6 +402,7 @@
     return totals;
   }
 
+  // Vollständiger Ausgangszustand für eine neue Partie
   function createInitialGameState(playerCount = MIN_PLAYERS) {
     const safeCount = Math.min(Math.max(playerCount, MIN_PLAYERS), MAX_PLAYERS);
     const players = Array.from({ length: safeCount }, (_, index) => createPlayer(index));
