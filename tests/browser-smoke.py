@@ -69,12 +69,66 @@ def main() -> None:
         page.fill("#rounds-input", "1")
         page.dispatch_event("#rounds-input", "change")
         page.click("#setup-form button[type=submit]")
+        assert page.locator("#screen-setup-summary").is_visible()
+        dealer = page.locator("#summary-dealer").text_content()
+        starter = page.locator("#summary-starter").text_content()
+        assert dealer in ("Anna", "Ben", "Chris")
+        assert starter == {"Anna": "Ben", "Ben": "Chris", "Chris": "Anna"}[dealer]
+        page.click("#btn-summary-start")
         page.click("#btn-confirm-round-one-hint")
 
-        assert page.locator(".entry-total").count() == 3
+        assert page.locator("#game-round-overview #game-total-points .points-card").count() == 3
+        page.locator(".entry-row").nth(0).locator(".value-button").nth(1).click()
+        page.locator(".entry-row").nth(1).locator(".value-button").nth(1).click()
         page.click('button:has-text("Ansagen bestätigen")')
+        assert page.locator(".bid-overview .score-row.header span").all_text_contents() == [
+            "Spieler", "Ansage", "Gesamt"
+        ]
+        witch = page.locator(".special-button", has_text="Hexe")
+        assert witch.is_disabled()
+        bomb = page.locator(".special-button", has_text="Bombe")
+        bomb.click()
+        assert witch.is_enabled()
+        bomb.click()
+        assert page.locator(".special-button", has_text="Hexe").is_disabled()
+
+        # Mit Wolke und Bombe bietet die Hexe beide möglichen Wiederholungen an.
+        page.locator(".special-button", has_text="Wolke").click()
+        page.locator("#cloud-player-options button").first.click()
+        page.click("#btn-cloud-plus")
+        page.locator(".special-button", has_text="Bombe").click()
+        page.locator(".special-button", has_text="Hexe").click()
+        assert page.locator(".special-button", has_text="2. Wolke").count() == 1
+        assert page.locator(".special-button", has_text="2. Bombe").count() == 1
+        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+
+        # Zweite Bombe und zweite Wolke lassen sich jeweils über denselben Button ein- und ausschalten.
+        second_bomb = page.locator(".special-button", has_text="2. Bombe")
+        second_bomb.click()
+        assert second_bomb.get_attribute("class") and "active" in second_bomb.get_attribute("class")
+        second_bomb.click()
+        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+
+        page.locator(".special-button", has_text="2. Wolke").click()
+        page.locator("#cloud-player-options button").first.click()
+        page.click("#btn-cloud-plus")
+        second_cloud = page.locator(".special-button", has_text="2. Wolke")
+        assert "active" in second_cloud.get_attribute("class")
+        second_cloud.click()
+        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
+
+        # Hexe sowie die beiden Primärkarten wieder ausschalten.
+        page.locator(".special-button", has_text="Hexe").click()
+        page.locator(".special-button", has_text="Bombe").click()
+        page.locator(".special-button", has_text="Wolke").click()
+        assert page.locator("button", has_text="Rückgängig").count() == 0
+        assert page.get_by_text("Wolke und Bombe im selben Stich").count() == 0
+
         page.click('button:has-text("Stiche eintragen")')
-        page.locator(".entry-row").first.locator(".value-button").nth(1).click()
+        assert page.locator("#game-total-points").is_hidden()
+        correct_button = page.locator(".correct-button:not(:disabled)").first
+        correct_button.click()
+        assert "1" in page.locator(".value-display").all_text_contents()
         page.click('button:has-text("Runde abschließen")')
 
         assert page.locator(".score-row.header span").all_text_contents() == [
@@ -82,6 +136,12 @@ def main() -> None:
         ]
         page.click('button:has-text("Spiel beenden")')
         assert page.locator(".history-table tbody tr").count() == 1
+
+        # Der neue Startseiten-Button öffnet denselben gespeicherten Punkteverlauf.
+        page.click("#btn-finished-home")
+        assert page.locator("#btn-history").is_enabled()
+        page.click("#btn-history")
+        assert page.locator("#history-score-content .history-table tbody tr").count() == 1
         browser.close()
 
     print("Browser-Smoke-Test erfolgreich.")

@@ -1,6 +1,7 @@
 "use strict";
 
-const CACHE_NAME = "wizard-punkte-v1.0.3";
+// Bei Änderungen am App-Shell erhöhen, damit installierte Apps neue Dateien laden.
+const CACHE_NAME = "wizard-punkte-v1.0.8";
 const APP_SHELL = [
   "./",
   "./index.html",

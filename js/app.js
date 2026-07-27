@@ -29,17 +29,19 @@
 
   function cacheElements() {
     const ids = [
-      "screen-home", "screen-setup", "screen-game", "screen-finished",
-      "btn-new-game", "btn-continue-game", "saved-game-summary", "saved-game-tools",
-      "btn-export-game", "btn-import-game", "import-file-input", "btn-delete-game", "storage-warning",
+      "screen-home", "screen-setup", "screen-setup-summary",
+      "screen-game", "screen-history", "screen-finished",
+      "btn-new-game", "btn-continue-game", "btn-history", "btn-import-game",
+      "import-file-input", "storage-warning",
       "btn-setup-home", "setup-form", "player-list", "player-count-badge",
-      "btn-add-player", "dealer-select", "starting-player-name",
-      "btn-rounds-minus", "rounds-input", "btn-rounds-plus",
+      "btn-add-player", "btn-rounds-minus", "rounds-input", "btn-rounds-plus",
       "standard-rounds-value", "maximum-rounds-value", "rounds-message",
       "summary-player-count", "summary-round-count", "summary-dealer",
-      "summary-starter", "summary-seat-order", "form-errors",
+      "summary-starter", "summary-seat-order", "btn-summary-back",
+      "btn-summary-start", "form-errors",
       "btn-game-home", "game-phase-label", "game-title", "game-dealer",
-      "game-starter", "game-content", "btn-finished-home",
+      "game-starter", "game-total-points", "game-content", "btn-history-home", "history-game-meta",
+      "history-score-content", "btn-finished-home",
       "winner-summary", "final-ranking", "final-game-meta", "final-score-history", "btn-review-last-round",
       "btn-finished-new-game", "round-one-dialog", "btn-confirm-round-one-hint",
       "cloud-dialog", "cloud-dialog-kicker", "cloud-dialog-help",
@@ -57,22 +59,23 @@
   function bindEvents() {
     elements["btn-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-continue-game"].addEventListener("click", continueGame);
-    elements["btn-export-game"].addEventListener("click", exportGame);
+    elements["btn-history"].addEventListener("click", openHistory);
     elements["btn-import-game"].addEventListener("click", () => elements["import-file-input"].click());
     elements["import-file-input"].addEventListener("change", importGameFromFile);
-    elements["btn-delete-game"].addEventListener("click", deleteSavedGame);
     elements["btn-setup-home"].addEventListener("click", goHome);
     elements["btn-game-home"].addEventListener("click", goHome);
+    elements["btn-history-home"].addEventListener("click", goHome);
     elements["btn-finished-home"].addEventListener("click", goHome);
     elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
     elements["btn-add-player"].addEventListener("click", addPlayer);
-    elements["dealer-select"].addEventListener("change", updateDealer);
     elements["btn-rounds-minus"].addEventListener("click", () => changeRounds(-1));
     elements["btn-rounds-plus"].addEventListener("click", () => changeRounds(1));
     elements["rounds-input"].addEventListener("change", commitRoundInput);
     elements["rounds-input"].addEventListener("blur", commitRoundInput);
     elements["setup-form"].addEventListener("submit", submitSetup);
+    elements["btn-summary-back"].addEventListener("click", returnToSetup);
+    elements["btn-summary-start"].addEventListener("click", startGameFromSummary);
 
     elements["btn-confirm-round-one-hint"].addEventListener("click", confirmRoundOneHint);
     elements["round-one-dialog"].addEventListener("cancel", (event) => event.preventDefault());
@@ -163,6 +166,7 @@
       totalCards,
       players,
       firstDealerId,
+      setupDealerRandomized: Boolean(savedState.setupDealerRandomized),
       totalRounds,
       currentRound,
       roundOneHintConfirmed: Boolean(savedState.roundOneHintConfirmed),
@@ -249,7 +253,8 @@
       active: Boolean(rawCloud?.active),
       playerId: typeof rawCloud?.playerId === "string" ? rawCloud.playerId : null,
       change: rawCloud?.change === -1 ? -1 : rawCloud?.change === 1 ? 1 : 0,
-      suppressedByBomb: Boolean(rawCloud?.suppressedByBomb)
+      // Die frühere Kombination „Wolke und Bombe im selben Stich“ wird nicht mehr übernommen.
+      suppressedByBomb: false
     };
   }
 
@@ -267,6 +272,11 @@
     if (!cards.bomb.active && cards.witch.secondEffect === "bomb") {
       cards.witch.secondEffect = null;
       cards.secondBomb.active = false;
+    }
+
+    // Ohne eine erste Wolke oder Bombe darf die Hexe nicht aktiv bleiben.
+    if (!cards.cloud.active && !cards.bomb.active) {
+      cards.witch.active = false;
     }
 
     if (!cards.witch.active) {
@@ -314,7 +324,7 @@
     }
   }
 
-  // Navigation zwischen den vier Ansichten aus index.html
+  // Navigation zwischen den sechs Ansichten aus index.html
   function goHome() {
     persistState();
     refreshHomeScreen();
@@ -325,7 +335,9 @@
     const screens = {
       home: elements["screen-home"],
       setup: elements["screen-setup"],
+      "setup-summary": elements["screen-setup-summary"],
       game: elements["screen-game"],
+      history: elements["screen-history"],
       finished: elements["screen-finished"]
     };
 
@@ -336,37 +348,21 @@
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
-  // Startseite und lokale Spielstand-Verwaltung
+  // Startseite und lokaler Spielstand
   function refreshHomeScreen() {
     const savedState = Storage.loadGame();
     const continueButton = elements["btn-continue-game"];
-    const summary = elements["saved-game-summary"];
+    const historyButton = elements["btn-history"];
 
     if (!savedState) {
       continueButton.disabled = true;
-      elements["btn-export-game"].disabled = true;
-      elements["btn-delete-game"].disabled = !Storage.hasStoredData?.();
-      summary.hidden = true;
-      summary.textContent = "";
+      historyButton.disabled = true;
       updateStorageWarning();
       return;
     }
 
-    const playerCount = savedState.players?.length ?? 0;
-    let statusText = "Einrichtung begonnen";
-
-    if (savedState.status === "running") {
-      const round = savedState.currentRound ?? 1;
-      statusText = `Runde ${round} von ${savedState.totalRounds}`;
-    } else if (savedState.status === "completed") {
-      statusText = "Partie beendet";
-    }
-
     continueButton.disabled = false;
-    elements["btn-export-game"].disabled = false;
-    elements["btn-delete-game"].disabled = false;
-    summary.hidden = false;
-    summary.textContent = `${statusText} · ${playerCount} Spieler`;
+    historyButton.disabled = !savedState.rounds?.some((round) => round?.completed);
     updateStorageWarning();
   }
 
@@ -383,37 +379,30 @@
     warning.hidden = !text;
   }
 
-  function exportGame() {
+  function openHistory() {
     const savedState = Storage.loadGame();
     if (!savedState) {
-      showToast("Es ist kein Spielstand zum Exportieren vorhanden.");
+      showToast("Es ist kein Spielverlauf vorhanden.");
       refreshHomeScreen();
       return;
     }
 
-    const payload = {
-      exportFormat: "wizard-punkte-app",
-      exportVersion: 1,
-      exportedAt: new Date().toISOString(),
-      gameState: savedState
-    };
+    state = hydrateState(savedState);
+    const completedRounds = state.rounds
+      .filter((round) => round.completed)
+      .sort((a, b) => a.number - b.number);
 
-    try {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      const date = new Date().toISOString().slice(0, 10);
-      anchor.href = url;
-      anchor.download = `wizard-spielstand-${date}.json`;
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      showToast("Spielstand wurde exportiert.");
-    } catch (error) {
-      console.error("Export fehlgeschlagen:", error);
-      updateStorageWarning("Der Spielstand konnte nicht exportiert werden.");
+    if (completedRounds.length === 0) {
+      showToast("Es wurden noch keine Runden abgeschlossen.");
+      refreshHomeScreen();
+      return;
     }
+
+    const totals = Logic.calculateTotalPoints(completedRounds, state.players);
+    elements["history-game-meta"].textContent =
+      `${state.players.length} Spieler · ${completedRounds.length} abgeschlossene Runden`;
+    renderScoreHistory(elements["history-score-content"], completedRounds, totals);
+    showScreen("history");
   }
 
   async function importGameFromFile(event) {
@@ -459,29 +448,10 @@
     }
   }
 
-  function deleteSavedGame() {
-    if (!Storage.hasStoredData?.()) return;
-
-    const shouldDelete = window.confirm(
-      "Gespeichertes Spiel vollständig löschen? Diese Aktion kann nur über eine zuvor exportierte Sicherungsdatei rückgängig gemacht werden."
-    );
-    if (!shouldDelete) return;
-
-    if (!Storage.deleteGame()) {
-      updateStorageWarning("Der gespeicherte Spielstand konnte nicht gelöscht werden.");
-      return;
-    }
-
-    state = null;
-    refreshHomeScreen();
-    showToast("Gespeichertes Spiel wurde gelöscht.");
-  }
-
-  // Spieleinrichtung: Spieler, Sitzordnung, Rollen und Rundenzahl
+  // Spieleinrichtung: Spieler, Sitzordnung und Rundenzahl
   function renderSetup() {
     ensureState();
     renderPlayerList();
-    renderDealerSelect();
     renderRoundControls();
     renderSummary();
     clearFormErrors();
@@ -559,7 +529,6 @@
 
     player.name = name;
     persistState();
-    renderDealerSelect();
     renderSummary();
     updateDuplicateHints();
   }
@@ -582,6 +551,7 @@
     if (state.players.length >= Logic.MAX_PLAYERS) return;
 
     state.players.push(Logic.createPlayer(state.players.length));
+    state.setupDealerRandomized = false;
     resetRoundsToStandard();
     persistState();
     renderSetup();
@@ -594,6 +564,7 @@
 
     const removedWasDealer = state.firstDealerId === playerId;
     state.players = Logic.normalizeSeatPositions(state.players.filter((player) => player.id !== playerId));
+    state.setupDealerRandomized = false;
 
     if (removedWasDealer || !state.players.some((player) => player.id === state.firstDealerId)) {
       state.firstDealerId = state.players[0].id;
@@ -616,36 +587,6 @@
       const lastPlayer = state.players[state.players.length - 1];
       document.getElementById(`player-name-${lastPlayer.id}`)?.focus();
     });
-  }
-
-  function renderDealerSelect() {
-    const select = elements["dealer-select"];
-    const previousValue = state.firstDealerId;
-    select.innerHTML = "";
-
-    state.players.forEach((player, index) => {
-      const option = document.createElement("option");
-      option.value = player.id;
-      option.textContent = getPlayerDisplayName(player, index);
-      select.append(option);
-    });
-
-    if (state.players.some((player) => player.id === previousValue)) {
-      select.value = previousValue;
-    } else if (state.players[0]) {
-      state.firstDealerId = state.players[0].id;
-      select.value = state.firstDealerId;
-    }
-
-    const starter = Logic.getStartingPlayerForRound(state.players, state.firstDealerId, 1);
-    elements["starting-player-name"].textContent = starter ? getPlayerDisplayNameById(starter.id) : "–";
-  }
-
-  function updateDealer(event) {
-    state.firstDealerId = event.target.value;
-    persistState();
-    renderDealerSelect();
-    renderSummary();
   }
 
   function renderRoundControls(message = "") {
@@ -711,6 +652,35 @@
     }
 
     clearFormErrors();
+    selectRandomDealer();
+    renderSummary();
+    persistState();
+    showScreen("setup-summary");
+  }
+
+  function returnToSetup() {
+    renderSetup();
+    showScreen("setup");
+  }
+
+  function selectRandomDealer() {
+    if (state.setupDealerRandomized || state.players.length === 0) return;
+
+    const randomIndex = Math.floor(Math.random() * state.players.length);
+    state.firstDealerId = state.players[randomIndex].id;
+    state.setupDealerRandomized = true;
+  }
+
+  function startGameFromSummary() {
+    const errors = Logic.validateSetup(state);
+    if (errors.length > 0) {
+      renderSetup();
+      showFormErrors(errors);
+      showScreen("setup");
+      focusFirstInvalidField();
+      return;
+    }
+
     state.status = "running";
     state.currentRound = 1;
     state.roundOneHintConfirmed = false;
@@ -750,7 +720,7 @@
       return;
     }
 
-    elements["dealer-select"].focus();
+    elements["rounds-input"].focus();
   }
 
   // Laufendes Spiel: wählt passend zum Rundenstatus die aktuelle Phasenansicht.
@@ -771,6 +741,7 @@
       result: "Rundenergebnis"
     };
     elements["game-phase-label"].textContent = labels[round.phase] ?? "Laufendes Spiel";
+    renderRoundOverview(round.phase);
 
     if (round.phase === "bids") renderBids(round);
     else if (round.phase === "play") renderPlay(round);
@@ -785,13 +756,11 @@
     list.className = "entry-list";
 
     const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
-    const totals = Logic.calculateTotalPoints(state.rounds, state.players);
     order.forEach((player, index) => {
       const result = round.playerResults[player.id];
       list.append(createValueEntry({
         name: getPlayerDisplayNameById(player.id),
         meta: index === 0 ? "Beginnt mit der Ansage" : "",
-        total: totals[player.id],
         value: result.originalBid,
         min: 0,
         max: round.number,
@@ -867,42 +836,32 @@
     const grid = document.createElement("div");
     grid.className = "special-card-grid";
 
-    const cloudButton = createSpecialButton("☁ Wolke", cards.cloud.active, cards.cloud.active ? "bereits erfasst" : "einmal verwendbar");
-    cloudButton.disabled = cards.cloud.active;
-    cloudButton.addEventListener("click", () => openCloudDialog("cloud"));
+    const cloudButton = createSpecialButton("☁ Wolke", cards.cloud.active, cards.cloud.active ? "erneut klicken zum Entfernen" : "auswählen");
+    cloudButton.addEventListener("click", cards.cloud.active ? undoCloud : () => openCloudDialog("cloud"));
 
-    const bombButton = createSpecialButton("💣 Bombe", cards.bomb.active, cards.bomb.active ? "Stich entfällt" : "einmal verwendbar");
-    bombButton.disabled = cards.bomb.active;
-    bombButton.addEventListener("click", activateBomb);
+    const bombButton = createSpecialButton("💣 Bombe", cards.bomb.active, cards.bomb.active ? "erneut klicken zum Entfernen" : "auswählen");
+    bombButton.addEventListener("click", cards.bomb.active ? undoBomb : activateBomb);
 
-    const witchButton = createSpecialButton("🧙 Hexe", cards.witch.active, cards.witch.active ? "zweite Karte möglich" : "einmal verwendbar");
-    witchButton.disabled = cards.witch.active;
-    witchButton.addEventListener("click", activateWitch);
+    const canActivateWitch = cards.cloud.active || cards.bomb.active;
+    const witchHelper = cards.witch.active
+      ? "erneut klicken zum Entfernen"
+      : canActivateWitch
+        ? "auswählen"
+        : "erst Wolke oder Bombe wählen";
+    const witchButton = createSpecialButton("🧙 Hexe", cards.witch.active, witchHelper);
+    witchButton.disabled = !cards.witch.active && !canActivateWitch;
+    witchButton.addEventListener("click", cards.witch.active ? undoWitch : activateWitch);
 
     grid.append(cloudButton, bombButton, witchButton);
     specialPanel.append(grid);
-
-    appendPrimarySpecialDetails(specialPanel, round);
 
     if (cards.witch.active) {
       specialPanel.append(createSecondEffectSection(round));
     }
 
-    const bombCount = Logic.getActiveBombCount(round);
-    const cloudEvents = Logic.getCloudEvents(round);
-    if (bombCount > 0 && cloudEvents.length > 0) {
-      specialPanel.append(createCombinationSection(round));
-    }
-
     const errors = Logic.getSpecialCardErrors(round, state.players);
     if (errors.length > 0) {
       specialPanel.append(createStatusCard("error", "Eingaben prüfen", errors.join(" ")));
-    } else {
-      specialPanel.append(createStatusCard(
-        "success",
-        `${bombCount} Bombenstich${bombCount === 1 ? "" : "e"}`,
-        `Am Rundenende müssen insgesamt ${Logic.getExpectedTrickCount(round)} Stiche verteilt sein.`
-      ));
     }
 
     const actions = document.createElement("div");
@@ -918,11 +877,12 @@
 
   function createBidOverview(round) {
     const table = document.createElement("div");
-    table.className = "score-table";
+    table.className = "score-table bid-overview";
+    const totals = Logic.calculateTotalPoints(state.rounds, state.players);
 
     const header = document.createElement("div");
     header.className = "score-row header";
-    header.innerHTML = "<span>Spieler</span><span class=\"number\">Ansage</span><span></span><span></span>";
+    header.innerHTML = "<span>Spieler</span><span class=\"number\">Ansage</span><span class=\"number\">Gesamt</span>";
     table.append(header);
 
     state.players.forEach((player) => {
@@ -940,39 +900,16 @@
         bid.title = `Ursprünglich ${result.originalBid}`;
       }
 
-      row.append(name, bid, document.createElement("span"), document.createElement("span"));
+      const total = document.createElement("span");
+      total.className = "number total-points";
+      total.textContent = String(totals[player.id]);
+      total.setAttribute("aria-label", `${totals[player.id]} Gesamtpunkte`);
+
+      row.append(name, bid, total);
       table.append(row);
     });
 
     return table;
-  }
-
-  function appendPrimarySpecialDetails(container, round) {
-    const cards = round.specialCards;
-
-    if (cards.cloud.active) {
-      container.append(createSpecialDetail(
-        `Wolke: ${describeCloud(cards.cloud)}`,
-        [
-          { label: "Ändern", action: () => openCloudDialog("cloud") },
-          { label: "Rückgängig", action: undoCloud, danger: true }
-        ]
-      ));
-    }
-
-    if (cards.bomb.active) {
-      container.append(createSpecialDetail(
-        "Bombe: Ein Stich wird an niemanden vergeben.",
-        [{ label: "Rückgängig", action: undoBomb, danger: true }]
-      ));
-    }
-
-    if (cards.witch.active) {
-      container.append(createSpecialDetail(
-        "Hexe: Eine bereits gespielte Sonderkarte kann erneut ausgespielt werden.",
-        [{ label: "Rückgängig", action: undoWitch, danger: true }]
-      ));
-    }
   }
 
   function createSecondEffectSection(round) {
@@ -990,69 +927,29 @@
     const secondCloudActive = cards.witch.secondEffect === "cloud" && cards.secondCloud.active;
     const secondBombActive = cards.witch.secondEffect === "bomb" && cards.secondBomb.active;
 
-    const secondCloud = createSpecialButton("2. Wolke", secondCloudActive, secondCloudActive ? "ausgewählt" : "");
-    secondCloud.disabled = !cards.cloud.active || Boolean(cards.witch.secondEffect);
-    secondCloud.addEventListener("click", () => openCloudDialog("secondCloud"));
+    if (cards.cloud.active) {
+      const secondCloud = createSpecialButton(
+        "2. Wolke",
+        secondCloudActive,
+        secondCloudActive ? "erneut klicken zum Entfernen" : "auswählen"
+      );
+      secondCloud.disabled = Boolean(cards.witch.secondEffect) && !secondCloudActive;
+      secondCloud.addEventListener("click", secondCloudActive ? undoSecondEffect : () => openCloudDialog("secondCloud"));
+      grid.append(secondCloud);
+    }
 
-    const or = document.createElement("span");
-    or.className = "or-label";
-    or.textContent = "ODER";
+    if (cards.bomb.active) {
+      const secondBomb = createSpecialButton(
+        "2. Bombe",
+        secondBombActive,
+        secondBombActive ? "erneut klicken zum Entfernen" : "auswählen"
+      );
+      secondBomb.disabled = Boolean(cards.witch.secondEffect) && !secondBombActive;
+      secondBomb.addEventListener("click", secondBombActive ? undoSecondEffect : activateSecondBomb);
+      grid.append(secondBomb);
+    }
 
-    const secondBomb = createSpecialButton("2. Bombe", secondBombActive, secondBombActive ? "ausgewählt" : "");
-    secondBomb.disabled = !cards.bomb.active || Boolean(cards.witch.secondEffect);
-    secondBomb.addEventListener("click", activateSecondBomb);
-
-    grid.append(secondCloud, or, secondBomb);
     wrap.append(label, grid);
-
-    if (secondCloudActive) {
-      wrap.append(createSpecialDetail(
-        `2. Wolke: ${describeCloud(cards.secondCloud)}`,
-        [
-          { label: "Ändern", action: () => openCloudDialog("secondCloud") },
-          { label: "Auswahl zurücksetzen", action: undoSecondEffect, danger: true }
-        ]
-      ));
-    }
-
-    if (secondBombActive) {
-      wrap.append(createSpecialDetail(
-        "2. Bombe: Ein weiterer Stich wird an niemanden vergeben.",
-        [{ label: "Auswahl zurücksetzen", action: undoSecondEffect, danger: true }]
-      ));
-    }
-
-    return wrap;
-  }
-
-  function createCombinationSection(round) {
-    const wrap = document.createElement("div");
-    wrap.className = "combination-list";
-
-    const title = document.createElement("h4");
-    title.textContent = "Wolke und Bombe im selben Stich";
-    wrap.append(title);
-
-    Logic.getCloudEvents(round).forEach((event) => {
-      const label = document.createElement("label");
-      label.className = "toggle-row";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = Boolean(event.suppressedByBomb);
-      checkbox.addEventListener("change", () => toggleCloudSuppression(event.key, checkbox.checked));
-
-      const text = document.createElement("span");
-      const strong = document.createElement("strong");
-      strong.textContent = event.key === "cloud" ? "1. Wolke zusammen mit Bombe" : "2. Wolke zusammen mit Bombe";
-      const help = document.createElement("span");
-      help.textContent = "Dann entfällt die Ansageänderung dieser Wolke.";
-      text.append(strong, help);
-
-      label.append(checkbox, text);
-      wrap.append(label);
-    });
-
     return wrap;
   }
 
@@ -1073,7 +970,7 @@
       round.specialCards.secondBomb.active = false;
     }
 
-    normalizeSuppressedClouds(round);
+    normalizeSpecialDependencies(round);
     replaceRound(Logic.recalculateCurrentBids(round, state.players));
     persistState();
     renderGame();
@@ -1081,6 +978,10 @@
 
   function activateWitch() {
     const round = getCurrentRound();
+    if (!round.specialCards.cloud.active && !round.specialCards.bomb.active) {
+      showToast("Die Hexe benötigt zuerst eine Wolke oder Bombe.");
+      return;
+    }
     round.specialCards.witch.active = true;
     replaceRound(round);
     persistState();
@@ -1130,24 +1031,7 @@
       Object.assign(round.specialCards.secondCloud, { active: false, playerId: null, change: 0, suppressedByBomb: false });
     }
 
-    replaceRound(Logic.recalculateCurrentBids(round, state.players));
-    persistState();
-    renderGame();
-  }
-
-  function toggleCloudSuppression(key, checked) {
-    const round = getCurrentRound();
-    const previous = round.specialCards[key].suppressedByBomb;
-    round.specialCards[key].suppressedByBomb = checked;
-
-    const errors = Logic.getSpecialCardErrors(round, state.players);
-    if (errors.length > 0) {
-      round.specialCards[key].suppressedByBomb = previous;
-      showToast(errors[0]);
-      renderGame();
-      return;
-    }
-
+    normalizeSpecialDependencies(round);
     replaceRound(Logic.recalculateCurrentBids(round, state.players));
     persistState();
     renderGame();
@@ -1246,13 +1130,6 @@
     closeDialog(elements["cloud-dialog"]);
   }
 
-  function describeCloud(cloud) {
-    const player = getPlayerDisplayNameById(cloud.playerId);
-    const direction = cloud.change > 0 ? "+1" : "−1";
-    const suppressed = cloud.suppressedByBomb ? " · Wirkung durch Bombe entfallen" : "";
-    return `${player} ${direction}${suppressed}`;
-  }
-
   function setRoundPhase(phase) {
     const round = getCurrentRound();
     if (!round) return;
@@ -1280,6 +1157,7 @@
     const panel = createPanel("Stiche eintragen", "Trage für jeden Spieler nur die endgültige Stichzahl dieser Runde ein.");
     const list = document.createElement("div");
     list.className = "entry-list";
+    const maximumTricks = Logic.getExpectedTrickCount(round);
 
     state.players.forEach((player) => {
       const result = round.playerResults[player.id];
@@ -1293,7 +1171,15 @@
         value: result.tricks,
         min: 0,
         max: round.number,
-        onChange: (next) => updateTricks(round.number, player.id, next)
+        onChange: (next) => updateTricks(round.number, player.id, next),
+        quickAction: {
+          label: "Richtig",
+          onClick: () => updateTricks(round.number, player.id, result.currentBid),
+          disabled: result.tricks === result.currentBid || result.currentBid > maximumTricks,
+          title: result.currentBid > maximumTricks
+            ? "Diese Ansage ist mit den verfügbaren Stichen nicht erreichbar."
+            : "Stichzahl auf die aktuelle Ansage setzen"
+        }
       }));
     });
 
@@ -1520,11 +1406,10 @@
       list.append(row);
     });
 
-    renderFinalScoreHistory(completedRounds, totals);
+    renderScoreHistory(elements["final-score-history"], completedRounds, totals);
   }
 
-  function renderFinalScoreHistory(completedRounds, totals) {
-    const container = elements["final-score-history"];
+  function renderScoreHistory(container, completedRounds, totals) {
     container.replaceChildren();
 
     const table = document.createElement("table");
@@ -1603,6 +1488,40 @@
   }
 
   // Wiederverwendbare Bausteine für dynamisch erzeugte Oberflächen
+  function renderRoundOverview(phase) {
+    const container = elements["game-total-points"];
+    container.replaceChildren();
+    container.hidden = phase !== "bids";
+    if (container.hidden) return;
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Aktuelle Gesamtpunktzahl";
+    container.append(heading, createTotalPointsGrid());
+  }
+
+  function createTotalPointsGrid() {
+    const totals = Logic.calculateTotalPoints(state.rounds, state.players);
+    const overview = document.createElement("div");
+    overview.className = "points-grid";
+    overview.setAttribute("aria-label", "Aktuelle Gesamtpunktzahlen");
+
+    state.players.forEach((player) => {
+      const card = document.createElement("div");
+      card.className = "points-card";
+
+      const name = document.createElement("span");
+      name.textContent = getPlayerDisplayNameById(player.id);
+
+      const points = document.createElement("strong");
+      points.textContent = `${totals[player.id]} Punkte`;
+
+      card.append(name, points);
+      overview.append(card);
+    });
+
+    return overview;
+  }
+
   function createPanel(title, description = "") {
     const panel = document.createElement("section");
     panel.className = "panel";
@@ -1620,7 +1539,7 @@
     return panel;
   }
 
-  function createValueEntry({ name, meta, total = null, value, min, max, onChange }) {
+  function createValueEntry({ name, meta, value, min, max, onChange, quickAction = null }) {
     const row = document.createElement("div");
     row.className = "entry-row";
 
@@ -1635,13 +1554,6 @@
       metaElement.className = "entry-meta";
       metaElement.textContent = meta;
       info.append(metaElement);
-    }
-
-    if (total !== null) {
-      const totalElement = document.createElement("span");
-      totalElement.className = "entry-total";
-      totalElement.textContent = `Gesamtpunktzahl: ${total}`;
-      info.append(totalElement);
     }
 
     const stepper = document.createElement("div");
@@ -1669,7 +1581,23 @@
     plus.addEventListener("click", () => onChange(value + 1));
 
     stepper.append(minus, display, plus);
-    row.append(info, stepper);
+
+    const controls = document.createElement("div");
+    controls.className = "entry-controls";
+    controls.append(stepper);
+
+    if (quickAction) {
+      const quickButton = createButton(
+        quickAction.label,
+        "button-secondary button-small correct-button",
+        quickAction.onClick,
+        Boolean(quickAction.disabled)
+      );
+      if (quickAction.title) quickButton.title = quickAction.title;
+      controls.append(quickButton);
+    }
+
+    row.append(info, controls);
     return row;
   }
 
@@ -1700,26 +1628,6 @@
     }
 
     return button;
-  }
-
-  function createSpecialDetail(text, actions) {
-    const detail = document.createElement("div");
-    detail.className = "special-detail";
-    const paragraph = document.createElement("p");
-    paragraph.textContent = text;
-    detail.append(paragraph);
-
-    if (actions?.length) {
-      const actionWrap = document.createElement("div");
-      actionWrap.className = "inline-actions";
-      actionWrap.style.marginTop = "10px";
-      actions.forEach((item) => {
-        actionWrap.append(createButton(item.label, item.danger ? "button-danger button-small" : "button-secondary button-small", item.action));
-      });
-      detail.append(actionWrap);
-    }
-
-    return detail;
   }
 
   function createButton(label, classNames, action, disabled = false) {

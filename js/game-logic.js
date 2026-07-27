@@ -297,6 +297,14 @@
       errors.push("Die Auswahl '2. Wolke' ist nicht vollständig erfasst.");
     }
 
+    if (cards.witch?.active && !cards.cloud?.active && !cards.bomb?.active) {
+      errors.push("Die Hexe benötigt zuerst eine Wolke oder Bombe.");
+    }
+
+    if (cards.witch?.active && !cards.witch?.secondEffect) {
+      errors.push("Wähle für die Hexe eine zweite Wolke oder Bombe aus.");
+    }
+
     if (cards.witch?.secondEffect === "bomb" && !cards.secondBomb?.active) {
       errors.push("Die Auswahl '2. Bombe' ist nicht vollständig erfasst.");
     }
@@ -414,6 +422,7 @@
       totalCards: TOTAL_CARDS,
       players,
       firstDealerId: players[0].id,
+      setupDealerRandomized: false,
       totalRounds: getStandardRounds(safeCount),
       currentRound: 1,
       roundOneHintConfirmed: false,

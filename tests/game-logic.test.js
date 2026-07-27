@@ -61,6 +61,7 @@ assert.equal(duplicateIds.has("3"), false);
 
 const validState = { players, firstDealerId: "anna", totalRounds: 15, totalCards: 70 };
 assert.deepEqual(Logic.validateSetup(validState), []);
+assert.equal(Logic.createInitialGameState().setupDealerRandomized, false);
 
 const invalidState = {
   players: [player("1", ""), player("2", "Ben")],
@@ -85,6 +86,11 @@ round.playerResults.david.originalBid = 2;
 assert.equal(Logic.getBidSum(round), 5);
 assert.equal(Logic.isBidSumValid(round), false);
 round.playerResults.david.originalBid = 1;
+
+// Hexe benötigt eine bereits gespielte Wolke oder Bombe
+const invalidWitchRound = Logic.createRound(players, "anna", 2);
+invalidWitchRound.specialCards.witch.active = true;
+assert.ok(Logic.getSpecialCardErrors(invalidWitchRound, players).some((error) => error.includes("Hexe benötigt")));
 
 // Erste Wolke
 round.specialCards.cloud = {

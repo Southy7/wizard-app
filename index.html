@@ -29,54 +29,32 @@
   </noscript>
 
   <div class="app-shell">
-    <!-- Globaler App-Kopf: auf allen Ansichten sichtbar -->
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">Digitaler Punkteblock</p>
-        <h1>Wizard</h1>
-      </div>
-      <span class="version-badge">Version 1.0</span>
-    </header>
-
     <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
 
     <!--
       Ansichtsbereich der Single-Page-App.
-      JavaScript blendet immer genau eine der folgenden vier Ansichten ein.
+      JavaScript blendet immer genau eine der folgenden sechs Ansichten ein.
     -->
     <main id="app" class="app-main">
       <!-- ==================== STARTSEITE ==================== -->
       <section id="screen-home" class="screen screen-home" data-screen="home" aria-labelledby="home-title">
-        <!-- Primäre Aktionen der Startseite -->
-        <div class="hero-card">
-          <h2 id="home-title">Bereit für eine Partie?</h2>
-          <p>Ein Gerät verwaltet Ansagen, Sonderkarten, Stiche und Punkte.</p>
+        <header class="home-header">
+          <h1 id="home-title">Wizard</h1>
+          <p class="home-subtitle">Scoreboard</p>
+        </header>
 
-          <div class="stacked-actions">
-            <button id="btn-new-game" class="button button-primary" type="button">Neues Spiel</button>
-            <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Spiel fortsetzen</button>
-          </div>
+        <!-- Zentrales Menü der Startseite -->
+        <nav class="home-actions" aria-label="Hauptmenü">
+          <button id="btn-new-game" class="button button-primary" type="button">Neues Spiel</button>
+          <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Spiel fortsetzen</button>
+          <button id="btn-history" class="button button-secondary" type="button" disabled>History</button>
+          <button id="btn-import-game" class="button button-secondary" type="button">Import</button>
+        </nav>
 
-          <p id="saved-game-summary" class="saved-summary" hidden></p>
-        </div>
+        <!-- Der Dateidialog wird über den Import-Button geöffnet. -->
+        <input id="import-file-input" type="file" accept="application/json,.json" hidden>
 
-        <!-- Spielstand-Verwaltung gehört ebenfalls ausschließlich zur Startseite. -->
-        <section class="panel compact-panel" aria-labelledby="backup-title">
-          <div class="panel-heading">
-            <div>
-              <h3 id="backup-title">Sicherung und Verwaltung</h3>
-              <p>Spielstand sichern, übertragen oder vollständig löschen.</p>
-            </div>
-          </div>
-
-          <div id="saved-game-tools" class="management-actions">
-            <button id="btn-export-game" class="button button-secondary" type="button" disabled>Spielstand exportieren</button>
-            <button id="btn-import-game" class="button button-secondary" type="button">Spielstand importieren</button>
-            <button id="btn-delete-game" class="button button-danger" type="button" disabled>Gespeichertes Spiel löschen</button>
-          </div>
-          <input id="import-file-input" type="file" accept="application/json,.json" hidden>
-          <p class="field-help">Export und Import verwenden eine kleine JSON-Datei. Beim Import wird ein vorhandener Spielstand erst nach Bestätigung ersetzt.</p>
-        </section>
+        <footer class="home-footer">Lokal gespeichert · Version 1.0</footer>
       </section>
       <!-- ================== ENDE STARTSEITE ================== -->
 
@@ -106,20 +84,7 @@
             <button id="btn-add-player" class="button button-secondary full-width" type="button">Spieler hinzufügen</button>
           </section>
 
-          <!-- 2. Rollen für den Beginn der Partie bestimmen -->
-          <section class="panel" aria-labelledby="roles-title">
-            <h3 id="roles-title">Kartengeber und Startspieler</h3>
-            <label class="field-label" for="dealer-select">Kartengeber in Runde 1</label>
-            <select id="dealer-select" class="select-input"></select>
-
-            <div class="info-row">
-              <span>Startspieler in Runde 1</span>
-              <strong id="starting-player-name">–</strong>
-            </div>
-            <p class="field-help">Der Startspieler sitzt direkt nach dem Kartengeber.</p>
-          </section>
-
-          <!-- 3. Anzahl der zu spielenden Runden festlegen -->
+          <!-- 2. Anzahl der zu spielenden Runden festlegen -->
           <section class="panel" aria-labelledby="rounds-title">
             <h3 id="rounds-title">Rundenzahl</h3>
             <div class="stepper" aria-label="Rundenzahl einstellen">
@@ -135,23 +100,31 @@
             <p id="rounds-message" class="status-message" aria-live="polite"></p>
           </section>
 
-          <!-- 4. Einstellungen vor dem Spielstart kontrollieren -->
-          <section class="panel summary-panel" aria-labelledby="summary-title">
-            <h3 id="summary-title">Zusammenfassung</h3>
-            <dl class="summary-list">
-              <div><dt>Spieler</dt><dd id="summary-player-count">3</dd></div>
-              <div><dt>Runden</dt><dd id="summary-round-count">20</dd></div>
-              <div><dt>Kartengeber</dt><dd id="summary-dealer">–</dd></div>
-              <div><dt>Startspieler</dt><dd id="summary-starter">–</dd></div>
-            </dl>
-            <p id="summary-seat-order" class="seat-order">Sitzreihenfolge: –</p>
-          </section>
-
           <div id="form-errors" class="form-errors" role="alert" aria-live="assertive" hidden></div>
-          <button class="button button-primary full-width" type="submit">Spiel starten</button>
+          <button class="button button-primary full-width" type="submit">Weiter</button>
         </form>
       </section>
       <!-- =============== ENDE SPIELEINRICHTUNG =============== -->
+
+      <!-- ================= ZUSAMMENFASSUNG ================= -->
+      <section id="screen-setup-summary" class="screen screen-setup-summary" data-screen="setup-summary" aria-labelledby="summary-title" hidden>
+        <section class="panel summary-panel">
+          <h2 id="summary-title">Zusammenfassung</h2>
+          <dl class="summary-list">
+            <div><dt>Spieler</dt><dd id="summary-player-count">3</dd></div>
+            <div><dt>Runden</dt><dd id="summary-round-count">20</dd></div>
+            <div><dt>Kartengeber (zufällig)</dt><dd id="summary-dealer">–</dd></div>
+            <div><dt>Startspieler</dt><dd id="summary-starter">–</dd></div>
+          </dl>
+          <p id="summary-seat-order" class="seat-order">Sitzreihenfolge: –</p>
+        </section>
+
+        <div class="round-actions">
+          <button id="btn-summary-back" class="button button-secondary" type="button">Zurück</button>
+          <button id="btn-summary-start" class="button button-primary" type="button">Spiel starten</button>
+        </div>
+      </section>
+      <!-- =============== ENDE ZUSAMMENFASSUNG =============== -->
 
       <!-- ================= LAUFENDES SPIEL ================= -->
       <section id="screen-game" class="screen screen-game" data-screen="game" aria-labelledby="game-title" hidden>
@@ -163,17 +136,37 @@
           <button id="btn-game-home" class="button button-ghost button-small" type="button">Startseite</button>
         </div>
 
-        <section class="panel compact-panel" aria-label="Rollen dieser Runde">
+        <div id="game-round-overview" class="panel compact-panel" aria-label="Runde und Gesamtpunktzahlen">
           <div class="role-grid">
             <div><span>Kartengeber</span><strong id="game-dealer">–</strong></div>
             <div><span>Startspieler</span><strong id="game-starter">–</strong></div>
           </div>
-        </section>
+          <!-- Gesamtpunkte werden ausschließlich während der Ansagen eingeblendet. -->
+          <div id="game-total-points" class="game-total-points" hidden></div>
+        </div>
 
         <!-- Die aktuelle Phase (Ansagen, Sonderkarten, Stiche oder Ergebnis) rendert app.js. -->
         <div id="game-content" class="game-content"></div>
       </section>
       <!-- =============== ENDE LAUFENDES SPIEL =============== -->
+
+      <!-- ==================== HISTORY ==================== -->
+      <section id="screen-history" class="screen screen-history" data-screen="history" aria-labelledby="history-page-title" hidden>
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Spielverlauf</p>
+            <h2 id="history-page-title">History</h2>
+          </div>
+          <button id="btn-history-home" class="button button-ghost button-small" type="button">Startseite</button>
+        </div>
+
+        <section class="panel" aria-labelledby="history-score-title">
+          <h3 id="history-score-title">Punkteverlauf</h3>
+          <p id="history-game-meta"></p>
+          <div id="history-score-content" class="history-scroll"></div>
+        </section>
+      </section>
+      <!-- ================== ENDE HISTORY ================== -->
 
       <!-- ================== ENDERGEBNIS ================== -->
       <section id="screen-finished" class="screen screen-finished" data-screen="finished" aria-labelledby="finished-title" hidden>
@@ -204,11 +197,6 @@
       </section>
       <!-- ================ ENDE ENDERGEBNIS ================ -->
     </main>
-
-    <!-- Globaler App-Fuß: auf allen Ansichten sichtbar -->
-    <footer class="app-footer">
-      <span>70 Karten · 3–6 Spieler · lokal gespeichert</span>
-    </footer>
   </div>
 
   <!--

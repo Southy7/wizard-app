@@ -6,26 +6,31 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 
 ### Spieleinrichtung
 
-- neues Spiel und Spiel fortsetzen
+- reduzierte Startseite mit neuem Spiel, Fortsetzen, History und Import
 - drei bis sechs Spieler
 - Spielernamen und Sitzreihenfolge
-- Kartengeber in Runde 1
-- automatische Bestimmung des Startspielers
+- zufällige Bestimmung des Kartengebers auf der Zusammenfassungsseite
+- automatische Ableitung des Startspielers aus dem zufälligen Kartengeber
 - Wizard-Standardrundenzahl als Ausgangswert
 - individuelle Rundenzahl bis zum Kartenmaximum bei 70 Karten
+- separate Zusammenfassung mit Zurück- und Spiel-starten-Aktion
 
 ### Vollständiger Spielablauf
 
 - Kartengeber und Startspieler für jede Runde
 - einmaliger Stirnkarten-Hinweis in Runde 1
 - Ansagen in der Reihenfolge ab dem Startspieler
-- sichtbare aktuelle Gesamtpunktzahl jedes Spielers während der Ansage
+- gemeinsame Übersicht für Kartengeber, Startspieler und Gesamtpunkte während der Ansagen
+- aktuelle Ansagen und Gesamtpunktzahlen gemeinsam in der Sonderkartenphase
 - Sperre, wenn Ansagesumme und Rundennummer identisch sind
 - Wolke mit Änderung um −1 oder +1
 - Bombe mit angepasster Stichsumme
-- Hexe mit genau einer zweiten Wolke oder zweiten Bombe
+- Wolke, Bombe und Hexe als direkt umschaltbare Karten
+- Hexe erst nach einer Wolke oder Bombe, anschließend mit genau einer umschaltbaren Wiederholung
+- gesperrte Sticheingabe, solange bei aktiver Hexe keine zweite Karte gewählt wurde
 - Wolke und Bombe im selben Stich
 - Eingabe der endgültigen Stiche
+- „Richtig“-Schnellaktion zum Übernehmen der aktuellen Ansage als Stichzahl
 - automatische Stichsummenprüfung
 - automatische Punkteberechnung
 - Rundenergebnis mit Rundenpunkten und aktueller Gesamtpunktzahl in getrennten Spalten
@@ -43,10 +48,8 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 ### Sicherheit und Datensicherung
 
 - Sicherheitsabfrage vor dem Überschreiben eines vorhandenen Spiels
-- Sicherheitsabfrage vor dem vollständigen Löschen
 - verständliche Warnung bei nicht verfügbarem oder beschädigtem Browser-Speicher
 - Daten- und Schema-Version im Spielstand
-- Export des Spielstands als JSON-Datei
 - Import einer exportierten JSON-Datei
 - Größen- und Formatprüfung beim Import
 - Sicherheitsabfrage vor dem Ersetzen eines vorhandenen Spielstands durch einen Import
@@ -98,13 +101,12 @@ npm test
 
 Optional liegt unter `tests/browser-smoke.py` ein Browser-Smoke-Test. Dieser benötigt Python, Playwright und Chromium.
 
-## Export und Import
+## History und Import
 
-Auf der Startseite befindet sich der Bereich **Sicherung und Verwaltung**.
+Die reduzierte Startseite bietet direkten Zugriff auf den Spielverlauf und den Import:
 
-- **Spielstand exportieren** lädt den aktuellen Spielstand als JSON-Datei herunter.
-- **Spielstand importieren** liest eine zuvor exportierte JSON-Datei ein.
-- **Gespeichertes Spiel löschen** entfernt den lokalen Spielstand nach Bestätigung.
+- **History** zeigt den Punkteverlauf aller bereits abgeschlossenen Runden.
+- **Import** liest eine zuvor exportierte oder kompatible JSON-Datei ein.
 
 Die JSON-Datei enthält nur Spielinformationen wie Namen, Runden, Ansagen, Sonderkarten, Stiche und Punkte. Sie wird nicht automatisch an einen Server übertragen.
 
