@@ -1,0 +1,16 @@
+# Use consistent line endings for all text files across operating systems.
+* text=auto eol=lf
+
+# Keep Windows command files compatible with the Windows command processor.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Do not apply text conversions to binary assets.
+*.gif binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.woff binary
+*.woff2 binary
