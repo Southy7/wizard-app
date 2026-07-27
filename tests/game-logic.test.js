@@ -296,6 +296,10 @@ assert.ok(invalidImport((candidate) => {
 }).some((error) => error.includes("eindeutig")));
 
 assert.ok(invalidImport((candidate) => {
+  candidate.schemaVersion = 3;
+}).some((error) => error.includes("Schema 4")));
+
+assert.ok(invalidImport((candidate) => {
   candidate.players[0].id = "__proto__";
 }).some((error) => error.includes("gültige ID")));
 

@@ -52,10 +52,7 @@
       }
 
       games.forEach((archivedGame) => {
-        const gameState = StateManager.hydrateState(archivedGame);
-        if (Number(archivedGame.schemaVersion) !== 4) {
-          Storage.saveCompletedGame(gameState);
-        }
+        const gameState = StateManager.cloneState(archivedGame);
         const completedRounds = gameState.rounds.filter((round) => round.completed);
         if (completedRounds.length === 0) return;
 
@@ -211,7 +208,7 @@
         throw new Error("Die Datei ist kein gültiges Wizard-History-Archiv.");
       }
 
-      const hydratedGames = [];
+      const games = [];
       const gameIds = new Set();
       for (const candidate of parsed.games) {
         const validationErrors = Logic.validateImportedGameState(candidate);
@@ -220,10 +217,10 @@
           throw new Error("Das History-Archiv enthält eine Partie mehrfach.");
         }
         gameIds.add(candidate.gameId);
-        hydratedGames.push(StateManager.hydrateState(candidate));
+        games.push(StateManager.cloneState(candidate));
       }
 
-      const result = Storage.mergeGameHistory(hydratedGames);
+      const result = Storage.mergeGameHistory(games);
       if (!result.success) {
         throw new Error(
           Storage.getStorageErrors?.().historyError

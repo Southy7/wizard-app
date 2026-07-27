@@ -180,11 +180,8 @@
       errors.push("Die Datei ist kein gültiger Wizard-Spielstand der Version 1.0.");
     }
 
-    if (candidate.schemaVersion !== undefined
-      && (!Number.isInteger(candidate.schemaVersion)
-        || candidate.schemaVersion < 1
-        || candidate.schemaVersion > 4)) {
-      errors.push("Die Schema-Version des Spielstands wird nicht unterstützt.");
+    if (candidate.schemaVersion !== 4) {
+      errors.push("Der Spielstand verwendet nicht das aktuelle Schema 4.");
     }
 
     const players = Array.isArray(candidate.players) ? candidate.players : [];
@@ -360,12 +357,6 @@
 
     validateImportedRoundSequence(candidate, validatedRounds, errors);
     return [...new Set(errors)];
-  }
-
-  // Kompatibilitätsname für bereits angebundene Aufrufer. Neue Speicherpfade
-  // verwenden den fachlich eindeutigen Namen validatePersistableGameState.
-  function validateStoredGameState(candidate) {
-    return validatePersistableGameState(candidate);
   }
 
   function validateImportedPlayerResults(rawResults, players, roundNumber, completed, errors) {
@@ -808,7 +799,6 @@
     validateSetup,
     validateImportedGameState,
     validatePersistableGameState,
-    validateStoredGameState,
     createPlayerResult,
     createRound,
     getBidSum,

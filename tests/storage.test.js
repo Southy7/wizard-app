@@ -41,7 +41,6 @@ assert.deepEqual(Storage.getStorageErrors(), {
 });
 
 const state = Logic.createInitialGameState(3);
-state.schemaVersion = 3;
 state.players[0].name = "Anna";
 const implicitInitialState = JSON.parse(JSON.stringify(state));
 implicitInitialState.updatedAt = null;
@@ -57,6 +56,12 @@ assert.equal(loaded.schemaVersion, 4);
 assert.equal(loaded.players[0].name, "Anna");
 assert.equal(typeof loaded.updatedAt, "string");
 assert.equal(Storage.getLastError(), "");
+
+const unsupportedSchema = JSON.parse(JSON.stringify(loaded));
+unsupportedSchema.schemaVersion = 3;
+assert.equal(Storage.saveGame(unsupportedSchema), false);
+assert.match(Storage.getStorageErrors().gameError, /aktuelle Schema 4/i);
+assert.equal(Storage.loadGame().schemaVersion, 4);
 
 const tabAState = JSON.parse(JSON.stringify(loaded));
 const tabBState = JSON.parse(JSON.stringify(loaded));
@@ -152,7 +157,7 @@ transientWitchGame.rounds = [transientRound];
 localStorage.setItem(Storage.STORAGE_KEY, JSON.stringify(transientWitchGame));
 assert.notEqual(Storage.loadGame(), null);
 assert.ok(Logic.validateImportedGameState(transientWitchGame).some((error) => error.includes("Hexe")));
-assert.deepEqual(Logic.validateStoredGameState(transientWitchGame), []);
+assert.deepEqual(Logic.validatePersistableGameState(transientWitchGame), []);
 
 // Eine Wolke +1 in Runde 1 bleibt speicher-, änder- und erneut ladbar.
 assert.equal(Storage.deleteGame(), true);

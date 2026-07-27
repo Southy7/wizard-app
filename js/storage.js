@@ -91,8 +91,6 @@
 
       const payload = {
         ...state,
-        version: "1.0",
-        schemaVersion: Math.max(Number(state?.schemaVersion) || 0, 4),
         updatedAt: createNextUpdatedAt(storedState?.updatedAt)
       };
       const validationErrors = getPersistableGameValidationErrors(payload);
@@ -128,8 +126,7 @@
   }
 
   function getPersistableGameValidationErrors(candidate) {
-    const validatePersistableGame = root.WizardGameLogic?.validatePersistableGameState
-      ?? root.WizardGameLogic?.validateStoredGameState;
+    const validatePersistableGame = root.WizardGameLogic?.validatePersistableGameState;
     if (typeof validatePersistableGame !== "function") {
       return ["Die Spielstandvalidierung ist nicht verfügbar."];
     }

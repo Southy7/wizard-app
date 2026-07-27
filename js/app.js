@@ -9,7 +9,7 @@
   const PersistenceControllerModule = window.WizardPersistenceController;
   const SetupControllerModule = window.WizardSetupController;
   const Ui = window.WizardUiComponents;
-  const hydrateState = StateManager?.hydrateState;
+  const cloneState = StateManager?.cloneState;
   const normalizeSpecialDependencies = StateManager?.normalizeSpecialDependencies;
   const {
     createSeatRoleBadge,
@@ -158,11 +158,6 @@
       if (!shouldReplace) return;
     }
 
-    if (savedGame?.status === "completed") {
-      archiveCompletedGame(hydrateState(savedGame));
-    }
-
-    // Ein abgelehnter Altbestand wird erst nach der obigen Bestätigung entfernt.
     if (!savedGame && hasStoredGameData && !Storage.deleteGame()) {
       updateStorageWarning("Der beschädigte Spielstand konnte nicht ersetzt werden.");
       return;
@@ -188,7 +183,7 @@
     }
 
     if (!canContinueFromMemory) {
-      state = hydrateState(savedState);
+      state = cloneState(savedState);
       persistenceController.markStateLoaded();
     } else {
       persistState();
@@ -238,23 +233,9 @@
 
   // Startseite und lokaler Spielstand
   function refreshHomeScreen() {
-    let savedState = Storage.loadGame();
+    const savedState = Storage.loadGame();
     const continueButton = elements["btn-continue-game"];
     const historyButton = elements["btn-history"];
-
-    // Migriert einen bereits vorhandenen abgeschlossenen Einzelspielstand in das neue Archiv.
-    if (savedState?.status === "completed") {
-      const completedState = hydrateState(savedState);
-      const needsMigration = !savedState.gameId || Number(savedState.schemaVersion) !== 4;
-      if (needsMigration) {
-        Storage.saveGame(completedState, {
-          expectedUpdatedAt: savedState.updatedAt ?? null,
-          expectedGameId: savedState.gameId ?? null
-        });
-        archiveCompletedGame(completedState);
-      }
-      savedState = completedState;
-    }
 
     const games = Storage.loadGameHistory();
     const canContinueFromMemory = persistenceController.canContinueFromMemory();
@@ -342,7 +323,7 @@
         throw new Error("Der beschädigte Spielstand konnte nicht ersetzt werden.");
       }
 
-      const importedState = hydrateState(candidate);
+      const importedState = cloneState(candidate);
       if (!Storage.saveGame(importedState, {
         expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
         expectedGameId: savedBeforeImport?.gameId ?? null

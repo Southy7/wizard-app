@@ -48,7 +48,7 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 
 - Sicherheitsabfrage vor dem Überschreiben eines vorhandenen Spiels
 - verständliche Warnung bei nicht verfügbarem oder beschädigtem Browser-Speicher
-- strikte Validierung aktiver lokaler Spielstände vor Hydrierung und Darstellung
+- strikte Validierung aktiver lokaler Spielstände vor dem Laden und Darstellen
 - keine automatische Reparatur mehrdeutiger Spieler-IDs oder Rundennummern
 - unabhängige Fehlerzustände für aktiven Spielstand und History
 - Konfliktschutz und sichtbare Warnung bei Änderungen aus einem anderen Browser-Tab
@@ -64,7 +64,7 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - HTML, CSS und JavaScript ohne Framework
 - keine externen Bibliotheken
 - kein Build-Prozess
-- getrennte Module für Spiellogik, Zustandsmigration, Speicherung, History und Ergebnisdarstellung
+- getrennte Module für Spiellogik, Zustandsverwaltung, Speicherung, History und Ergebnisdarstellung
 - eigene Controller für Spieleinrichtung und Persistenzkonflikte
 - optionales History-Modul; die Kernanwendung bleibt ohne History funktionsfähig
 - responsive Darstellung für Handy und Tablet
@@ -162,12 +162,6 @@ Der aktive Spielstand und das getrennte Archiv abgeschlossener Partien liegen in
 Deshalb empfiehlt sich bei längeren Partien oder vor einem Gerätewechsel ein Export.
 
 Ab 100 archivierten Partien oder ungefähr 3 MB Archivgröße zeigt die App eine Warnung an. Es werden keine Partien automatisch gelöscht. Ist das Browserkontingent erschöpft, bleibt der aktive Spielstand erhalten und die App fordert zum Exportieren oder Löschen älterer Partien auf.
-
-### Datenmigration auf Schema 4
-
-Die frühere Regel „Wolke und Bombe im selben Stich“ wird nicht mehr unterstützt. Das frühere Feld `suppressedByBomb` wird beim Laden oder Import älterer Spielstände ignoriert und beim nächsten Speichern entfernt. Eine Wolke verändert die Ansage daher immer um −1 oder +1; eine Bombe reduziert ausschließlich die Anzahl der zu verteilenden Stiche.
-
-Aktive ältere Spielstände werden beim Fortsetzen automatisch auf Schema 4 gespeichert. Archivierte Partien werden beim Öffnen der History hydriert und anschließend im aktuellen Schema gesichert.
 
 ## Projektstruktur
 
