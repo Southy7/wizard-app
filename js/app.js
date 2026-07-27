@@ -369,8 +369,9 @@
     const warning = elements["storage-warning"];
     if (!warning) return;
 
+    const storageAvailable = Storage.isStorageAvailable();
     const storageError = Storage.getLastError?.();
-    const text = message || storageError || (!Storage.isStorageAvailable()
+    const text = message || storageError || (!storageAvailable
       ? "Der Browser stellt keinen dauerhaften lokalen Speicher bereit. Änderungen können beim Schließen verloren gehen."
       : "");
 

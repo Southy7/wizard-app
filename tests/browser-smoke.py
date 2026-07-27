@@ -61,7 +61,13 @@ def main() -> None:
         )
         for script in scripts:
             page.add_script_tag(content=script)
+        page.evaluate(
+            """localStorage.setItem("wizard-punkte-app:game-state:v1", "{invalid-json")"""
+        )
         page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+
+        assert page.locator("#storage-warning").is_visible()
+        assert "beschädigt" in page.locator("#storage-warning").text_content()
 
         new_game_box = page.locator("#btn-new-game").bounding_box()
         secondary_row_box = page.locator(".home-secondary-actions").bounding_box()
@@ -72,7 +78,9 @@ def main() -> None:
         assert abs(history_box["y"] - import_box["y"]) < 1
         assert abs(new_game_box["width"] - secondary_row_box["width"]) < 1
 
+        page.evaluate("localStorage.clear()")
         page.click("#btn-new-game")
+        assert page.locator("#storage-warning").is_hidden()
         assert page.locator("#screen-setup").is_visible()
         assert page.locator("#screen-setup h2").count() == 0
         assert page.get_by_text("Die Reihenfolge entspricht der Sitzordnung am Tisch.").count() == 0

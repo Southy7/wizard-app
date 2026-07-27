@@ -1,7 +1,7 @@
 "use strict";
 
 // Increment after app-shell changes so installed apps receive the latest files.
-const CACHE_NAME = "wizard-scoreboard-v1.0.28";
+const CACHE_NAME = "wizard-scoreboard-v1.0.29";
 const APP_SHELL = [
   "./",
   "./index.html",

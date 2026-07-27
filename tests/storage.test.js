@@ -18,6 +18,11 @@ assert.equal(Storage.loadGame(), null);
 assert.equal(Storage.hasStoredData(), false);
 assert.deepEqual(Storage.loadGameHistory(), []);
 assert.equal(Storage.hasGameHistory(), false);
+assert.deepEqual(Storage.getStorageErrors(), {
+  storageError: "",
+  gameError: "",
+  historyError: ""
+});
 
 const state = {
   version: "1.0",
@@ -59,12 +64,37 @@ localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
 const originalConsoleError = console.error;
 console.error = () => {};
 assert.equal(Storage.loadGame(), null);
-console.error = originalConsoleError;
 assert.match(Storage.getLastError(), /beschädigt|nicht lesbar/i);
+const damagedGameError = Storage.getStorageErrors().gameError;
+
+// Eine erfolgreiche History-Abfrage darf den Fehler des aktiven Spielstands nicht löschen.
+assert.equal(Storage.loadGameHistory().length, 1);
+assert.equal(Storage.getStorageErrors().gameError, damagedGameError);
+assert.equal(Storage.getStorageErrors().historyError, "");
+
+// Umgekehrt darf ein erfolgreicher Spielzugriff keinen History-Fehler löschen.
+localStorage.setItem(Storage.HISTORY_KEY, "{invalid-json");
+assert.deepEqual(Storage.loadGameHistory(), []);
+const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
+const damagedHistoryError = Storage.getStorageErrors().historyError;
+assert.match(damagedHistoryError, /Partienarchiv|nicht lesbar/i);
+assert.equal(Storage.saveGame(state), true);
+assert.equal(Storage.loadGame().version, "1.0");
+assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
+
+// Ein beschädigtes Archiv wird beim Speichern nicht stillschweigend überschrieben.
+assert.equal(Storage.saveCompletedGame(completedGame), false);
+assert.equal(localStorage.getItem(Storage.HISTORY_KEY), damagedHistoryValue);
+console.error = originalConsoleError;
 
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.hasStoredData(), false);
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
+assert.equal(Storage.getStorageErrors().gameError, "");
+assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
+
+localStorage.removeItem(Storage.HISTORY_KEY);
+Storage.clearLastError();
 assert.equal(Storage.getLastError(), "");
 
 console.log("Alle Tests der Speicherung wurden erfolgreich ausgeführt.");

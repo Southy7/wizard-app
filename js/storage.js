@@ -3,20 +3,37 @@
 
   const STORAGE_KEY = "wizard-punkte-app:game-state:v1";
   const HISTORY_KEY = "wizard-punkte-app:game-history:v1";
-  let lastError = "";
+  const errors = {
+    storageError: "",
+    gameError: "",
+    historyError: ""
+  };
 
-  // Speicherfehler werden zentral gehalten, damit die Oberfläche sie anzeigen kann.
-  function setError(message, error) {
-    lastError = message;
+  // Getrennte Fehlerkanäle verhindern, dass eine erfolgreiche Operation fremde Fehler löscht.
+  function setError(scope, message, error) {
+    errors[scope] = message;
     if (error) console.error(message, error);
   }
 
-  function clearLastError() {
-    lastError = "";
+  function clearError(scope) {
+    errors[scope] = "";
+  }
+
+  function clearLastError(scope) {
+    if (Object.prototype.hasOwnProperty.call(errors, scope)) {
+      clearError(scope);
+      return;
+    }
+
+    Object.keys(errors).forEach(clearError);
+  }
+
+  function getStorageErrors() {
+    return { ...errors };
   }
 
   function getLastError() {
-    return lastError;
+    return [...new Set(Object.values(errors).filter(Boolean))].join(" ");
   }
 
   function isStorageAvailable() {
@@ -24,9 +41,10 @@
       const testKey = "__wizard_storage_test__";
       localStorage.setItem(testKey, "1");
       localStorage.removeItem(testKey);
+      clearError("storageError");
       return true;
     } catch (error) {
-      setError("Der Browser stellt keinen nutzbaren lokalen Speicher bereit.", error);
+      setError("storageError", "Der Browser stellt keinen nutzbaren lokalen Speicher bereit.", error);
       return false;
     }
   }
@@ -44,10 +62,10 @@
       };
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      clearLastError();
+      clearError("gameError");
       return true;
     } catch (error) {
-      setError("Der Spielstand konnte nicht lokal gespeichert werden.", error);
+      setError("gameError", "Der Spielstand konnte nicht lokal gespeichert werden.", error);
       return false;
     }
   }
@@ -58,7 +76,7 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        clearLastError();
+        clearError("gameError");
         return null;
       }
 
@@ -67,10 +85,14 @@
         throw new Error("Unbekanntes oder beschädigtes Speicherformat.");
       }
 
-      clearLastError();
+      clearError("gameError");
       return parsed;
     } catch (error) {
-      setError("Der gespeicherte Spielstand ist beschädigt oder nicht lesbar. Eine exportierte Sicherung kann weiterhin importiert werden.", error);
+      setError(
+        "gameError",
+        "Der gespeicherte Spielstand ist beschädigt oder nicht lesbar. Eine exportierte Sicherung kann weiterhin importiert werden.",
+        error
+      );
       return null;
     }
   }
@@ -80,10 +102,10 @@
 
     try {
       localStorage.removeItem(STORAGE_KEY);
-      clearLastError();
+      clearError("gameError");
       return true;
     } catch (error) {
-      setError("Der gespeicherte Spielstand konnte nicht gelöscht werden.", error);
+      setError("gameError", "Der gespeicherte Spielstand konnte nicht gelöscht werden.", error);
       return false;
     }
   }
@@ -93,7 +115,7 @@
     try {
       return localStorage.getItem(STORAGE_KEY) !== null;
     } catch (error) {
-      setError("Der lokale Speicher konnte nicht geprüft werden.", error);
+      setError("gameError", "Der lokale Speicher konnte nicht geprüft werden.", error);
       return false;
     }
   }
@@ -108,7 +130,7 @@
     try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (!raw) {
-        clearLastError();
+        clearError("historyError");
         return [];
       }
 
@@ -126,10 +148,10 @@
         && Array.isArray(game.rounds)
         && game.rounds.some((round) => round?.completed)
       );
-      clearLastError();
+      clearError("historyError");
       return games;
     } catch (error) {
-      setError("Das gespeicherte Partienarchiv ist beschädigt oder nicht lesbar.", error);
+      setError("historyError", "Das gespeicherte Partienarchiv ist beschädigt oder nicht lesbar.", error);
       return [];
     }
   }
@@ -148,6 +170,8 @@
 
     try {
       const history = loadGameHistory();
+      if (errors.historyError) return false;
+
       const now = new Date().toISOString();
       const gameId = typeof state.gameId === "string" && state.gameId
         ? state.gameId
@@ -166,10 +190,10 @@
 
       history.sort((a, b) => String(b.archivedAt ?? "").localeCompare(String(a.archivedAt ?? "")));
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      clearLastError();
+      clearError("historyError");
       return true;
     } catch (error) {
-      setError("Die abgeschlossene Partie konnte nicht im Archiv gespeichert werden.", error);
+      setError("historyError", "Die abgeschlossene Partie konnte nicht im Archiv gespeichert werden.", error);
       return false;
     }
   }
@@ -191,6 +215,7 @@
     saveCompletedGame,
     hasGameHistory,
     getLastError,
+    getStorageErrors,
     clearLastError
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);
