@@ -12,6 +12,22 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 
+LOCAL_STORAGE_MOCK = """
+(() => {
+  const data = new Map();
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      setItem(key, value) { data.set(String(key), String(value)); },
+      getItem(key) { return data.has(String(key)) ? data.get(String(key)) : null; },
+      removeItem(key) { data.delete(String(key)); },
+      clear() { data.clear(); }
+    }
+  });
+  window.scrollTo = () => {};
+})();
+"""
+
 
 def build_inline_document() -> str:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -51,23 +67,7 @@ def main() -> None:
         browser = playwright.chromium.launch(**launch_options)
         page = browser.new_page(viewport={"width": 390, "height": 844})
         page.set_content(html)
-        page.evaluate(
-            """
-            (() => {
-              const data = new Map();
-              Object.defineProperty(window, 'localStorage', {
-                configurable: true,
-                value: {
-                  setItem(key, value) { data.set(String(key), String(value)); },
-                  getItem(key) { return data.has(String(key)) ? data.get(String(key)) : null; },
-                  removeItem(key) { data.delete(String(key)); },
-                  clear() { data.clear(); }
-                }
-              });
-              window.scrollTo = () => {};
-            })();
-            """
-        )
+        page.evaluate(LOCAL_STORAGE_MOCK)
         for script in scripts:
             page.add_script_tag(content=script)
         page.evaluate(
@@ -106,21 +106,6 @@ def main() -> None:
             })()
             """
         )
-        page.evaluate(
-            """
-            // localStorage ist in diesem isolierten Test ein Mock und damit kein
-            // natives Storage-Objekt. Ein echtes StorageEvent würde es ablehnen.
-            const storageEvent = new Event("storage");
-            Object.defineProperties(storageEvent, {
-              key: { value: WizardStorage.STORAGE_KEY },
-              newValue: { value: "{}" },
-              storageArea: { value: localStorage }
-            });
-            window.dispatchEvent(storageEvent);
-            """
-        )
-        assert page.locator("#storage-warning").is_visible()
-        assert "anderen Tab" in page.locator("#storage-warning").text_content()
         assert page.locator("#screen-setup").is_visible()
         assert page.locator("#screen-setup h2").count() == 0
         assert page.get_by_text("Die Reihenfolge entspricht der Sitzordnung am Tisch.").count() == 0
@@ -233,6 +218,54 @@ def main() -> None:
         assert page.get_by_text("hat vor dieser Wolke die Ansage").count() == 0
         page.click("#btn-cloud-plus")
         page.locator(".special-button", has_text="Bombe").click()
+
+        # Wolke +1 darf in Runde 1 zu einer aktuellen Ansage von 2 führen.
+        saved_cloud_state = page.evaluate(
+            """
+            (() => {
+              const saved = WizardStorage.loadGame();
+              const round = saved?.rounds?.[0];
+              return {
+                readable: Boolean(saved),
+                currentBids: Object.values(round?.playerResults ?? {})
+                  .map((result) => result.currentBid),
+                cloudActive: round?.specialCards?.cloud?.active,
+                bombActive: round?.specialCards?.bomb?.active,
+                storageError: WizardStorage.getStorageErrors().gameError,
+                serialized: localStorage.getItem(WizardStorage.STORAGE_KEY)
+              };
+            })()
+            """
+        )
+        assert saved_cloud_state["readable"]
+        assert 2 in saved_cloud_state["currentBids"]
+        assert saved_cloud_state["cloudActive"]
+        assert saved_cloud_state["bombActive"]
+        assert saved_cloud_state["storageError"] == ""
+
+        # Ein frischer Seitenkontext muss denselben Zustand laden und fortsetzen können.
+        reload_page = browser.new_page(viewport={"width": 390, "height": 844})
+        reload_page.set_content(html)
+        reload_page.evaluate(LOCAL_STORAGE_MOCK)
+        for script in scripts:
+            reload_page.add_script_tag(content=script)
+        reload_page.evaluate(
+            """
+            (serialized) => localStorage.setItem(
+              WizardStorage.STORAGE_KEY,
+              serialized
+            )
+            """,
+            saved_cloud_state["serialized"],
+        )
+        reload_page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+        assert reload_page.locator("#btn-continue-game").is_enabled()
+        reload_page.click("#btn-continue-game")
+        assert reload_page.locator("#screen-game").is_visible()
+        assert "2" in reload_page.locator(".bid-overview .changed-bid").all_text_contents()
+        assert reload_page.evaluate("WizardStorage.getStorageErrors().gameError") == ""
+        reload_page.close()
+
         page.locator(".special-button", has_text="Hexe").click()
         assert page.get_by_text("Eingaben prüfen", exact=True).count() == 0
         assert page.locator(".special-button", has_text="2. Wolke").count() == 1
@@ -245,8 +278,56 @@ def main() -> None:
         assert second_effect_box and special_actions_box
         assert special_actions_box["y"] - (second_effect_box["y"] + second_effect_box["height"]) >= 16
 
-        # Zweite Bombe und zweite Wolke lassen sich jeweils über denselben Button ein- und ausschalten.
+        # Eine unvollständige Hexe blockiert den Rückweg zu den Ansagen.
+        page.get_by_role("button", name="Ansagen bearbeiten").click()
+        assert page.locator("#toast").text_content() == (
+            "Wähle zuerst die zweite Sonderkarte der Hexe aus oder entferne die Hexe."
+        )
+        assert page.locator("#game-phase-label").text_content() == "Sonderkarten"
+        assert page.locator(".special-button", has_text="Hexe").get_attribute("aria-pressed") == "true"
+        assert page.evaluate("WizardStorage.loadGame().rounds[0].phase") == "play"
+
+        # Auch nach einem Reload bleibt dieser temporäre Zustand fortsetzbar.
+        incomplete_witch_state = page.evaluate(
+            "localStorage.getItem(WizardStorage.STORAGE_KEY)"
+        )
+        witch_reload_page = browser.new_page(viewport={"width": 390, "height": 844})
+        witch_reload_page.set_content(html)
+        witch_reload_page.evaluate(LOCAL_STORAGE_MOCK)
+        for script in scripts:
+            witch_reload_page.add_script_tag(content=script)
+        witch_reload_page.evaluate(
+            """
+            (serialized) => localStorage.setItem(
+              WizardStorage.STORAGE_KEY,
+              serialized
+            )
+            """,
+            incomplete_witch_state,
+        )
+        witch_reload_page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+        assert witch_reload_page.locator("#btn-continue-game").is_enabled()
+        witch_reload_page.click("#btn-continue-game")
+        assert witch_reload_page.locator("#game-phase-label").text_content() == "Sonderkarten"
+        assert witch_reload_page.locator(
+            ".special-button", has_text="Hexe"
+        ).get_attribute("aria-pressed") == "true"
+        assert witch_reload_page.evaluate("WizardStorage.getStorageErrors().gameError") == ""
+        witch_reload_page.close()
+
+        # Mit vollständig ausgewählter zweiter Karte ist der Rückweg erlaubt.
         second_bomb = page.locator(".special-button", has_text="2. Bombe")
+        second_bomb.click()
+        page.get_by_role("button", name="Ansagen bearbeiten").click()
+        assert page.locator("#game-phase-label").text_content() == "Ansagen"
+        page.get_by_role("button", name="Ansagen bestätigen").click()
+        assert page.locator("#game-phase-label").text_content() == "Sonderkarten"
+        second_bomb = page.locator(".special-button", has_text="2. Bombe")
+        assert "active" in second_bomb.get_attribute("class")
+
+        # Zweite Bombe und zweite Wolke lassen sich jeweils über denselben Button ein- und ausschalten.
+        second_bomb.click()
+        assert page.get_by_role("button", name="Stiche eintragen").is_disabled()
         second_bomb.click()
         assert second_bomb.get_attribute("class") and "active" in second_bomb.get_attribute("class")
         assert "✓" not in second_bomb.text_content()
@@ -360,6 +441,82 @@ def main() -> None:
         page.click("#btn-history-clear")
         assert page.get_by_text("Keine archivierten Partien vorhanden.").is_visible()
         assert page.locator("#btn-history").is_disabled()
+
+        # Ohne nutzbaren localStorage bleibt das Spiel im Arbeitsspeicher erreichbar.
+        memory_page = browser.new_page(viewport={"width": 390, "height": 844})
+        memory_page.set_content(html)
+        memory_page.evaluate(LOCAL_STORAGE_MOCK)
+        for script in scripts:
+            memory_page.add_script_tag(content=script)
+        memory_page.evaluate(
+            """
+            localStorage.setItem = () => {
+              throw new DOMException("Storage blocked", "SecurityError");
+            };
+            document.dispatchEvent(new Event("DOMContentLoaded"));
+            """
+        )
+        memory_page.click("#btn-new-game")
+        assert memory_page.locator("#screen-setup").is_visible()
+        assert memory_page.locator("#storage-warning").is_visible()
+        memory_page.click("#btn-setup-home")
+        assert memory_page.locator("#screen-home").is_visible()
+        assert memory_page.locator("#btn-continue-game").is_enabled()
+        memory_page.click("#btn-continue-game")
+        assert memory_page.locator("#screen-setup").is_visible()
+        memory_page.close()
+
+        # Nach einer externen Löschung darf ein veralteter In-Memory-Stand
+        # hingegen nicht als fortsetzbares Spiel angeboten werden.
+        conflict_page = browser.new_page(viewport={"width": 390, "height": 844})
+        conflict_page.set_content(html)
+        conflict_page.evaluate(LOCAL_STORAGE_MOCK)
+        for script in scripts:
+            conflict_page.add_script_tag(content=script)
+        conflict_page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+        conflict_page.click("#btn-new-game")
+        conflict_page.evaluate(
+            """
+            localStorage.removeItem(WizardStorage.STORAGE_KEY);
+            const storageEvent = new Event("storage");
+            Object.defineProperties(storageEvent, {
+              key: { value: WizardStorage.STORAGE_KEY },
+              newValue: { value: null },
+              storageArea: { value: localStorage }
+            });
+            window.dispatchEvent(storageEvent);
+            """
+        )
+        assert conflict_page.locator("#storage-conflict-actions").is_visible()
+        assert conflict_page.locator("#btn-add-player").is_disabled()
+        assert conflict_page.locator("#player-list .text-input").first.is_disabled()
+        assert conflict_page.locator("#setup-form button[type=submit]").is_disabled()
+        assert conflict_page.locator("#btn-setup-home").is_enabled()
+        with conflict_page.expect_download() as conflict_download_info:
+            conflict_page.click("#btn-export-conflict-state")
+        conflict_export = json.loads(
+            Path(conflict_download_info.value.path()).read_text(encoding="utf-8")
+        )
+        assert conflict_export["exportFormat"] == "wizard-punkte-app"
+        assert conflict_export["recoveryReason"] == "storage-conflict"
+        assert conflict_export["gameState"]["gameId"]
+        conflict_page.click("#btn-setup-home")
+        assert conflict_page.locator("#screen-home").is_visible()
+        assert conflict_page.locator("#btn-continue-game").is_disabled()
+        assert "anderen Tab" in conflict_page.locator("#storage-warning").text_content()
+
+        # Der separate Konfliktexport lässt sich anschließend bewusst wiederherstellen.
+        conflict_page.set_input_files(
+            "#import-file-input",
+            conflict_download_info.value.path(),
+        )
+        assert conflict_page.locator("#storage-conflict-actions").is_hidden()
+        assert conflict_page.locator("#btn-continue-game").is_enabled()
+        conflict_page.click("#btn-continue-game")
+        assert conflict_page.locator("#screen-setup").is_visible()
+        assert conflict_page.locator("#btn-add-player").is_enabled()
+        conflict_page.close()
+
         browser.close()
 
     print("Browser-Smoke-Test erfolgreich.")

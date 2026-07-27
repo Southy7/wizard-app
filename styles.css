@@ -312,6 +312,26 @@ select:focus-visible {
   line-height: 1.45;
 }
 
+.storage-conflict-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+}
+
+.storage-conflict-actions[hidden] {
+  display: none;
+}
+
+@media (max-width: 430px) {
+  .storage-conflict-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Spieleinrichtung */
 .setup-home-button {
   display: grid;

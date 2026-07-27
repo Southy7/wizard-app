@@ -122,9 +122,18 @@ Einzelne Testgruppen lassen sich separat starten:
 ```bash
 npm run test:unit
 npm run test:browser
+npm run test:browser:persistence
+npm run test:browser:rounds
+npm run test:browser:multitab
+npm run test:browser:offline
 ```
 
-Playwright ist in `requirements-test.txt` fest versioniert. Die GitHub-Actions-Konfiguration führt `npm test` zusätzlich bei jedem Push und Pull Request in einer reproduzierbaren Umgebung aus.
+Die fokussierten Browser-Szenarien starten einen echten lokalen HTTP-Server. Dadurch
+verwenden Reload-, Mehr-Tab- und Offline-Tests natives `localStorage` und einen
+tatsächlich installierten Service Worker. Playwright ist in
+`requirements-test.txt` fest versioniert. Die GitHub-Actions-Konfiguration führt
+`npm test` zusätzlich bei jedem Push und Pull Request in einer reproduzierbaren
+Umgebung aus.
 
 ## History und Import
 
@@ -176,7 +185,12 @@ wizard-punkte-app-v1.0-step3/
 │   ├── storage.js
 │   └── ui-components.js
 ├── tests/
+│   ├── browser_helpers.py
 │   ├── browser-smoke.py
+│   ├── browser-persistence.py
+│   ├── browser-round-flow.py
+│   ├── browser-multitab.py
+│   ├── browser-offline.py
 │   ├── game-logic.test.js
 │   ├── service-worker.test.js
 │   ├── state-manager.test.js

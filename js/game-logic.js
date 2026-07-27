@@ -157,8 +157,17 @@
     return errors;
   }
 
-  // Importdaten werden vor der Hydrierung strikt geprüft, damit keine mehrdeutigen IDs oder Runden entstehen.
-  function validateImportedGameState(candidate, options = {}) {
+  // Importdaten müssen vollständig spielbar sein. Bewusst temporäre UI-Zustände
+  // werden ausschließlich über validatePersistableGameState zugelassen.
+  function validateImportedGameState(candidate) {
+    return validateGameState(candidate, { allowIncompleteWitchSelection: false });
+  }
+
+  function validatePersistableGameState(candidate) {
+    return validateGameState(candidate, { allowIncompleteWitchSelection: true });
+  }
+
+  function validateGameState(candidate, options) {
     const errors = [];
     const allowedStatuses = new Set(["setup", "running", "completed"]);
     const allowedPhases = new Set(["bids", "play", "tricks", "result"]);
@@ -353,10 +362,10 @@
     return [...new Set(errors)];
   }
 
-  // Lokale Spielstände dürfen die bewusst zwischengespeicherte Hexen-Auswahl
-  // enthalten. Alle strukturellen und übrigen fachlichen Regeln bleiben strikt.
+  // Kompatibilitätsname für bereits angebundene Aufrufer. Neue Speicherpfade
+  // verwenden den fachlich eindeutigen Namen validatePersistableGameState.
   function validateStoredGameState(candidate) {
-    return validateImportedGameState(candidate, { allowIncompleteWitchSelection: true });
+    return validatePersistableGameState(candidate);
   }
 
   function validateImportedPlayerResults(rawResults, players, roundNumber, completed, errors) {
@@ -380,11 +389,21 @@
         return null;
       }
 
-      for (const field of ["originalBid", "currentBid", "tricks"]) {
-        if (!Number.isInteger(rawResult[field]) || rawResult[field] < 0 || rawResult[field] > roundNumber) {
-          errors.push(`Ansagen und Stiche in Runde ${roundNumber} müssen zwischen 0 und ${roundNumber} liegen.`);
-          return null;
-        }
+      if (!Number.isInteger(rawResult.originalBid)
+        || rawResult.originalBid < 0
+        || rawResult.originalBid > roundNumber
+        || !Number.isInteger(rawResult.tricks)
+        || rawResult.tricks < 0
+        || rawResult.tricks > roundNumber) {
+        errors.push(`Ursprüngliche Ansagen und Stiche in Runde ${roundNumber} müssen zwischen 0 und ${roundNumber} liegen.`);
+        return null;
+      }
+
+      // Wolken dürfen die aktuelle Ansage über die Rundennummer erhöhen. Ihre
+      // exakte Höhe wird weiter unten durch eine Neuberechnung verifiziert.
+      if (!Number.isInteger(rawResult.currentBid) || rawResult.currentBid < 0) {
+        errors.push(`Die aktuelle Ansage in Runde ${roundNumber} muss eine nichtnegative Ganzzahl sein.`);
+        return null;
       }
 
       if (completed) {
@@ -788,6 +807,7 @@
     getDuplicateNameIds,
     validateSetup,
     validateImportedGameState,
+    validatePersistableGameState,
     validateStoredGameState,
     createPlayerResult,
     createRound,

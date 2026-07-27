@@ -10,6 +10,7 @@
     gameError: "",
     historyError: ""
   };
+  let lastGameSaveConflict = false;
 
   // Getrennte Fehlerkanäle verhindern, dass eine erfolgreiche Operation fremde Fehler löscht.
   function setError(scope, message, error) {
@@ -38,6 +39,10 @@
     return [...new Set(Object.values(errors).filter(Boolean))].join(" ");
   }
 
+  function wasLastGameSaveConflict() {
+    return lastGameSaveConflict;
+  }
+
   function isStorageAvailable() {
     try {
       const testKey = "__wizard_storage_test__";
@@ -53,6 +58,7 @@
 
   // Alle Speicherzugriffe bleiben in diesem Modul gekapselt.
   function saveGame(state, options = {}) {
+    lastGameSaveConflict = false;
     if (!isStorageAvailable()) return false;
 
     try {
@@ -75,6 +81,7 @@
         || implicitInitialWrite
         || storedIdentityChanged
         || storedUpdatedAt !== expectedUpdatedAt) {
+        lastGameSaveConflict = true;
         setError(
           "gameError",
           "Der Spielstand wurde in einem anderen Tab geändert oder gelöscht. Diese Seite wurde nicht gespeichert; lade sie neu, bevor du weiterarbeitest."
@@ -88,6 +95,14 @@
         schemaVersion: Math.max(Number(state?.schemaVersion) || 0, 4),
         updatedAt: createNextUpdatedAt(storedState?.updatedAt)
       };
+      const validationErrors = getPersistableGameValidationErrors(payload);
+      if (validationErrors.length > 0) {
+        setError(
+          "gameError",
+          `Der aktuelle Spielzustand ist inkonsistent: ${validationErrors[0]}`
+        );
+        return false;
+      }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       if (state && typeof state === "object") state.updatedAt = payload.updatedAt;
@@ -109,10 +124,16 @@
   }
 
   function isValidStoredGame(candidate) {
-    const validateStoredGame = root.WizardGameLogic?.validateStoredGameState;
-    return Boolean(candidate)
-      && typeof validateStoredGame === "function"
-      && validateStoredGame(candidate).length === 0;
+    return Boolean(candidate) && getPersistableGameValidationErrors(candidate).length === 0;
+  }
+
+  function getPersistableGameValidationErrors(candidate) {
+    const validatePersistableGame = root.WizardGameLogic?.validatePersistableGameState
+      ?? root.WizardGameLogic?.validateStoredGameState;
+    if (typeof validatePersistableGame !== "function") {
+      return ["Die Spielstandvalidierung ist nicht verfügbar."];
+    }
+    return validatePersistableGame(candidate);
   }
 
   function createNextUpdatedAt(previousUpdatedAt) {
@@ -138,11 +159,7 @@
         throw new Error("Unbekanntes oder beschädigtes Speicherformat.");
       }
 
-      const validateStoredGame = root.WizardGameLogic?.validateStoredGameState;
-      if (typeof validateStoredGame !== "function") {
-        throw new Error("Die Spielstandvalidierung ist nicht verfügbar.");
-      }
-      const validationErrors = validateStoredGame(parsed);
+      const validationErrors = getPersistableGameValidationErrors(parsed);
       if (validationErrors.length > 0) {
         throw new Error(validationErrors[0]);
       }
@@ -421,6 +438,7 @@
     getHistoryStorageStatus,
     hasGameHistory,
     getLastError,
+    wasLastGameSaveConflict,
     getStorageErrors,
     clearLastError
   });

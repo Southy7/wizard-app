@@ -111,7 +111,11 @@
         originalBid: Math.max(0, Number.parseInt(rawResult.originalBid, 10) || 0),
         currentBid: Math.max(0, Number.parseInt(rawResult.currentBid, 10) || 0),
         tricks: Math.max(0, Number.parseInt(rawResult.tricks, 10) || 0),
-        roundPoints: Number.isFinite(Number(rawResult.roundPoints)) ? Number(rawResult.roundPoints) : null
+        roundPoints: rawResult.roundPoints == null
+          ? null
+          : Number.isFinite(Number(rawResult.roundPoints))
+            ? Number(rawResult.roundPoints)
+            : null
       };
     }
 

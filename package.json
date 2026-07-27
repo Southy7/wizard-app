@@ -6,6 +6,11 @@
   "scripts": {
     "test": "npm run test:unit && npm run test:browser",
     "test:unit": "node tests/game-logic.test.js && node tests/state-manager.test.js && node tests/storage.test.js && node tests/service-worker.test.js",
-    "test:browser": "python tests/browser-smoke.py"
+    "test:browser": "npm run test:browser:smoke && npm run test:browser:persistence && npm run test:browser:rounds && npm run test:browser:multitab && npm run test:browser:offline",
+    "test:browser:smoke": "python tests/browser-smoke.py",
+    "test:browser:persistence": "python tests/browser-persistence.py",
+    "test:browser:rounds": "python tests/browser-round-flow.py",
+    "test:browser:multitab": "python tests/browser-multitab.py",
+    "test:browser:offline": "python tests/browser-offline.py"
   }
 }

@@ -4,8 +4,14 @@ const assert = require("node:assert/strict");
 
 const values = new Map();
 let failHistoryWrites = false;
+let failGameWrites = false;
 global.localStorage = {
   setItem(key, value) {
+    if (failGameWrites && String(key) === "wizard-punkte-app:game-state:v1") {
+      const error = new Error("Storage blocked");
+      error.name = "SecurityError";
+      throw error;
+    }
     if (failHistoryWrites && String(key) === "wizard-punkte-app:game-history:v1") {
       const error = new Error("Quota exceeded");
       error.name = "QuotaExceededError";
@@ -40,8 +46,10 @@ state.players[0].name = "Anna";
 const implicitInitialState = JSON.parse(JSON.stringify(state));
 implicitInitialState.updatedAt = null;
 assert.equal(Storage.saveGame(implicitInitialState), false);
+assert.equal(Storage.wasLastGameSaveConflict(), true);
 assert.equal(Storage.hasStoredData(), false);
 assert.equal(Storage.saveGame(state, { expectedUpdatedAt: null }), true);
+assert.equal(Storage.wasLastGameSaveConflict(), false);
 assert.equal(Storage.hasStoredData(), true);
 const loaded = Storage.loadGame();
 assert.equal(loaded.version, "1.0");
@@ -57,6 +65,7 @@ assert.equal(Storage.saveGame(tabAState), true);
 const tabAUpdatedAt = tabAState.updatedAt;
 tabBState.players[0].name = "Anna aus Tab B";
 assert.equal(Storage.saveGame(tabBState), false);
+assert.equal(Storage.wasLastGameSaveConflict(), true);
 assert.match(Storage.getStorageErrors().gameError, /anderen Tab/i);
 assert.equal(Storage.loadGame().players[0].name, "Anna aus Tab A");
 assert.equal(Storage.loadGame().updatedAt, tabAUpdatedAt);
@@ -65,6 +74,7 @@ assert.equal(Storage.loadGame().updatedAt, tabAUpdatedAt);
 const staleAfterDeletion = JSON.parse(JSON.stringify(Storage.loadGame()));
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.saveGame(staleAfterDeletion), false);
+assert.equal(Storage.wasLastGameSaveConflict(), true);
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
 
 // Ein anderer Tab ersetzt den gelöschten Zustand durch ein neues Spiel.
@@ -89,7 +99,14 @@ assert.equal(Storage.deleteGame(), true);
 const recoveryState = Logic.createInitialGameState(3);
 recoveryState.players[0].name = "Wiederhergestellt";
 assert.equal(Storage.saveGame(recoveryState, { expectedUpdatedAt: null }), true);
+assert.equal(Storage.wasLastGameSaveConflict(), false);
 const latestGame = Storage.loadGame();
+
+// Ein technischer Schreibfehler ist kein Mehr-Tab-Konflikt.
+failGameWrites = true;
+assert.equal(Storage.saveGame(JSON.parse(JSON.stringify(latestGame))), false);
+assert.equal(Storage.wasLastGameSaveConflict(), false);
+failGameWrites = false;
 
 const completedGame = require("../examples/history-game-1.json").gameState;
 
@@ -136,6 +153,61 @@ localStorage.setItem(Storage.STORAGE_KEY, JSON.stringify(transientWitchGame));
 assert.notEqual(Storage.loadGame(), null);
 assert.ok(Logic.validateImportedGameState(transientWitchGame).some((error) => error.includes("Hexe")));
 assert.deepEqual(Logic.validateStoredGameState(transientWitchGame), []);
+
+// Eine Wolke +1 in Runde 1 bleibt speicher-, änder- und erneut ladbar.
+assert.equal(Storage.deleteGame(), true);
+const cloudStoredGame = Logic.createInitialGameState(3);
+cloudStoredGame.players.forEach((player, index) => {
+  player.name = ["Anna", "Ben", "Chris"][index];
+});
+cloudStoredGame.status = "running";
+cloudStoredGame.setupDealerRandomized = true;
+cloudStoredGame.roundMode = "individual";
+cloudStoredGame.totalRounds = 1;
+cloudStoredGame.currentRound = 1;
+let cloudStoredRound = Logic.createRound(
+  cloudStoredGame.players,
+  cloudStoredGame.firstDealerId,
+  1
+);
+cloudStoredRound.phase = "play";
+cloudStoredRound.playerResults[cloudStoredGame.players[0].id].originalBid = 1;
+cloudStoredRound.playerResults[cloudStoredGame.players[1].id].originalBid = 1;
+cloudStoredRound.specialCards.cloud = {
+  active: true,
+  playerId: cloudStoredGame.players[0].id,
+  change: 1
+};
+cloudStoredRound = Logic.recalculateCurrentBids(cloudStoredRound, cloudStoredGame.players);
+cloudStoredGame.rounds = [cloudStoredRound];
+assert.equal(cloudStoredRound.playerResults[cloudStoredGame.players[0].id].currentBid, 2);
+assert.equal(Storage.saveGame(cloudStoredGame, { expectedUpdatedAt: null }), true);
+
+const loadedCloudGame = Storage.loadGame();
+assert.notEqual(loadedCloudGame, null);
+assert.equal(
+  loadedCloudGame.rounds[0].playerResults[cloudStoredGame.players[0].id].currentBid,
+  2
+);
+loadedCloudGame.rounds[0].specialCards.bomb.active = true;
+assert.equal(Storage.saveGame(loadedCloudGame), true);
+const reloadedCloudGame = Storage.loadGame();
+assert.notEqual(reloadedCloudGame, null);
+assert.equal(reloadedCloudGame.rounds[0].specialCards.bomb.active, true);
+assert.equal(
+  reloadedCloudGame.rounds[0].playerResults[cloudStoredGame.players[0].id].currentBid,
+  2
+);
+const invalidOutgoingGame = JSON.parse(JSON.stringify(reloadedCloudGame));
+invalidOutgoingGame.rounds[0].playerResults[cloudStoredGame.players[0].id].roundPoints = 0;
+const storedCloudValue = localStorage.getItem(Storage.STORAGE_KEY);
+assert.equal(Storage.saveGame(invalidOutgoingGame), false);
+assert.equal(Storage.wasLastGameSaveConflict(), false);
+assert.match(
+  Storage.getStorageErrors().gameError,
+  /aktuelle Spielzustand ist inkonsistent.*offene Runde darf noch keine Punkte/i
+);
+assert.equal(localStorage.getItem(Storage.STORAGE_KEY), storedCloudValue);
 
 localStorage.setItem(Storage.STORAGE_KEY, validActiveGameValue);
 assert.notEqual(Storage.loadGame(), null);

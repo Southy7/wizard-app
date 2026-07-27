@@ -45,6 +45,9 @@ assert.equal(hydratedRunningGame.currentRound, 2);
 assert.equal(hydratedRunningGame.rounds.length, 1);
 assert.equal(hydratedRunningGame.rounds[0].number, 2);
 assert.equal(hydratedRunningGame.rounds[0].phase, "bids");
+Object.values(hydratedRunningGame.rounds[0].playerResults).forEach((result) => {
+  assert.equal(result.roundPoints, null);
+});
 
 const specialRound = global.WizardGameLogic.createRound(
   hydratedRunningGame.players,

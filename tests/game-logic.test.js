@@ -216,6 +216,74 @@ assert.equal(totalsWithoutSecond.ben, 30);
 const validImport = require("../examples/history-game-1.json").gameState;
 assert.deepEqual(Logic.validateImportedGameState(validImport), []);
 assert.deepEqual(Logic.validateImportedGameState(Logic.createInitialGameState()), []);
+assert.deepEqual(Logic.validatePersistableGameState(Logic.createInitialGameState()), []);
+
+// Eine unvollständige Hexe ist nur als klar definierter temporärer Speicherzustand erlaubt.
+const persistableWitchState = Logic.createInitialGameState(3);
+persistableWitchState.players.forEach((entry, index) => {
+  entry.name = ["Anna", "Ben", "Chris"][index];
+});
+persistableWitchState.status = "running";
+persistableWitchState.setupDealerRandomized = true;
+persistableWitchState.roundMode = "individual";
+persistableWitchState.totalRounds = 1;
+const persistableWitchRound = Logic.createRound(
+  persistableWitchState.players,
+  persistableWitchState.firstDealerId,
+  1
+);
+persistableWitchRound.phase = "play";
+persistableWitchRound.specialCards.bomb.active = true;
+persistableWitchRound.specialCards.witch = { active: true, secondEffect: null };
+persistableWitchState.rounds = [persistableWitchRound];
+assert.ok(Logic.validateImportedGameState(persistableWitchState).some((error) => error.includes("Hexe")));
+assert.deepEqual(Logic.validatePersistableGameState(persistableWitchState), []);
+
+// Wolken dürfen die aktuelle Ansage über die Rundennummer erhöhen.
+const cloudValidationState = Logic.createInitialGameState(3);
+cloudValidationState.players.forEach((entry, index) => {
+  entry.name = ["Anna", "Ben", "Chris"][index];
+});
+cloudValidationState.status = "running";
+cloudValidationState.setupDealerRandomized = true;
+cloudValidationState.roundMode = "individual";
+cloudValidationState.totalRounds = 1;
+cloudValidationState.currentRound = 1;
+let cloudValidationRound = Logic.createRound(
+  cloudValidationState.players,
+  cloudValidationState.firstDealerId,
+  1
+);
+cloudValidationRound.phase = "play";
+cloudValidationRound.playerResults[cloudValidationState.players[0].id].originalBid = 1;
+cloudValidationRound.playerResults[cloudValidationState.players[1].id].originalBid = 1;
+cloudValidationRound.specialCards.cloud = {
+  active: true,
+  playerId: cloudValidationState.players[0].id,
+  change: 1
+};
+cloudValidationRound = Logic.recalculateCurrentBids(
+  cloudValidationRound,
+  cloudValidationState.players
+);
+cloudValidationState.rounds = [cloudValidationRound];
+assert.equal(cloudValidationRound.playerResults[cloudValidationState.players[0].id].currentBid, 2);
+assert.deepEqual(Logic.validateImportedGameState(cloudValidationState), []);
+
+// Auch zwei Wolken +1 werden ausschließlich über die Neuberechnung begrenzt.
+cloudValidationRound.specialCards.witch = { active: true, secondEffect: "cloud" };
+cloudValidationRound.specialCards.secondCloud = {
+  active: true,
+  playerId: cloudValidationState.players[0].id,
+  change: 1
+};
+cloudValidationRound = Logic.recalculateCurrentBids(
+  cloudValidationRound,
+  cloudValidationState.players
+);
+cloudValidationState.rounds = [cloudValidationRound];
+assert.equal(cloudValidationRound.playerResults[cloudValidationState.players[0].id].currentBid, 3);
+assert.deepEqual(Logic.validateImportedGameState(cloudValidationState), []);
 
 function invalidImport(mutator) {
   const candidate = JSON.parse(JSON.stringify(validImport));
