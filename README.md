@@ -49,6 +49,7 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - Sicherheitsabfrage vor dem Überschreiben eines vorhandenen Spiels
 - verständliche Warnung bei nicht verfügbarem oder beschädigtem Browser-Speicher
 - unabhängige Fehlerzustände für aktiven Spielstand und History
+- Konfliktschutz und sichtbare Warnung bei Änderungen aus einem anderen Browser-Tab
 - Daten- und Schema-Version im Spielstand
 - Import einer exportierten JSON-Datei
 - Größen- und Formatprüfung beim Import
@@ -61,6 +62,7 @@ Leichtgewichtige, responsive Web-App für eure Wizard-Variante mit 70 Karten. Di
 - HTML, CSS und JavaScript ohne Framework
 - keine externen Bibliotheken
 - kein Build-Prozess
+- getrennte Module für Spiellogik, Zustandsmigration, Speicherung und Oberfläche
 - responsive Darstellung für Handy und Tablet
 - große Touch-Ziele
 - Unterstützung für Hoch- und Querformat
@@ -94,13 +96,20 @@ http://localhost:8080
 
 ## Tests
 
-Die App selbst benötigt Node.js nicht. Für die automatisierten Logik- und Speichertests:
+Die App selbst benötigt Node.js nicht. Die vollständige Testsuite führt Unit- und Browser-Tests gemeinsam aus:
 
 ```bash
 npm test
 ```
 
-Optional liegt unter `tests/browser-smoke.py` ein Browser-Smoke-Test. Dieser benötigt Python, Playwright und Chromium.
+Einzelne Testgruppen lassen sich separat starten:
+
+```bash
+npm run test:unit
+npm run test:browser
+```
+
+Der Browser-Smoke-Test benötigt Python, Playwright und Chromium.
 
 ## History und Import
 
@@ -141,10 +150,13 @@ wizard-punkte-app-v1.0-step3/
 ├── js/
 │   ├── app.js
 │   ├── game-logic.js
+│   ├── state-manager.js
 │   └── storage.js
 ├── tests/
 │   ├── browser-smoke.py
 │   ├── game-logic.test.js
+│   ├── service-worker.test.js
+│   ├── state-manager.test.js
 │   └── storage.test.js
 └── assets/
     └── icons/

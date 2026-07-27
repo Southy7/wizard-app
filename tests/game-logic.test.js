@@ -64,6 +64,12 @@ assert.deepEqual(Logic.validateSetup(validState), []);
 assert.equal(Logic.createInitialGameState().setupDealerRandomized, false);
 assert.equal(Logic.createInitialGameState().roundMode, "full");
 assert.match(Logic.createInitialGameState().gameId, /^game-/);
+for (let playerCount = 3; playerCount <= 6; playerCount += 1) {
+  const initialState = Logic.createInitialGameState(playerCount);
+  assert.equal(initialState.players.length, playerCount);
+  assert.equal(initialState.totalRounds, Logic.getStandardRounds(playerCount));
+  assert.deepEqual(Logic.validateImportedGameState(initialState), []);
+}
 
 const invalidState = {
   players: [player("1", ""), player("2", "Ben")],

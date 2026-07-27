@@ -40,6 +40,18 @@ assert.equal(loaded.players[0].name, "Anna");
 assert.equal(typeof loaded.updatedAt, "string");
 assert.equal(Storage.getLastError(), "");
 
+const tabAState = JSON.parse(JSON.stringify(loaded));
+const tabBState = JSON.parse(JSON.stringify(loaded));
+tabAState.players[0].name = "Anna aus Tab A";
+assert.equal(Storage.saveGame(tabAState), true);
+const tabAUpdatedAt = tabAState.updatedAt;
+tabBState.players[0].name = "Anna aus Tab B";
+assert.equal(Storage.saveGame(tabBState), false);
+assert.match(Storage.getStorageErrors().gameError, /anderen Tab/i);
+const latestGame = Storage.loadGame();
+assert.equal(latestGame.players[0].name, "Anna aus Tab A");
+assert.equal(latestGame.updatedAt, tabAUpdatedAt);
+
 const completedGame = require("../examples/history-game-1.json").gameState;
 assert.equal(Storage.saveCompletedGame(completedGame), true);
 assert.equal(Storage.hasGameHistory(), true);
@@ -101,7 +113,7 @@ assert.deepEqual(Storage.loadGameHistory(), []);
 const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
 const damagedHistoryError = Storage.getStorageErrors().historyError;
 assert.match(damagedHistoryError, /Partienarchiv|nicht lesbar/i);
-assert.equal(Storage.saveGame(state), true);
+assert.equal(Storage.saveGame(latestGame), true);
 assert.equal(Storage.loadGame().version, "1.0");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 

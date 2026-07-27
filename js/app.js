@@ -2,9 +2,12 @@
   "use strict";
 
   const Logic = window.WizardGameLogic;
+  const StateManager = window.WizardStateManager;
   const Storage = window.WizardStorage;
+  const hydrateState = StateManager?.hydrateState;
+  const normalizeSpecialDependencies = StateManager?.normalizeSpecialDependencies;
 
-  if (!Logic || !Storage) {
+  if (!Logic || !StateManager || !Storage) {
     console.error("Die Anwendungsabhängigkeiten konnten nicht geladen werden.");
     return;
   }
@@ -13,6 +16,8 @@
   let state = null;
   let toastTimeout = null;
   let cloudDialogContext = null;
+  let externalGameWarning = "";
+  let externalHistoryWarning = "";
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -20,6 +25,7 @@
   function init() {
     cacheElements();
     bindEvents();
+    window.addEventListener("storage", handleExternalStorageChange);
     refreshHomeScreen();
     updateStorageWarning();
     showScreen("home");
@@ -110,7 +116,7 @@
     }
 
     state = Logic.createInitialGameState();
-    persistState();
+    persistState({ expectedUpdatedAt: savedGame?.updatedAt ?? null });
     renderSetup();
     showScreen("setup");
   }
@@ -142,182 +148,6 @@
 
     renderSetup();
     showScreen("setup");
-  }
-
-  // Gespeicherte Daten werden bereinigt, damit auch ältere Spielstände sicher geladen werden.
-  function hydrateState(savedState) {
-    const rawPlayers = Array.isArray(savedState.players)
-      ? savedState.players.slice(0, Logic.MAX_PLAYERS)
-      : [];
-
-    const sanitizedPlayers = rawPlayers.map((player, index) => ({
-      id: typeof player?.id === "string" && player.id ? player.id : Logic.createPlayer(index).id,
-      name: typeof player?.name === "string" ? player.name.slice(0, 30) : "",
-      seatPosition: index
-    }));
-
-    while (sanitizedPlayers.length < Logic.MIN_PLAYERS) {
-      sanitizedPlayers.push(Logic.createPlayer(sanitizedPlayers.length));
-    }
-
-    const players = Logic.normalizeSeatPositions(sanitizedPlayers);
-    const playerCount = players.length;
-    const totalCards = Logic.TOTAL_CARDS;
-    const firstDealerId = players.some((player) => player.id === savedState.firstDealerId)
-      ? savedState.firstDealerId
-      : players[0].id;
-    const clampedRounds = Logic.clampRoundCount(savedState.totalRounds, playerCount, totalCards);
-    const standardRounds = Logic.getStandardRounds(playerCount);
-    const roundMode = ["full", "individual"].includes(savedState.roundMode)
-      ? savedState.roundMode
-      : clampedRounds === standardRounds ? "full" : "individual";
-    const totalRounds = roundMode === "full" ? standardRounds : clampedRounds;
-    const currentRound = Math.min(Math.max(Number.parseInt(savedState.currentRound, 10) || 1, 1), totalRounds);
-
-    const initialState = Logic.createInitialGameState(playerCount);
-    const hydrated = {
-      ...initialState,
-      ...savedState,
-      version: "1.0",
-      schemaVersion: 4,
-      gameId: typeof savedState.gameId === "string" && savedState.gameId ? savedState.gameId : initialState.gameId,
-      totalCards,
-      players,
-      firstDealerId,
-      setupDealerRandomized: Boolean(savedState.setupDealerRandomized),
-      roundMode,
-      totalRounds,
-      currentRound,
-      roundOneHintConfirmed: Boolean(savedState.roundOneHintConfirmed),
-      rounds: []
-    };
-
-    const rawRounds = Array.isArray(savedState.rounds) ? savedState.rounds : [];
-    hydrated.rounds = rawRounds
-      .filter((round) => Number.isInteger(Number(round?.number)))
-      .map((round) => hydrateRound(round, players, firstDealerId))
-      .filter((round) => round.number >= 1 && round.number <= totalRounds)
-      .sort((a, b) => a.number - b.number);
-
-    if (hydrated.status === "running" && !hydrated.rounds.some((round) => round.number === currentRound)) {
-      hydrated.rounds.push(Logic.createRound(players, firstDealerId, currentRound));
-      hydrated.rounds.sort((a, b) => a.number - b.number);
-    }
-
-    if (!["setup", "running", "completed"].includes(hydrated.status)) {
-      hydrated.status = hydrated.rounds.length > 0 ? "running" : "setup";
-    }
-
-    return hydrated;
-  }
-
-  function hydrateRound(rawRound, players, firstDealerId) {
-    const roundNumber = Math.max(1, Number.parseInt(rawRound?.number, 10) || 1);
-    const base = Logic.createRound(players, firstDealerId, roundNumber);
-    const allowedPhases = new Set(["bids", "play", "tricks", "result"]);
-    const playerResults = {};
-
-    for (const player of players) {
-      const rawResult = rawRound?.playerResults?.[player.id] ?? {};
-      playerResults[player.id] = {
-        originalBid: Math.max(0, Number.parseInt(rawResult.originalBid, 10) || 0),
-        currentBid: Math.max(0, Number.parseInt(rawResult.currentBid, 10) || 0),
-        tricks: Math.max(0, Number.parseInt(rawResult.tricks, 10) || 0),
-        roundPoints: Number.isFinite(Number(rawResult.roundPoints)) ? Number(rawResult.roundPoints) : null
-      };
-    }
-
-    const rawCards = rawRound?.specialCards ?? {};
-    const round = {
-      ...base,
-      ...rawRound,
-      number: roundNumber,
-      dealerId: Logic.getDealerForRound(players, firstDealerId, roundNumber)?.id ?? null,
-      startingPlayerId: Logic.getStartingPlayerForRound(players, firstDealerId, roundNumber)?.id ?? null,
-      phase: allowedPhases.has(rawRound?.phase) ? rawRound.phase : "bids",
-      playerResults,
-      specialCards: {
-        cloud: hydrateCloud(rawCards.cloud),
-        bomb: { active: Boolean(rawCards.bomb?.active) },
-        witch: {
-          active: Boolean(rawCards.witch?.active),
-          secondEffect: ["cloud", "bomb"].includes(rawCards.witch?.secondEffect)
-            ? rawCards.witch.secondEffect
-            : null
-        },
-        secondCloud: hydrateCloud(rawCards.secondCloud),
-        secondBomb: { active: Boolean(rawCards.secondBomb?.active) }
-      },
-      completed: Boolean(rawRound?.completed),
-      completedAt: typeof rawRound?.completedAt === "string" ? rawRound.completedAt : null
-    };
-
-    normalizeSpecialDependencies(round);
-    if (!round.completed && round.phase === "result") {
-      round.phase = "tricks";
-    }
-
-    let recalculated = Logic.recalculateCurrentBids(round, players);
-
-    if (recalculated.completed) {
-      recalculated = Logic.calculateRoundPoints(recalculated, players);
-      recalculated.phase = "result";
-    }
-
-    return recalculated;
-  }
-
-  function hydrateCloud(rawCloud) {
-    return {
-      active: Boolean(rawCloud?.active),
-      playerId: typeof rawCloud?.playerId === "string" ? rawCloud.playerId : null,
-      change: rawCloud?.change === -1 ? -1 : rawCloud?.change === 1 ? 1 : 0
-    };
-  }
-
-  function normalizeSpecialDependencies(round) {
-    const cards = round.specialCards;
-
-    if (!cards.cloud.active) {
-      Object.assign(cards.cloud, { playerId: null, change: 0 });
-      if (cards.witch.secondEffect === "cloud") {
-        cards.witch.secondEffect = null;
-        Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0 });
-      }
-    }
-
-    if (!cards.bomb.active && cards.witch.secondEffect === "bomb") {
-      cards.witch.secondEffect = null;
-      cards.secondBomb.active = false;
-    }
-
-    // Ohne eine erste Wolke oder Bombe darf die Hexe nicht aktiv bleiben.
-    if (!cards.cloud.active && !cards.bomb.active) {
-      cards.witch.active = false;
-    }
-
-    if (!cards.witch.active) {
-      cards.witch.secondEffect = null;
-      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0 });
-      cards.secondBomb.active = false;
-    }
-
-    if (cards.witch.secondEffect === "cloud" && !cards.secondCloud.active) {
-      cards.witch.secondEffect = null;
-    }
-
-    if (cards.witch.secondEffect === "bomb" && !cards.secondBomb.active) {
-      cards.witch.secondEffect = null;
-    }
-
-    if (cards.witch.secondEffect !== "cloud") {
-      Object.assign(cards.secondCloud, { active: false, playerId: null, change: 0 });
-    }
-
-    if (cards.witch.secondEffect !== "bomb") {
-      cards.secondBomb.active = false;
-    }
-
   }
 
   // Navigation zwischen den sechs Ansichten aus index.html
@@ -371,7 +201,8 @@
 
     const storageAvailable = Storage.isStorageAvailable();
     const storageError = Storage.getLastError?.();
-    const text = message || storageError || (!storageAvailable
+    const externalWarning = [externalGameWarning, externalHistoryWarning].filter(Boolean).join(" ");
+    const text = message || externalWarning || storageError || (!storageAvailable
       ? "Der Browser stellt keinen dauerhaften lokalen Speicher bereit. Änderungen können beim Schließen verloren gehen."
       : "");
 
@@ -379,8 +210,24 @@
     warning.hidden = !text;
   }
 
+  function handleExternalStorageChange(event) {
+    if (event.storageArea !== localStorage
+      || ![Storage.STORAGE_KEY, Storage.HISTORY_KEY].includes(event.key)) {
+      return;
+    }
+
+    if (event.key === Storage.STORAGE_KEY) {
+      externalGameWarning = "Der Spielstand wurde in einem anderen Tab geändert. Lade diese Seite neu, bevor du weiterspielst.";
+    } else {
+      externalHistoryWarning = "Die History wurde in einem anderen Tab geändert. Lade diese Seite neu, um den aktuellen Stand zu sehen.";
+    }
+    updateStorageWarning();
+    showToast(event.key === Storage.STORAGE_KEY ? externalGameWarning : externalHistoryWarning);
+  }
+
   function openHistory() {
     const games = Storage.loadGameHistory();
+    externalHistoryWarning = "";
     if (games.length === 0) {
       showToast("Es sind noch keine abgeschlossenen Partien vorhanden.");
       refreshHomeScreen();
@@ -481,13 +328,16 @@
       const validationErrors = Logic.validateImportedGameState(candidate);
       if (validationErrors.length > 0) throw new Error(validationErrors[0]);
 
-      const shouldReplace = !Storage.hasSavedGame() || window.confirm(
+      const savedBeforeImport = Storage.loadGame();
+      const shouldReplace = !savedBeforeImport || window.confirm(
         "Der vorhandene Spielstand wird durch den importierten Spielstand ersetzt. Fortfahren?"
       );
       if (!shouldReplace) return;
 
       const importedState = hydrateState(candidate);
-      if (!Storage.saveGame(importedState)) {
+      if (!Storage.saveGame(importedState, {
+        expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null
+      })) {
         throw new Error("Der importierte Spielstand konnte nicht lokal gespeichert werden.");
       }
       if (importedState.status === "completed") {
@@ -1835,13 +1685,16 @@
     if (!state) state = Logic.createInitialGameState();
   }
 
-  function persistState() {
+  function persistState(options) {
     if (!state) return;
-    const saved = Storage.saveGame(state);
+    const saved = Storage.saveGame(state, options);
     if (!saved) {
-      updateStorageWarning("Der Spielstand konnte auf diesem Gerät nicht gespeichert werden. Exportiere den Spielstand, sobald die Speicherung wieder funktioniert.");
-      showToast("Der Spielstand konnte auf diesem Gerät nicht gespeichert werden.");
+      const error = Storage.getStorageErrors?.().gameError
+        || "Der Spielstand konnte auf diesem Gerät nicht gespeichert werden. Exportiere den Spielstand, sobald die Speicherung wieder funktioniert.";
+      updateStorageWarning(error);
+      showToast(error);
     } else {
+      externalGameWarning = "";
       updateStorageWarning();
     }
   }

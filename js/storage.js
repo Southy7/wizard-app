@@ -50,24 +50,56 @@
   }
 
   // Alle Speicherzugriffe bleiben in diesem Modul gekapselt.
-  function saveGame(state) {
+  function saveGame(state, options = {}) {
     if (!isStorageAvailable()) return false;
 
     try {
+      const rawStoredState = localStorage.getItem(STORAGE_KEY);
+      const storedState = rawStoredState ? safelyParseStoredGame(rawStoredState) : null;
+      const expectedUpdatedAt = Object.prototype.hasOwnProperty.call(options, "expectedUpdatedAt")
+        ? options.expectedUpdatedAt
+        : state?.updatedAt ?? null;
+
+      if (storedState && (storedState.updatedAt ?? null) !== expectedUpdatedAt) {
+        setError(
+          "gameError",
+          "Der Spielstand wurde in einem anderen Tab geändert. Diese Seite wurde nicht gespeichert; lade sie neu, bevor du weiterarbeitest."
+        );
+        return false;
+      }
+
       const payload = {
         ...state,
         version: "1.0",
         schemaVersion: Math.max(Number(state?.schemaVersion) || 0, 4),
-        updatedAt: new Date().toISOString()
+        updatedAt: createNextUpdatedAt(storedState?.updatedAt)
       };
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      if (state && typeof state === "object") state.updatedAt = payload.updatedAt;
       clearError("gameError");
       return true;
     } catch (error) {
       setError("gameError", "Der Spielstand konnte nicht lokal gespeichert werden.", error);
       return false;
     }
+  }
+
+  function safelyParseStoredGame(raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function createNextUpdatedAt(previousUpdatedAt) {
+    const previousTime = Date.parse(previousUpdatedAt);
+    const nextTime = Number.isNaN(previousTime)
+      ? Date.now()
+      : Math.max(Date.now(), previousTime + 1);
+    return new Date(nextTime).toISOString();
   }
 
   function loadGame() {

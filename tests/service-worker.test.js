@@ -7,13 +7,16 @@ const vm = require("node:vm");
 const listeners = {};
 const deletedCaches = [];
 const cacheWrites = [];
+let installedAppShell = [];
 let networkHandler = async () => {
   throw new Error("No network response configured.");
 };
 let cachedResponse = null;
 
 const cache = {
-  async addAll() {},
+  async addAll(resources) {
+    installedAppShell = [...resources];
+  },
   async put(key, response) {
     await Promise.resolve();
     cacheWrites.push({ key, response });
@@ -32,8 +35,8 @@ const context = vm.createContext({
     },
     async keys() {
       return [
-        "wizard-scoreboard-v1.0.29",
         "wizard-scoreboard-v1.0.30",
+        "wizard-scoreboard-v1.0.31",
         "another-application-cache"
       ];
     },
@@ -108,8 +111,11 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
 }
 
 (async () => {
+  await dispatchLifecycle("install");
+  assert.ok(installedAppShell.includes("./js/state-manager.js"));
+
   await dispatchLifecycle("activate");
-  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.29"]);
+  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.30"]);
 
   assert.equal(dispatchFetch({
     method: "GET",

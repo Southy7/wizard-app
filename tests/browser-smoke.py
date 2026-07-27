@@ -18,6 +18,7 @@ def build_inline_document() -> str:
     html = html.replace('<link rel="stylesheet" href="styles.css">', f"<style>{css}</style>")
     for script in (
         '<script defer src="js/game-logic.js"></script>',
+        '<script defer src="js/state-manager.js"></script>',
         '<script defer src="js/storage.js"></script>',
         '<script defer src="js/app.js"></script>',
     ):
@@ -29,6 +30,7 @@ def main() -> None:
     html = build_inline_document()
     scripts = [
         (ROOT / "js/game-logic.js").read_text(encoding="utf-8"),
+        (ROOT / "js/state-manager.js").read_text(encoding="utf-8"),
         (ROOT / "js/storage.js").read_text(encoding="utf-8"),
         (ROOT / "js/app.js").read_text(encoding="utf-8"),
     ]
@@ -81,6 +83,17 @@ def main() -> None:
         page.evaluate("localStorage.clear()")
         page.click("#btn-new-game")
         assert page.locator("#storage-warning").is_hidden()
+        page.evaluate(
+            """
+            window.dispatchEvent(new StorageEvent("storage", {
+              key: WizardStorage.STORAGE_KEY,
+              newValue: "{}",
+              storageArea: localStorage
+            }))
+            """
+        )
+        assert page.locator("#storage-warning").is_visible()
+        assert "anderen Tab" in page.locator("#storage-warning").text_content()
         assert page.locator("#screen-setup").is_visible()
         assert page.locator("#screen-setup h2").count() == 0
         assert page.get_by_text("Die Reihenfolge entspricht der Sitzordnung am Tisch.").count() == 0
