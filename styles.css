@@ -1,30 +1,37 @@
 /* Design tokens and global defaults */
 :root {
-  color-scheme: light dark;
-  --bg: #f3f6f5;
-  --surface: #ffffff;
-  --surface-soft: #edf4f2;
-  --surface-strong: #e1ece9;
-  --text: #17211f;
-  --muted: #5f6d69;
-  --border: #ced9d6;
-  --primary: #1f4f46;
-  --primary-hover: #173d36;
-  --primary-contrast: #ffffff;
-  --primary-soft: #e5f0ed;
-  --danger: #a72f2f;
-  --danger-soft: #fff0f0;
-  --danger-border: #d89a9a;
-  --success: #17663f;
-  --success-soft: #e9f7ef;
-  --success-border: #8cc6a5;
-  --warning: #8a5700;
-  --warning-soft: #fff5df;
-  --warning-border: #d5ad64;
-  --focus: #0b6fba;
-  --shadow: 0 12px 32px rgba(26, 47, 42, 0.10);
-  --radius: 18px;
-  --radius-small: 12px;
+  color-scheme: dark;
+  --bg: #0b0c0e;
+  --surface: #131417;
+  --surface-soft: #191a1e;
+  --surface-strong: #212227;
+  --text: #f3f0e9;
+  --muted: #a6a39b;
+  --border: #333238;
+  --gold-primary: #da9e37;
+  --gold-light: #fbd96d;
+  --gold-highlight: #efba4e;
+  --gold-dark: #a86c1c;
+  --gold-muted: #c28529;
+  --gold-border: rgba(218, 158, 55, 0.45);
+  --primary: var(--gold-primary);
+  --primary-hover: var(--gold-highlight);
+  --primary-active: var(--gold-dark);
+  --primary-contrast: #0b0b0c;
+  --primary-soft: #2c2112;
+  --danger: #f0a0a0;
+  --danger-soft: #2d1b1d;
+  --danger-border: #704247;
+  --success: #83c9a3;
+  --success-soft: #17291f;
+  --success-border: #3d6b51;
+  --warning: #dfbd79;
+  --warning-soft: #2c2517;
+  --warning-border: #6f5b31;
+  --focus: var(--gold-primary);
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  --radius: 16px;
+  --radius-small: 10px;
   --touch-target: 46px;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -44,9 +51,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   min-height: 100dvh;
-  background:
-    radial-gradient(circle at top left, rgba(31, 79, 70, 0.08), transparent 34rem),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -63,7 +68,7 @@ button {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(11, 111, 186, 0.55);
+  outline: 3px solid var(--gold-border);
   outline-offset: 2px;
 }
 
@@ -252,12 +257,18 @@ select:focus-visible {
 }
 
 .button-primary {
+  border-color: var(--gold-highlight);
   background: var(--primary);
   color: var(--primary-contrast);
+  box-shadow: 0 8px 22px rgba(218, 158, 55, 0.12);
 }
 
 .button-primary:hover:not(:disabled) {
   background: var(--primary-hover);
+}
+
+.button-primary:active:not(:disabled) {
+  background: var(--primary-active);
 }
 
 .button-secondary {
@@ -316,7 +327,8 @@ select:focus-visible {
   color: var(--muted);
   font-size: clamp(1rem, 4vw, 1.3rem);
   font-weight: 650;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .home-actions {
@@ -613,6 +625,24 @@ select:focus-visible {
   font-size: 1.3rem;
   font-weight: 900;
   cursor: pointer;
+}
+
+.stepper-button:not(:disabled),
+.value-button:not(:disabled) {
+  border-color: var(--gold-highlight);
+  background: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: 0 5px 14px rgba(218, 158, 55, 0.14);
+}
+
+.stepper-button:hover:not(:disabled),
+.value-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.stepper-button:active:not(:disabled),
+.value-button:active:not(:disabled) {
+  background: var(--primary-active);
 }
 
 .stepper-button:disabled,
@@ -920,7 +950,19 @@ select:focus-visible {
   min-height: 44px;
   padding: 0;
   border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 900;
   line-height: 1;
+}
+
+.value-button:disabled {
+  border-color: #3a3b3f;
+  background: #3a3b3f;
+  color: #a6a7aa;
+  opacity: 1;
 }
 
 .phase-summary {
@@ -1561,33 +1603,5 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-  }
-}
-
-/* Automatisches dunkles Farbschema */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1514;
-    --surface: #17201e;
-    --surface-soft: #1e2a27;
-    --surface-strong: #263530;
-    --text: #f2f7f5;
-    --muted: #aebbb7;
-    --border: #33433f;
-    --primary: #6bc4b1;
-    --primary-hover: #83d0bf;
-    --primary-contrast: #0d1714;
-    --primary-soft: #203a34;
-    --danger: #ff9a9a;
-    --danger-soft: #321d1d;
-    --danger-border: #7c4646;
-    --success: #75d7a6;
-    --success-soft: #173326;
-    --success-border: #3e7859;
-    --warning: #f2bd62;
-    --warning-soft: #362b16;
-    --warning-border: #806431;
-    --focus: #75bfff;
-    --shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   }
 }
