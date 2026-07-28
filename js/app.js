@@ -402,11 +402,23 @@
 
     const summary = document.createElement("div");
     summary.className = "phase-summary";
-    summary.append(createStatusCard(
-      validSum ? "success" : "error",
-      `Bid Total: ${sum}`,
-      ""
-    ));
+
+    const bidTotal = document.createElement("div");
+    bidTotal.className = "status-card bid-total-card";
+
+    const bidTotalLabel = document.createElement("strong");
+    bidTotalLabel.textContent = "Total Bids:";
+
+    const bidTotalValues = document.createElement("span");
+    bidTotalValues.className = `bid-total-values ${validSum ? "valid" : "invalid"}`;
+    bidTotalValues.textContent = `${sum} / ${round.number}`;
+    bidTotalValues.setAttribute(
+      "aria-label",
+      `${sum} total bids; ${round.number} total bids are not allowed`
+    );
+
+    bidTotal.append(bidTotalLabel, bidTotalValues);
+    summary.append(bidTotal);
 
     if (specialErrors.length > 0) {
       summary.append(createStatusCard("error", "Check Special Cards", specialErrors.join(" ")));
@@ -1060,9 +1072,11 @@
 
       const name = document.createElement("span");
       name.textContent = getPlayerDisplayNameById(player.id);
+      name.title = name.textContent;
 
       const points = document.createElement("strong");
       points.textContent = String(totals[player.id]);
+      points.setAttribute("aria-label", `${totals[player.id]} total points`);
 
       card.append(name, points);
       overview.append(card);

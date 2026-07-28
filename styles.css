@@ -428,9 +428,9 @@ select:focus-visible {
 }
 
 .game-round-title {
-  color: var(--muted);
-  font-size: clamp(0.82rem, 3.3vw, 1rem);
-  font-weight: 800;
+  color: #fff;
+  font-size: clamp(1.1rem, 4.5vw, 1.35rem);
+  font-weight: 900;
   text-align: center;
   white-space: nowrap;
 }
@@ -784,28 +784,29 @@ select:focus-visible {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 5px;
+  gap: 4px;
 }
 
 .seat-role-badge {
-  padding: 5px 8px;
+  padding: 3px 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
 .seat-role-badge.dealer {
-  border-color: var(--warning-border);
-  background: var(--warning-soft);
-  color: var(--warning);
+  border-color: #765b91;
+  background: #241b30;
+  color: #d6b4ff;
 }
 
 .seat-role-badge.starter {
-  border-color: var(--success-border);
-  background: var(--success-soft);
-  color: var(--success);
+  border-color: #3e8997;
+  background: #12262c;
+  color: #8fe7ff;
 }
 
 .form-errors {
@@ -826,39 +827,42 @@ select:focus-visible {
 .points-strip {
   display: grid;
   grid-template-columns: repeat(var(--player-count), minmax(0, 1fr));
-  column-gap: clamp(3px, 1.2vw, 6px);
+  gap: clamp(3px, 1vw, 6px);
   align-items: stretch;
 }
 
 .points-strip .points-card {
   min-width: 0;
-  padding: 7px 8px 3px;
-  border: 0;
-  border-top: 4px solid var(--player-color);
-  border-radius: 0;
-  background: transparent;
+  padding: 6px 2px 5px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--player-color);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.16);
   text-align: center;
-}
-
-.points-strip .points-card + .points-card {
-  border-left: 1px solid var(--border);
 }
 
 .points-card span,
 .points-card strong {
   display: block;
-  overflow-wrap: anywhere;
 }
 
 .points-card span {
   color: var(--text);
-  font-size: clamp(0.65rem, 2.6vw, 0.82rem);
-  font-weight: 850;
+  overflow: hidden;
+  font-size: clamp(0.6rem, 2.2vw, 0.78rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .points-card strong {
   margin-top: 3px;
-  font-size: clamp(0.88rem, 3.4vw, 1.08rem);
+  color: #fff;
+  font-size: clamp(0.9rem, 3.2vw, 1.15rem);
+  font-weight: 950;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -913,7 +917,7 @@ select:focus-visible {
 
 .value-stepper {
   display: grid;
-  grid-template-columns: 44px minmax(34px, 44px) 44px;
+  grid-template-columns: 32px minmax(34px, 44px) 32px;
   gap: 5px;
   align-items: center;
 }
@@ -936,24 +940,24 @@ select:focus-visible {
 }
 
 .value-display {
-  min-height: 44px;
+  min-height: 40px;
   display: grid;
   place-items: center;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
 .value-button {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 1.75rem;
+  font-size: 1.28rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -998,6 +1002,33 @@ select:focus-visible {
 
 .status-card strong:only-child {
   margin-bottom: 0;
+}
+
+.bid-total-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text);
+}
+
+.bid-total-card strong {
+  margin: 0;
+}
+
+.bid-total-values {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.bid-total-values.valid {
+  color: var(--success);
+}
+
+.bid-total-values.invalid {
+  color: var(--danger);
 }
 
 .status-card.success {
@@ -1546,14 +1577,14 @@ select:focus-visible {
   }
 
   .value-stepper {
-    grid-template-columns: 42px minmax(30px, 38px) 42px;
+    grid-template-columns: 30px minmax(30px, 38px) 30px;
     gap: 4px;
   }
 
   .value-button {
-    width: 42px;
-    height: 42px;
-    min-height: 42px;
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
   }
 
   .entry-row.has-quick-action .entry-controls {

@@ -195,16 +195,20 @@ def main() -> None:
         starter_badge_box = starter_row.locator(".starter").bounding_box()
         assert starter_name_box and starter_badge_box
         assert starter_badge_box["x"] >= starter_name_box["x"] + starter_name_box["width"]
-        bid_status = page.locator(".bid-panel .status-card")
-        assert bid_status.text_content().strip() == "Bid Total: 0"
-        assert "success" in bid_status.get_attribute("class")
+        bid_status = page.locator(".bid-panel .bid-total-card")
+        bid_values = bid_status.locator(".bid-total-values")
+        assert bid_status.locator("strong").text_content().strip() == "Total Bids:"
+        assert bid_values.text_content().strip() == "0 / 1"
+        assert bid_values.evaluate("(element) => element.classList.contains('valid')")
+        assert "success" not in bid_status.get_attribute("class")
+        assert "error" not in bid_status.get_attribute("class")
         page.locator(".entry-row").nth(0).locator(".value-button").nth(1).click()
-        assert bid_status.text_content().strip() == "Bid Total: 1"
-        assert "error" in bid_status.get_attribute("class")
+        assert bid_values.text_content().strip() == "1 / 1"
+        assert bid_values.evaluate("(element) => element.classList.contains('invalid')")
         assert page.get_by_role("button", name="Confirm Bids").is_disabled()
         page.locator(".entry-row").nth(1).locator(".value-button").nth(1).click()
-        assert bid_status.text_content().strip() == "Bid Total: 2"
-        assert "success" in bid_status.get_attribute("class")
+        assert bid_values.text_content().strip() == "2 / 1"
+        assert bid_values.evaluate("(element) => element.classList.contains('valid')")
         assert page.get_by_role("button", name="Confirm Bids").is_enabled()
         page.click('button:has-text("Confirm Bids")')
         assert page.locator("#game-round-overview").is_hidden()
