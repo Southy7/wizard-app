@@ -13,7 +13,8 @@
       showScreen,
       showToast,
       refreshHomeScreen,
-      updateStorageWarning
+      updateStorageWarning,
+      deleteMatchingActiveCompletedGame = () => true
     } = options;
     let selectedArchivedGame = null;
     let capacityWarning = "";
@@ -201,8 +202,14 @@
       if (!selectedArchivedGame) return;
 
       const label = formatArchivedGameDate(selectedArchivedGame);
-      if (!window.confirm(`Do you really want to delete the game "${label}" from history?`)) return;
+      if (
+        !window.confirm(
+          `Do you really want to delete the game "${label}" from history? A matching completed save will also be removed.`
+        )
+      )
+        return;
 
+      if (!deleteMatchingActiveCompletedGame([selectedArchivedGame.gameId])) return;
       if (!Storage.deleteCompletedGame(selectedArchivedGame.gameId)) {
         showStorageError("The game could not be deleted.");
         return;
@@ -218,10 +225,11 @@
       if (games.length === 0) return;
 
       const confirmed = window.confirm(
-        `Do you really want to delete all ${games.length} games? Export the archive first if you may want to restore it later.`
+        `Do you really want to delete all ${games.length} games? A matching completed save will also be removed. Export the archive first if you may want to restore it later.`
       );
       if (!confirmed) return;
 
+      if (!deleteMatchingActiveCompletedGame(games.map((game) => game.gameId))) return;
       if (!Storage.clearGameHistory()) {
         showStorageError("History could not be cleared.");
         return;

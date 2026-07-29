@@ -566,8 +566,9 @@ def main() -> None:
         assert page.locator("#btn-finished-go-home").text_content().strip() == "Home"
         with page.expect_download() as completed_download_info:
             page.click("#btn-finished-export-game")
+        completed_export_path = completed_download_info.value.path()
         completed_export = json.loads(
-            Path(completed_download_info.value.path()).read_text(encoding="utf-8")
+            Path(completed_export_path).read_text(encoding="utf-8")
         )
         assert completed_export["exportFormat"] == "wizard-scoreboard-game"
         assert completed_export["gameState"]["status"] == "completed"
@@ -656,8 +657,16 @@ def main() -> None:
         assert page.locator("#btn-history-export-all").is_disabled()
         assert page.locator("#btn-history-clear").is_disabled()
         assert page.locator("#btn-history").is_disabled()
+        page.click("#btn-history-home")
+        assert page.locator("#screen-home").is_visible()
+        assert page.evaluate("WizardStorage.loadGameHistory().length") == 0
+        assert page.evaluate("WizardStorage.loadGame()") is None
+        assert page.locator("#btn-continue-game").is_disabled()
 
-        page.set_input_files("#import-file-input", archive_path)
+        page.set_input_files("#import-file-input", completed_export_path)
+        page.wait_for_function("WizardStorage.loadGameHistory().length === 1")
+        assert page.evaluate("WizardStorage.loadGame().status") == "completed"
+        page.click("#btn-history")
         page.locator("#history-game-list .history-game-card").wait_for(state="visible")
         assert page.locator("#history-game-list .history-game-card").count() == 1
         assert page.locator("#btn-history-export-all").is_enabled()
@@ -666,6 +675,11 @@ def main() -> None:
         page.click("#btn-history-clear")
         assert page.get_by_text("No archived games available.").is_visible()
         assert page.locator("#btn-history").is_disabled()
+        page.click("#btn-history-home")
+        assert page.locator("#screen-home").is_visible()
+        assert page.evaluate("WizardStorage.loadGameHistory().length") == 0
+        assert page.evaluate("WizardStorage.loadGame()") is None
+        assert page.locator("#btn-continue-game").is_disabled()
 
         # Storage failure must keep the current game usable from memory.
         memory_page = browser.new_page(viewport={"width": 390, "height": 844})

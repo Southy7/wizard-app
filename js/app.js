@@ -143,7 +143,8 @@
           showScreen,
           showToast,
           refreshHomeScreen,
-          updateStorageWarning
+          updateStorageWarning,
+          deleteMatchingActiveCompletedGame
         })
       : createUnavailableHistoryController();
     importController = ImportControllerModule.createImportController({
@@ -671,6 +672,33 @@
 
   function persistState(options) {
     return persistenceController.persist(options);
+  }
+
+  function deleteMatchingActiveCompletedGame(gameIds) {
+    const deletedIds = new Set(Array.isArray(gameIds) ? gameIds : []);
+    if (deletedIds.size === 0) return true;
+
+    const storedState = Storage.loadGame();
+    const storedGameMatches =
+      storedState?.status === "completed" &&
+      typeof storedState.gameId === "string" &&
+      deletedIds.has(storedState.gameId);
+    const memoryGameMatches =
+      state?.status === "completed" && typeof state.gameId === "string" && deletedIds.has(state.gameId);
+
+    if (!storedGameMatches && !memoryGameMatches) return true;
+
+    if (storedGameMatches && !Storage.deleteGame()) {
+      const message =
+        Storage.getStorageErrors?.().gameError || "The matching completed save could not be deleted from this device.";
+      updateStorageWarning(message);
+      showToast(message);
+      return false;
+    }
+
+    if (memoryGameMatches) state = null;
+    if (!state) persistenceController.markStateLoaded();
+    return true;
   }
 
   function archiveCompletedGame(gameState) {

@@ -67,7 +67,7 @@ def main():
         stale_finish_context = browser.new_context()
         stale_finish = open_clean_page(stale_finish_context, url)
         start_game(stale_finish, rounds=1)
-        set_values(stale_finish, ".bid-panel", (1, 0, 0))
+        set_values(stale_finish, ".bid-panel", (0, 0, 0))
         stale_finish.get_by_role("button", name="Confirm Bids").click()
         stale_finish.get_by_role("button", name="Enter Tricks").click()
         set_values(stale_finish, ".tricks-panel", (1, 0, 0))

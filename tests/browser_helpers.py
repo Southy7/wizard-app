@@ -55,8 +55,7 @@ def start_game(page, rounds=1):
     page.dispatch_event("#rounds-input", "change")
     page.click("#setup-form button[type=submit]")
     page.click("#btn-summary-start")
-    if page.locator("#round-one-dialog").is_visible():
-        page.click("#btn-confirm-round-one-hint")
+    page.click("#btn-confirm-round-one-hint")
     assert_persisted(page)
 
 
