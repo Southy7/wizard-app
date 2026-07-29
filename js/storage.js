@@ -39,9 +39,7 @@
 
   function isStorageAvailable() {
     try {
-      const testKey = "__wizard_storage_test__";
-      localStorage.setItem(testKey, "1");
-      localStorage.removeItem(testKey);
+      localStorage.getItem(STORAGE_KEY);
       clearError("storageError");
       return true;
     } catch (error) {
@@ -52,7 +50,6 @@
 
   function saveGame(state, options = {}) {
     lastGameSaveConflict = false;
-    if (!isStorageAvailable()) return false;
 
     try {
       const rawStoredState = localStorage.getItem(STORAGE_KEY);
@@ -101,7 +98,10 @@
       clearError("gameError");
       return true;
     } catch (error) {
-      setError("gameError", "The game could not be saved locally.", error);
+      const message = isQuotaExceededError(error)
+        ? "Local storage is full. The game could not be saved. Export it or delete stored data."
+        : "The game could not be saved locally.";
+      setError("gameError", message, error);
       return false;
     }
   }
@@ -137,8 +137,6 @@
   }
 
   function loadGame() {
-    if (!isStorageAvailable()) return null;
-
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
@@ -169,8 +167,6 @@
   }
 
   function deleteGame() {
-    if (!isStorageAvailable()) return false;
-
     try {
       localStorage.removeItem(STORAGE_KEY);
       clearError("gameError");
@@ -182,7 +178,6 @@
   }
 
   function hasStoredData() {
-    if (!isStorageAvailable()) return false;
     try {
       return localStorage.getItem(STORAGE_KEY) !== null;
     } catch (error) {
@@ -192,8 +187,6 @@
   }
 
   function hasStoredHistoryData() {
-    if (!isStorageAvailable()) return false;
-
     try {
       return localStorage.getItem(HISTORY_KEY) !== null;
     } catch (error) {
@@ -203,8 +196,6 @@
   }
 
   function getRawGameHistoryData() {
-    if (!isStorageAvailable()) return null;
-
     try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (raw === null) {
@@ -223,8 +214,6 @@
   }
 
   function readGameHistorySnapshot() {
-    if (!isStorageAvailable()) return null;
-
     try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (!raw) {
@@ -286,7 +275,7 @@
   }
 
   function deleteCompletedGame(gameId) {
-    if (typeof gameId !== "string" || !gameId || !isStorageAvailable()) return false;
+    if (typeof gameId !== "string" || !gameId) return false;
 
     return updateGameHistory((history) => {
       const nextHistory = history.filter((game) => game.gameId !== gameId);
@@ -295,8 +284,6 @@
   }
 
   function clearGameHistory() {
-    if (!isStorageAvailable()) return false;
-
     try {
       for (let attempt = 0; attempt < HISTORY_WRITE_ATTEMPTS; attempt += 1) {
         const snapshot = readGameHistorySnapshot();
@@ -318,7 +305,7 @@
   }
 
   function resetDamagedGameHistory(expectedRaw) {
-    if (typeof expectedRaw !== "string" || !isStorageAvailable()) return false;
+    if (typeof expectedRaw !== "string") return false;
 
     try {
       // Delete only the reviewed payload; another tab may have replaced it in the meantime.
@@ -391,8 +378,6 @@
     transform,
     fallbackMessage = "The completed game could not be saved to the archive."
   ) {
-    if (!isStorageAvailable()) return { success: false, value: null };
-
     try {
       // localStorage has no transactions, so retry compare-and-set after a concurrent write.
       for (let attempt = 0; attempt < HISTORY_WRITE_ATTEMPTS; attempt += 1) {

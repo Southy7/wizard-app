@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const values = new Map();
 let failHistoryWrites = false;
 let failGameWrites = false;
+let failAllWritesWithQuota = false;
 let historyReadInterference = null;
 
 function withoutExpectedConsoleError(callback) {
@@ -19,6 +20,11 @@ function withoutExpectedConsoleError(callback) {
 
 global.localStorage = {
   setItem(key, value) {
+    if (failAllWritesWithQuota) {
+      const error = new Error("Storage quota exceeded");
+      error.name = "QuotaExceededError";
+      throw error;
+    }
     if (failGameWrites && String(key) === "wizard-scoreboard:game-state:v1") {
       const error = new Error("Storage blocked");
       error.name = "SecurityError";
@@ -332,6 +338,31 @@ assert.equal(Storage.deleteCompletedGame(secondCompletedGame.gameId), true);
 assert.equal(Storage.deleteCompletedGame("missing-game"), false);
 assert.equal(Storage.loadGameHistory().length, 1);
 
+// A full quota blocks writes, but existing data must remain readable, exportable, and removable.
+const gameValueBeforeFullQuota = localStorage.getItem(Storage.STORAGE_KEY);
+const historyValueBeforeFullQuota = localStorage.getItem(Storage.HISTORY_KEY);
+failAllWritesWithQuota = true;
+assert.equal(Storage.isStorageAvailable(), true);
+const gameLoadedWithFullQuota = Storage.loadGame();
+assert.equal(gameLoadedWithFullQuota.gameId, JSON.parse(gameValueBeforeFullQuota).gameId);
+assert.equal(Storage.loadGameHistory().length, 1);
+assert.equal(Storage.getRawGameHistoryData(), historyValueBeforeFullQuota);
+assert.equal(
+  withoutExpectedConsoleError(() => Storage.saveGame(gameLoadedWithFullQuota)),
+  false
+);
+assert.match(Storage.getStorageErrors().gameError, /storage is full/i);
+assert.equal(localStorage.getItem(Storage.STORAGE_KEY), gameValueBeforeFullQuota);
+assert.notEqual(Storage.loadGame(), null);
+assert.equal(Storage.deleteGame(), true);
+assert.equal(Storage.hasStoredData(), false);
+assert.equal(Storage.clearGameHistory(), true);
+assert.equal(Storage.hasStoredHistoryData(), false);
+failAllWritesWithQuota = false;
+localStorage.setItem(Storage.STORAGE_KEY, gameValueBeforeFullQuota);
+localStorage.setItem(Storage.HISTORY_KEY, historyValueBeforeFullQuota);
+assert.equal(Storage.isStorageAvailable(), true);
+
 const historyStatus = Storage.getHistoryStorageStatus();
 assert.equal(historyStatus.count, 1);
 assert.equal(historyStatus.softLimitReached, false);
@@ -437,7 +468,10 @@ assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
 assert.equal(Storage.getStorageErrors().gameError, "");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
+failAllWritesWithQuota = true;
 assert.equal(Storage.resetDamagedGameHistory(damagedHistoryValue), true);
+failAllWritesWithQuota = false;
+assert.equal(Storage.isStorageAvailable(), true);
 assert.deepEqual(Storage.loadGameHistory(), []);
 assert.equal(Storage.hasStoredHistoryData(), false);
 
