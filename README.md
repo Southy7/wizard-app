@@ -45,6 +45,7 @@ installs only after its complete app shell is available.
 The test suite requires Node.js, Python, and Playwright:
 
 ```bash
+npm ci
 python -m pip install -r requirements-test.txt
 python -m playwright install chromium
 npm test
@@ -56,17 +57,24 @@ Run only the faster core suite during development:
 npm run test:core
 ```
 
+Run linting, formatting validation, JavaScript type checks, and the complete test
+suite before a release:
+
+```bash
+npm run check
+```
+
 ## Architecture
 
-| Area | Responsibility |
-| --- | --- |
-| `js/game-logic.js` | Game rules, validation, rotation, and scoring |
-| `js/storage.js` | Local persistence, history, imports, and conflict-safe writes |
-| `js/file-utils.js` and `js/formatters.js` | Shared downloads and display formatting |
-| `js/*-controller.js` | Setup, rounds, special cards, history, and recovery flows |
-| `js/*-view.js` | Scoreboards, round results, rankings, and score history |
-| `styles.css` and `css/` | Shared design system and responsive feature styles |
-| `service-worker.js` | App-shell updates and offline availability |
+| Area                                      | Responsibility                                                |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| `js/game-logic.js`                        | Game rules, validation, rotation, and scoring                 |
+| `js/storage.js`                           | Local persistence, history, imports, and conflict-safe writes |
+| `js/file-utils.js` and `js/formatters.js` | Shared downloads and display formatting                       |
+| `js/*-controller.js`                      | Setup, rounds, special cards, history, and recovery flows     |
+| `js/*-view.js`                            | Scoreboards, round results, rankings, and score history       |
+| `styles.css` and `css/`                   | Shared design system and responsive feature styles            |
+| `service-worker.js`                       | App-shell updates and offline availability                    |
 
 The application uses framework-free HTML, CSS, and JavaScript. It has no runtime
 dependencies, backend, accounts, analytics, or automatic transfer of game data.

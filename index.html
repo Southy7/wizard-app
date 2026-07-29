@@ -1,593 +1,684 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b0c0e">
-  <meta name="description" content="Digital Scoreboard for Wizard">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Wizard">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0c0e" />
+    <meta name="description" content="Digital Scoreboard for Wizard" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Wizard" />
 
-  <title>Wizard Scoreboard</title>
+    <title>Wizard Scoreboard</title>
 
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png">
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" sizes="180x180">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="css/setup.css">
-  <link rel="stylesheet" href="css/game.css">
-  <link rel="stylesheet" href="css/results-history.css">
-  <link rel="stylesheet" href="css/dialogs.css">
-  <link rel="stylesheet" href="css/responsive.css">
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" sizes="180x180" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="css/setup.css" />
+    <link rel="stylesheet" href="css/game.css" />
+    <link rel="stylesheet" href="css/results-history.css" />
+    <link rel="stylesheet" href="css/dialogs.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
 
-  <script>
-    if ("serviceWorker" in navigator) {
-      // Reload only when an existing worker is replaced; first install must not interrupt startup.
-      let hadController = Boolean(navigator.serviceWorker.controller);
-      let isReloadingForUpdate = false;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (!hadController) {
-          hadController = true;
-          return;
-        }
-        if (isReloadingForUpdate) return;
-        isReloadingForUpdate = true;
-        window.location.reload();
-      });
-    }
-  </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        // Reload only when an existing worker is replaced; first install must not interrupt startup.
+        let hadController = Boolean(navigator.serviceWorker.controller);
+        let isReloadingForUpdate = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!hadController) {
+            hadController = true;
+            return;
+          }
+          if (isReloadingForUpdate) return;
+          isReloadingForUpdate = true;
+          window.location.reload();
+        });
+      }
+    </script>
 
-  <script defer src="js/game-logic.js"></script>
-  <script defer src="js/state-manager.js"></script>
-  <script defer src="js/storage.js"></script>
-  <script defer src="js/ui-components.js"></script>
-  <script defer src="js/file-utils.js"></script>
-  <script defer src="js/formatters.js"></script>
-  <script defer src="js/result-view.js"></script>
-  <script defer src="js/persistence-controller.js"></script>
-  <script defer src="js/setup-controller.js"></script>
-  <script defer src="js/history-controller.js"></script>
-  <script defer src="js/import-controller.js"></script>
-  <script defer src="js/game-view.js"></script>
-  <script defer src="js/round-result-view.js"></script>
-  <script defer src="js/round-controller.js"></script>
-  <script defer src="js/special-cards-controller.js"></script>
-  <script defer src="js/app.js"></script>
-</head>
-<body>
-  <noscript>
-    <div class="noscript-message">This application requires JavaScript.</div>
-  </noscript>
+    <script defer src="js/game-logic.js"></script>
+    <script defer src="js/state-manager.js"></script>
+    <script defer src="js/storage.js"></script>
+    <script defer src="js/ui-components.js"></script>
+    <script defer src="js/file-utils.js"></script>
+    <script defer src="js/formatters.js"></script>
+    <script defer src="js/result-view.js"></script>
+    <script defer src="js/persistence-controller.js"></script>
+    <script defer src="js/setup-controller.js"></script>
+    <script defer src="js/history-controller.js"></script>
+    <script defer src="js/import-controller.js"></script>
+    <script defer src="js/game-view.js"></script>
+    <script defer src="js/round-result-view.js"></script>
+    <script defer src="js/round-controller.js"></script>
+    <script defer src="js/special-cards-controller.js"></script>
+    <script defer src="js/app.js"></script>
+  </head>
+  <body>
+    <noscript>
+      <div class="noscript-message">This application requires JavaScript.</div>
+    </noscript>
 
-  <div class="app-shell">
-    <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
-    <section id="storage-conflict-actions" class="storage-conflict-actions" aria-label="Storage recovery actions" hidden>
-      <button id="btn-export-conflict-state" class="button button-secondary" type="button">
-        Export Unsaved State
-      </button>
-      <button id="btn-reload-after-conflict" class="button button-primary" type="button">
-        Reload Page
-      </button>
-    </section>
-
-    <main id="app" class="app-main">
-      <section id="screen-home" class="screen screen-home" aria-labelledby="home-title">
-        <header class="home-header">
-          <h1 id="home-title" tabindex="-1">Wizard</h1>
-          <p class="home-subtitle">Scoreboard</p>
-        </header>
-
-        <nav class="home-actions" aria-label="Main menu">
-          <button id="btn-new-game" class="button button-primary" type="button">New Game</button>
-          <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Continue Game</button>
-          <div class="home-secondary-actions">
-            <button id="btn-history" class="button button-secondary" type="button" disabled>History</button>
-            <button id="btn-import-game" class="button button-secondary" type="button">Import</button>
-          </div>
-        </nav>
-
-        <input id="import-file-input" type="file" accept="application/json,.json" hidden>
-
-        <footer class="home-footer">Saved locally · Version 1.0</footer>
+    <div class="app-shell">
+      <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
+      <section
+        id="storage-conflict-actions"
+        class="storage-conflict-actions"
+        aria-label="Storage recovery actions"
+        hidden
+      >
+        <button id="btn-export-conflict-state" class="button button-secondary" type="button">
+          Export Unsaved State
+        </button>
+        <button id="btn-reload-after-conflict" class="button button-primary" type="button">Reload Page</button>
       </section>
-      <section id="screen-setup" class="screen screen-setup" aria-label="New Game" hidden>
-        <form id="setup-form" novalidate>
-          <section class="panel" aria-labelledby="players-title">
-            <div class="panel-heading">
-              <h3 id="players-title" tabindex="-1">Players and Seating Order</h3>
-              <span id="player-count-badge" class="count-badge">3 / 6</span>
+
+      <main id="app" class="app-main">
+        <section id="screen-home" class="screen screen-home" aria-labelledby="home-title">
+          <header class="home-header">
+            <h1 id="home-title" tabindex="-1">Wizard</h1>
+            <p class="home-subtitle">Scoreboard</p>
+          </header>
+
+          <nav class="home-actions" aria-label="Main menu">
+            <button id="btn-new-game" class="button button-primary" type="button">New Game</button>
+            <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Continue Game</button>
+            <div class="home-secondary-actions">
+              <button id="btn-history" class="button button-secondary" type="button" disabled>History</button>
+              <button id="btn-import-game" class="button button-secondary" type="button">Import</button>
             </div>
+          </nav>
 
-            <div id="player-list" class="player-list"></div>
-            <button id="btn-add-player" class="button button-secondary full-width" type="button">Add Player</button>
-          </section>
+          <input id="import-file-input" type="file" accept="application/json,.json" hidden />
 
-          <section class="panel" aria-labelledby="rounds-title">
-            <h3 id="rounds-title">Game Length</h3>
-            <div id="round-mode-toggle" class="round-mode-toggle" role="radiogroup" aria-label="Select game length" data-mode="full">
-              <span class="round-mode-slider" aria-hidden="true"></span>
-              <button id="btn-round-mode-full" class="round-mode-button" type="button" role="radio" aria-checked="true">
-                Full Game (<span id="full-game-rounds">–</span> Rounds)
-              </button>
-              <button id="btn-round-mode-individual" class="round-mode-button" type="button" role="radio" aria-checked="false">
-                Individual
-              </button>
-            </div>
-
-            <div id="custom-round-controls" hidden>
-              <div class="stepper" aria-label="Set number of rounds">
-                <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Decrease round count">−</button>
-                <input id="rounds-input" class="stepper-input" type="number" inputmode="numeric" min="1" step="1" aria-label="Number of rounds">
-                <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Increase round count">+</button>
+          <footer class="home-footer">Saved locally · Version 1.0</footer>
+        </section>
+        <section id="screen-setup" class="screen screen-setup" aria-label="New Game" hidden>
+          <form id="setup-form" novalidate>
+            <section class="panel" aria-labelledby="players-title">
+              <div class="panel-heading">
+                <h3 id="players-title" tabindex="-1">Players and Seating Order</h3>
+                <span id="player-count-badge" class="count-badge">3 / 6</span>
               </div>
-              <p id="rounds-message" class="status-message" aria-live="polite"></p>
+
+              <div id="player-list" class="player-list"></div>
+              <button id="btn-add-player" class="button button-secondary full-width" type="button">Add Player</button>
+            </section>
+
+            <section class="panel" aria-labelledby="rounds-title">
+              <h3 id="rounds-title">Game Length</h3>
+              <div
+                id="round-mode-toggle"
+                class="round-mode-toggle"
+                role="radiogroup"
+                aria-label="Select game length"
+                data-mode="full"
+              >
+                <span class="round-mode-slider" aria-hidden="true"></span>
+                <button
+                  id="btn-round-mode-full"
+                  class="round-mode-button"
+                  type="button"
+                  role="radio"
+                  aria-checked="true"
+                >
+                  Full Game (<span id="full-game-rounds">–</span> Rounds)
+                </button>
+                <button
+                  id="btn-round-mode-individual"
+                  class="round-mode-button"
+                  type="button"
+                  role="radio"
+                  aria-checked="false"
+                >
+                  Individual
+                </button>
+              </div>
+
+              <div id="custom-round-controls" hidden>
+                <div class="stepper" aria-label="Set number of rounds">
+                  <button id="btn-rounds-minus" class="stepper-button" type="button" aria-label="Decrease round count">
+                    −
+                  </button>
+                  <input
+                    id="rounds-input"
+                    class="stepper-input"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    step="1"
+                    aria-label="Number of rounds"
+                  />
+                  <button id="btn-rounds-plus" class="stepper-button" type="button" aria-label="Increase round count">
+                    +
+                  </button>
+                </div>
+                <p id="rounds-message" class="status-message" aria-live="polite"></p>
+              </div>
+            </section>
+
+            <div id="form-errors" class="form-errors" role="alert" aria-live="assertive" hidden></div>
+            <div class="setup-actions">
+              <button id="btn-setup-home" class="setup-home-button" type="button" aria-label="Home" title="Home">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z" />
+                </svg>
+              </button>
+              <button class="button button-primary full-width" type="submit">Continue</button>
             </div>
+          </form>
+        </section>
+        <section id="screen-setup-summary" class="screen screen-setup-summary" aria-labelledby="summary-title" hidden>
+          <section class="panel summary-panel">
+            <h2 id="summary-title" tabindex="-1">Summary</h2>
+            <div class="summary-list" aria-label="Game details">
+              <div id="summary-player-count">3 Players</div>
+              <div id="summary-round-count">20 Rounds</div>
+              <div>Random Dealer</div>
+            </div>
+            <section class="seat-order-section" aria-labelledby="seat-order-title">
+              <h3 id="seat-order-title">Seating Order</h3>
+              <ol id="summary-seat-order" class="seat-order-list"></ol>
+            </section>
           </section>
 
-          <div id="form-errors" class="form-errors" role="alert" aria-live="assertive" hidden></div>
-          <div class="setup-actions">
-            <button id="btn-setup-home" class="setup-home-button" type="button" aria-label="Home" title="Home">
+          <div class="round-actions">
+            <button id="btn-summary-back" class="button button-secondary" type="button">Back</button>
+            <button id="btn-summary-start" class="button button-primary" type="button">Start Game</button>
+          </div>
+        </section>
+        <section id="screen-game" class="screen screen-game" aria-labelledby="game-phase-label game-title" hidden>
+          <div class="game-topbar">
+            <div class="game-utility-actions">
+              <button
+                id="btn-game-help"
+                class="setup-home-button game-help-button"
+                type="button"
+                aria-label="Help"
+                title="Help"
+              >
+                ?
+              </button>
+              <button
+                id="btn-game-cards"
+                class="setup-home-button game-card-button"
+                type="button"
+                aria-label="Special Cards"
+                title="Special Cards"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <rect x="5" y="3" width="14" height="18" rx="2" />
+                  <path d="M9 8h6M9 12h6M9 16h4" />
+                </svg>
+              </button>
+            </div>
+            <p id="game-title" class="game-round-title">Round 1 of 20</p>
+            <button
+              id="btn-game-home"
+              class="setup-home-button game-home-button"
+              type="button"
+              aria-label="Home"
+              title="Home"
+            >
               <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
+                <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z" />
               </svg>
             </button>
-            <button class="button button-primary full-width" type="submit">Continue</button>
           </div>
-        </form>
-      </section>
-      <section id="screen-setup-summary" class="screen screen-setup-summary" aria-labelledby="summary-title" hidden>
-        <section class="panel summary-panel">
-          <h2 id="summary-title" tabindex="-1">Summary</h2>
-          <div class="summary-list" aria-label="Game details">
-            <div id="summary-player-count">3 Players</div>
-            <div id="summary-round-count">20 Rounds</div>
-            <div>Random Dealer</div>
-          </div>
-          <section class="seat-order-section" aria-labelledby="seat-order-title">
-            <h3 id="seat-order-title">Seating Order</h3>
-            <ol id="summary-seat-order" class="seat-order-list"></ol>
-          </section>
-        </section>
+          <h2 id="game-phase-label" class="visually-hidden" tabindex="-1">Bids</h2>
 
-        <div class="round-actions">
-          <button id="btn-summary-back" class="button button-secondary" type="button">Back</button>
-          <button id="btn-summary-start" class="button button-primary" type="button">Start Game</button>
-        </div>
-      </section>
-      <section id="screen-game" class="screen screen-game" aria-labelledby="game-phase-label game-title" hidden>
-        <div class="game-topbar">
-          <div class="game-utility-actions">
-            <button id="btn-game-help" class="setup-home-button game-help-button" type="button" aria-label="Help" title="Help">?</button>
-            <button id="btn-game-cards" class="setup-home-button game-card-button" type="button" aria-label="Special Cards" title="Special Cards">
+          <div id="game-round-overview" class="panel compact-panel" aria-label="Total scores" hidden>
+            <div id="game-total-points" class="game-total-points"></div>
+          </div>
+
+          <div id="game-content" class="game-content"></div>
+        </section>
+        <section id="screen-history" class="screen screen-history" aria-labelledby="history-page-title" hidden>
+          <div class="screen-heading history-heading">
+            <h2 id="history-page-title" tabindex="-1">History</h2>
+            <p id="history-storage-status" class="history-storage-status" aria-live="polite"></p>
+            <button
+              id="btn-history-home"
+              class="setup-home-button history-home-button"
+              type="button"
+              aria-label="Home"
+              title="Home"
+            >
               <svg aria-hidden="true" viewBox="0 0 24 24">
-                <rect x="5" y="3" width="14" height="18" rx="2"/>
-                <path d="M9 8h6M9 12h6M9 16h4"/>
+                <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z" />
               </svg>
             </button>
           </div>
-          <p id="game-title" class="game-round-title">Round 1 of 20</p>
-          <button id="btn-game-home" class="setup-home-button game-home-button" type="button" aria-label="Home" title="Home">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
-            </svg>
-          </button>
-        </div>
-        <h2 id="game-phase-label" class="visually-hidden" tabindex="-1">Bids</h2>
 
-        <div id="game-round-overview" class="panel compact-panel" aria-label="Total scores" hidden>
-          <div id="game-total-points" class="game-total-points"></div>
-        </div>
+          <div id="history-list-view">
+            <section class="panel" aria-label="Archived games">
+              <div id="history-game-list" class="history-game-list"></div>
+            </section>
 
-        <div id="game-content" class="game-content"></div>
-      </section>
-      <section id="screen-history" class="screen screen-history" aria-labelledby="history-page-title" hidden>
-        <div class="screen-heading history-heading">
-          <h2 id="history-page-title" tabindex="-1">History</h2>
-          <p id="history-storage-status" class="history-storage-status" aria-live="polite"></p>
-          <button id="btn-history-home" class="setup-home-button history-home-button" type="button" aria-label="Home" title="Home">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/>
-            </svg>
-          </button>
-        </div>
-
-        <div id="history-list-view">
-          <section class="panel" aria-label="Archived games">
-            <div id="history-game-list" class="history-game-list"></div>
-          </section>
-
-          <div class="history-toolbar">
-            <button id="btn-history-export-all" class="button button-secondary" type="button">Export Archive</button>
-            <button id="btn-history-import" class="button button-secondary" type="button">Import Archive</button>
-          </div>
-          <button id="btn-history-clear" class="button button-danger full-width" type="button">Clear All History</button>
-        </div>
-
-        <div id="history-recovery-view" class="history-recovery-view" hidden>
-          <section class="panel history-recovery-panel" aria-labelledby="history-recovery-title">
-            <h3 id="history-recovery-title">History Recovery</h3>
-            <p id="history-recovery-message">
-              The saved history is damaged and cannot be opened. Export the damaged data before resetting it if you may need it later.
-            </p>
-            <div class="history-recovery-actions">
-              <button id="btn-history-export-damaged" class="button button-secondary" type="button">
-                Export damaged data
-              </button>
-              <button id="btn-history-reset-damaged" class="button button-danger" type="button">
-                Reset history
-              </button>
+            <div class="history-toolbar">
+              <button id="btn-history-export-all" class="button button-secondary" type="button">Export Archive</button>
+              <button id="btn-history-import" class="button button-secondary" type="button">Import Archive</button>
             </div>
-          </section>
-        </div>
-
-        <div id="history-detail-view" class="history-detail-view" hidden>
-          <section class="panel history-detail-ranking-panel" aria-labelledby="history-detail-title">
-            <h3 id="history-detail-title">Final Result</h3>
-            <div id="history-detail-ranking" class="ranking-list" aria-label="Final standings"></div>
-          </section>
-
-          <section class="panel" aria-labelledby="history-score-title">
-            <h3 id="history-score-title">Score History</h3>
-            <div id="history-score-content" class="history-scroll"></div>
-          </section>
-
-          <div class="round-actions history-detail-actions">
-            <button id="btn-history-export-game" class="button button-secondary" type="button">Export Game</button>
-            <button id="btn-history-delete-game" class="button button-danger" type="button">Delete Game</button>
+            <button id="btn-history-clear" class="button button-danger full-width" type="button">
+              Clear All History
+            </button>
           </div>
 
-          <button id="btn-history-list-back" class="button button-secondary full-width" type="button">Back to Overview</button>
-        </div>
-      </section>
-      <section id="screen-finished" class="screen screen-finished" aria-labelledby="finished-title" hidden>
-        <section class="panel final-ranking-panel" aria-labelledby="finished-title">
-          <h2 id="finished-title" tabindex="-1">Final Result</h2>
-          <div id="final-ranking" class="ranking-list" aria-label="Final standings"></div>
+          <div id="history-recovery-view" class="history-recovery-view" hidden>
+            <section class="panel history-recovery-panel" aria-labelledby="history-recovery-title">
+              <h3 id="history-recovery-title">History Recovery</h3>
+              <p id="history-recovery-message">
+                The saved history is damaged and cannot be opened. Export the damaged data before resetting it if you
+                may need it later.
+              </p>
+              <div class="history-recovery-actions">
+                <button id="btn-history-export-damaged" class="button button-secondary" type="button">
+                  Export damaged data
+                </button>
+                <button id="btn-history-reset-damaged" class="button button-danger" type="button">Reset history</button>
+              </div>
+            </section>
+          </div>
+
+          <div id="history-detail-view" class="history-detail-view" hidden>
+            <section class="panel history-detail-ranking-panel" aria-labelledby="history-detail-title">
+              <h3 id="history-detail-title">Final Result</h3>
+              <div id="history-detail-ranking" class="ranking-list" aria-label="Final standings"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="history-score-title">
+              <h3 id="history-score-title">Score History</h3>
+              <div id="history-score-content" class="history-scroll"></div>
+            </section>
+
+            <div class="round-actions history-detail-actions">
+              <button id="btn-history-export-game" class="button button-secondary" type="button">Export Game</button>
+              <button id="btn-history-delete-game" class="button button-danger" type="button">Delete Game</button>
+            </div>
+
+            <button id="btn-history-list-back" class="button button-secondary full-width" type="button">
+              Back to Overview
+            </button>
+          </div>
         </section>
+        <section id="screen-finished" class="screen screen-finished" aria-labelledby="finished-title" hidden>
+          <section class="panel final-ranking-panel" aria-labelledby="finished-title">
+            <h2 id="finished-title" tabindex="-1">Final Result</h2>
+            <div id="final-ranking" class="ranking-list" aria-label="Final standings"></div>
+          </section>
 
-        <section class="panel" aria-labelledby="history-title">
-          <h3 id="history-title">Score History</h3>
-          <div id="final-score-history" class="history-scroll"></div>
+          <section class="panel" aria-labelledby="history-title">
+            <h3 id="history-title">Score History</h3>
+            <div id="final-score-history" class="history-scroll"></div>
+          </section>
+
+          <div class="round-actions">
+            <button id="btn-review-last-round" class="button button-secondary" type="button">View Last Round</button>
+            <button id="btn-finished-export-game" class="button button-secondary" type="button">Export Game</button>
+            <button id="btn-finished-go-home" class="button button-primary" type="button">Home</button>
+          </div>
         </section>
+      </main>
+    </div>
 
-        <div class="round-actions">
-          <button id="btn-review-last-round" class="button button-secondary" type="button">View Last Round</button>
-          <button id="btn-finished-export-game" class="button button-secondary" type="button">Export Game</button>
-          <button id="btn-finished-go-home" class="button button-primary" type="button">Home</button>
+    <dialog id="round-one-dialog" class="app-dialog">
+      <div class="dialog-content">
+        <p class="dialog-icon" aria-hidden="true">🃏</p>
+        <h2>Round 1 Reminder</h2>
+        <p><strong>Do not look at your card!</strong></p>
+        <p>Hold your card against your forehead so only the other players can see it.</p>
+        <button id="btn-confirm-round-one-hint" class="button button-primary full-width" type="button">Got It</button>
+      </div>
+    </dialog>
+
+    <dialog id="game-help-dialog" class="app-dialog game-help-dialog" aria-labelledby="game-help-dialog-title">
+      <div class="dialog-content game-help-content">
+        <div class="dialog-heading game-help-heading">
+          <div>
+            <p class="eyebrow">How this page works</p>
+            <h2 id="game-help-dialog-title">Help</h2>
+          </div>
+          <button id="btn-close-game-help-dialog" class="button button-secondary button-small" type="button">
+            Done
+          </button>
         </div>
-      </section>
-    </main>
-  </div>
+        <p id="game-help-intro" class="game-help-intro"></p>
+        <ul id="game-help-steps" class="game-help-steps"></ul>
+      </div>
+    </dialog>
 
-  <dialog id="round-one-dialog" class="app-dialog">
-    <div class="dialog-content">
-      <p class="dialog-icon" aria-hidden="true">🃏</p>
-      <h2>Round 1 Reminder</h2>
-      <p><strong>Do not look at your card!</strong></p>
-      <p>Hold your card against your forehead so only the other players can see it.</p>
-      <button id="btn-confirm-round-one-hint" class="button button-primary full-width" type="button">Got It</button>
-    </div>
-  </dialog>
-
-  <dialog id="game-help-dialog" class="app-dialog game-help-dialog" aria-labelledby="game-help-dialog-title">
-    <div class="dialog-content game-help-content">
-      <div class="dialog-heading game-help-heading">
-        <div>
-          <p class="eyebrow">How this page works</p>
-          <h2 id="game-help-dialog-title">Help</h2>
+    <dialog
+      id="special-cards-dialog"
+      class="app-dialog special-cards-dialog"
+      aria-labelledby="special-cards-dialog-title"
+    >
+      <div class="dialog-content special-cards-reference-content">
+        <div class="dialog-heading special-cards-reference-heading">
+          <h2 id="special-cards-dialog-title">Special Cards</h2>
+          <button id="btn-close-special-cards-dialog" class="button button-secondary button-small" type="button">
+            Done
+          </button>
         </div>
-        <button id="btn-close-game-help-dialog" class="button button-secondary button-small" type="button">Done</button>
-      </div>
-      <p id="game-help-intro" class="game-help-intro"></p>
-      <ul id="game-help-steps" class="game-help-steps"></ul>
-    </div>
-  </dialog>
+        <p class="special-cards-reference-intro">
+          Special cards used during a trick may be played even when you could follow suit.
+        </p>
 
-  <dialog id="special-cards-dialog" class="app-dialog special-cards-dialog" aria-labelledby="special-cards-dialog-title">
-    <div class="dialog-content special-cards-reference-content">
-      <div class="dialog-heading special-cards-reference-heading">
-        <h2 id="special-cards-dialog-title">Special Cards</h2>
-        <button id="btn-close-special-cards-dialog" class="button button-secondary button-small" type="button">Done</button>
-      </div>
-      <p class="special-cards-reference-intro">
-        Special cards used during a trick may be played even when you could follow suit.
-      </p>
+        <div class="special-card-reference-list">
+          <article class="special-card-reference shapeshifter-reference" aria-labelledby="shapeshifter-reference-title">
+            <h3 id="shapeshifter-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 5h7v9H7l-3-3V5Zm9 5h7v9h-3l-3 2v-2h-1v-9Z" />
+                  <path d="M6.5 8h2M15.5 13h2M6.5 11c.7.8 1.3.8 2 0m7 5c.7-.8 1.3-.8 2 0" />
+                </svg>
+              </span>
+              Shapeshifter
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  When played, choose whether it acts as a Fool or a Wizard. It then follows all rules of that card.
+                </dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
 
-      <div class="special-card-reference-list">
-        <article class="special-card-reference shapeshifter-reference" aria-labelledby="shapeshifter-reference-title">
-          <h3 id="shapeshifter-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 5h7v9H7l-3-3V5Zm9 5h7v9h-3l-3 2v-2h-1v-9Z"/>
-                <path d="M6.5 8h2M15.5 13h2M6.5 11c.7.8 1.3.8 2 0m7 5c.7-.8 1.3-.8 2 0"/>
-              </svg>
-            </span>
-            Shapeshifter
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>When played, choose whether it acts as a Fool or a Wizard. It then follows all rules of that card.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>The dealer chooses the trump suit.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference dragon-reference" aria-labelledby="dragon-reference-title">
+            <h3 id="dragon-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 18c4-1 4-6 8-8 2-1 4-1 7 0l-3-3 1-3c-4 1-7 3-9 6-2 3-2 6-4 8Z" />
+                  <path d="m11 12 4 2 3-1m-8 2 2 4m5-9 3 5-3 4" />
+                </svg>
+              </span>
+              Dragon
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  The highest card, even above a Wizard. It wins every trick unless the Fairy is in the same trick.
+                </dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>Use the same follow-suit rules as for a Wizard.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference dragon-reference" aria-labelledby="dragon-reference-title">
-          <h3 id="dragon-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 18c4-1 4-6 8-8 2-1 4-1 7 0l-3-3 1-3c-4 1-7 3-9 6-2 3-2 6-4 8Z"/>
-                <path d="m11 12 4 2 3-1m-8 2 2 4m5-9 3 5-3 4"/>
-              </svg>
-            </span>
-            Dragon
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>The highest card, even above a Wizard. It wins every trick unless the Fairy is in the same trick.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>Use the same follow-suit rules as for a Wizard.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>The dealer chooses the trump suit.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference fairy-reference" aria-labelledby="fairy-reference-title">
+            <h3 id="fairy-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m12 3 1.2 5.8L19 10l-5.8 1.2L12 17l-1.2-5.8L5 10l5.8-1.2L12 3Z" />
+                  <path d="m18 16 .6 2.4L21 19l-2.4.6L18 22l-.6-2.4L15 19l2.4-.6L18 16Z" />
+                </svg>
+              </span>
+              Fairy
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>The lowest card, below a Fool. If the Fairy and Dragon share a trick, the Fairy wins it.</dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>Use the same follow-suit rules as for a Fool.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>There is no trump suit this round.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference fairy-reference" aria-labelledby="fairy-reference-title">
-          <h3 id="fairy-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="m12 3 1.2 5.8L19 10l-5.8 1.2L12 17l-1.2-5.8L5 10l5.8-1.2L12 3Z"/>
-                <path d="m18 16 .6 2.4L21 19l-2.4.6L18 22l-.6-2.4L15 19l2.4-.6L18 16Z"/>
-              </svg>
-            </span>
-            Fairy
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>The lowest card, below a Fool. If the Fairy and Dragon share a trick, the Fairy wins it.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>Use the same follow-suit rules as for a Fool.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>There is no trump suit this round.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference bomb-reference" aria-labelledby="bomb-reference-title">
+            <h3 id="bomb-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="11" cy="14" r="6" />
+                  <path d="m15 9 2-2m-4 1 3 3m1-5 1.5-1.5M19 4l1-1" />
+                </svg>
+              </span>
+              Bomb
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>Nobody wins the trick and it counts toward no bid. Whoever would have won leads the next trick.</dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>Use the same follow-suit rules as for a Fool.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>There is no trump suit this round.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference bomb-reference" aria-labelledby="bomb-reference-title">
-          <h3 id="bomb-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <circle cx="11" cy="14" r="6"/>
-                <path d="m15 9 2-2m-4 1 3 3m1-5 1.5-1.5M19 4l1-1"/>
-              </svg>
-            </span>
-            Bomb
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>Nobody wins the trick and it counts toward no bid. Whoever would have won leads the next trick.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>Use the same follow-suit rules as for a Fool.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>There is no trump suit this round.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference werewolf-reference" aria-labelledby="werewolf-reference-title">
+            <h3 id="werewolf-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m7 5 3 3h4l3-3 2 6-2 7-5 3-5-3-2-7 2-6Z" />
+                  <path d="M9 13h1m4 0h1m-5 4 2 1 2-1" />
+                </svg>
+              </span>
+              Werewolf
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  Before bidding, its holder swaps it for the revealed trump card, takes that card, and chooses any
+                  trump suit or no trump.
+                </dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference werewolf-reference" aria-labelledby="werewolf-reference-title">
-          <h3 id="werewolf-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="m7 5 3 3h4l3-3 2 6-2 7-5 3-5-3-2-7 2-6Z"/>
-                <path d="M9 13h1m4 0h1m-5 4 2 1 2-1"/>
-              </svg>
-            </span>
-            Werewolf
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>Before bidding, its holder swaps it for the revealed trump card, takes that card, and chooses any trump suit or no trump.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>The dealer chooses the trump suit.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference juggler-reference" aria-labelledby="juggler-reference-title">
+            <h3 id="juggler-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="7" cy="7" r="2" />
+                  <circle cx="17" cy="7" r="2" />
+                  <circle cx="12" cy="13" r="2" />
+                  <path d="M6 18c3 3 9 3 12 0M5 12c-1 3 0 5 2 7m12-7c1 3 0 5-2 7" />
+                </svg>
+              </span>
+              Juggler
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  Value 7½ in a chosen suit. After the trick, everyone passes one hand card face down clockwise, even
+                  with a Bomb, except after the final trick.
+                </dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>The chosen suit must be followed.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference juggler-reference" aria-labelledby="juggler-reference-title">
-          <h3 id="juggler-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <circle cx="7" cy="7" r="2"/>
-                <circle cx="17" cy="7" r="2"/>
-                <circle cx="12" cy="13" r="2"/>
-                <path d="M6 18c3 3 9 3 12 0M5 12c-1 3 0 5 2 7m12-7c1 3 0 5-2 7"/>
-              </svg>
-            </span>
-            Juggler
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>Value 7½ in a chosen suit. After the trick, everyone passes one hand card face down clockwise, even with a Bomb, except after the final trick.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>The chosen suit must be followed.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>The dealer chooses the trump suit.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference cloud-reference" aria-labelledby="cloud-reference-title">
+            <h3 id="cloud-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M6.5 18h11a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.4A3.3 3.3 0 0 0 6.5 18Z" />
+                </svg>
+              </span>
+              Cloud
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  Value 9¾ in a chosen suit. The trick winner immediately changes their bid by −1 or +1. A Bomb in the
+                  same trick cancels this change.
+                </dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>The chosen suit must be followed.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference cloud-reference" aria-labelledby="cloud-reference-title">
-          <h3 id="cloud-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M6.5 18h11a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.4A3.3 3.3 0 0 0 6.5 18Z"/>
-              </svg>
-            </span>
-            Cloud
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>Value 9¾ in a chosen suit. The trick winner immediately changes their bid by −1 or +1. A Bomb in the same trick cancels this change.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>The chosen suit must be followed.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>The dealer chooses the trump suit.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference witch-reference" aria-labelledby="witch-reference-title">
+            <h3 id="witch-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m12 3 5 11H7L12 3Zm-7 15h14M8 14l-2 4m10-4 2 4" />
+                </svg>
+              </span>
+              Witch
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  The lowest card, below the Fool and Fairy. After resolving the trick, swap one hand card for any card
+                  in it except the Witch. The new card has no effect.
+                </dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>Use the same follow-suit rules as for a Fool.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>There is no trump suit this round.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference witch-reference" aria-labelledby="witch-reference-title">
-          <h3 id="witch-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="m12 3 5 11H7L12 3Zm-7 15h14M8 14l-2 4m10-4 2 4"/>
-              </svg>
-            </span>
-            Witch
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>The lowest card, below the Fool and Fairy. After resolving the trick, swap one hand card for any card in it except the Witch. The new card has no effect.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>Use the same follow-suit rules as for a Fool.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>There is no trump suit this round.</dd>
-            </div>
-          </dl>
-        </article>
+          <article class="special-card-reference vampire-reference" aria-labelledby="vampire-reference-title">
+            <h3 id="vampire-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 8c3 0 5 1 7 4l2-3 2 3c2-3 4-4 7-4-1 6-4 10-9 12C7 18 4 14 3 8Z" />
+                  <path d="m9 14 3 2 3-2" />
+                </svg>
+              </span>
+              Vampire
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>
+                  Copies the revealed trump card and all its effects. If that card is the Werewolf, reveal another card
+                  and copy that instead.
+                </dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>Use the follow-suit rules of the copied card.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
 
-        <article class="special-card-reference vampire-reference" aria-labelledby="vampire-reference-title">
-          <h3 id="vampire-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M3 8c3 0 5 1 7 4l2-3 2 3c2-3 4-4 7-4-1 6-4 10-9 12C7 18 4 14 3 8Z"/>
-                <path d="m9 14 3 2 3-2"/>
-              </svg>
-            </span>
-            Vampire
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>Copies the revealed trump card and all its effects. If that card is the Werewolf, reveal another card and copy that instead.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>Use the follow-suit rules of the copied card.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>The dealer chooses the trump suit.</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article class="special-card-reference dark-eye-reference" aria-labelledby="dark-eye-reference-title">
-          <h3 id="dark-eye-reference-title">
-            <span class="special-card-reference-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
-                <circle cx="12" cy="12" r="3.2"/>
-                <circle cx="12" cy="12" r="1"/>
-              </svg>
-            </span>
-            The Dark Eye
-          </h3>
-          <dl>
-            <div>
-              <dt>Effect</dt>
-              <dd>Set it aside, draw three cards, choose one to play, and return the other two face down.</dd>
-            </div>
-            <div>
-              <dt>Leading a trick</dt>
-              <dd>The chosen card becomes the lead card and follows its normal rules.</dd>
-            </div>
-            <div>
-              <dt>Trump revealed</dt>
-              <dd>Draw three cards and choose one of them to determine the trump suit. Return the other two face down.</dd>
-            </div>
-          </dl>
-        </article>
-      </div>
-    </div>
-  </dialog>
-
-  <dialog id="cloud-dialog" class="app-dialog">
-    <div class="dialog-content">
-      <div class="dialog-heading">
-        <div>
-          <p id="cloud-dialog-kicker" class="eyebrow">Cloud</p>
-          <h2>Change Bid</h2>
+          <article class="special-card-reference dark-eye-reference" aria-labelledby="dark-eye-reference-title">
+            <h3 id="dark-eye-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                  <circle cx="12" cy="12" r="3.2" />
+                  <circle cx="12" cy="12" r="1" />
+                </svg>
+              </span>
+              The Dark Eye
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>Set it aside, draw three cards, choose one to play, and return the other two face down.</dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>The chosen card becomes the lead card and follows its normal rules.</dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>
+                  Draw three cards and choose one of them to determine the trump suit. Return the other two face down.
+                </dd>
+              </div>
+            </dl>
+          </article>
         </div>
-        <button id="btn-close-cloud-dialog" class="button button-ghost button-small" type="button">Close</button>
       </div>
-      <div id="cloud-player-options" class="choice-grid"></div>
-      <div id="cloud-change-options" class="choice-grid two-columns" hidden>
-        <button id="btn-cloud-minus" class="button button-secondary" type="button">Bid −1</button>
-        <button id="btn-cloud-plus" class="button button-secondary" type="button">Bid +1</button>
-      </div>
-    </div>
-  </dialog>
+    </dialog>
 
-  <dialog id="edit-round-dialog" class="app-dialog">
-    <div class="dialog-content">
-      <div class="dialog-heading">
-        <div>
-          <p class="eyebrow">Correction</p>
-          <h2>Edit Round</h2>
+    <dialog id="cloud-dialog" class="app-dialog">
+      <div class="dialog-content">
+        <div class="dialog-heading">
+          <div>
+            <p id="cloud-dialog-kicker" class="eyebrow">Cloud</p>
+            <h2>Change Bid</h2>
+          </div>
+          <button id="btn-close-cloud-dialog" class="button button-ghost button-small" type="button">Close</button>
         </div>
-        <button id="btn-close-edit-dialog" class="button button-ghost button-small" type="button">Close</button>
+        <div id="cloud-player-options" class="choice-grid"></div>
+        <div id="cloud-change-options" class="choice-grid two-columns" hidden>
+          <button id="btn-cloud-minus" class="button button-secondary" type="button">Bid −1</button>
+          <button id="btn-cloud-plus" class="button button-secondary" type="button">Bid +1</button>
+        </div>
       </div>
-      <p>Which section should be corrected?</p>
-      <div class="stacked-actions">
-        <button id="btn-edit-bids" class="button button-secondary" type="button">Edit Bids</button>
-        <button id="btn-edit-specials" class="button button-secondary" type="button">Edit Special Cards</button>
-        <button id="btn-edit-tricks" class="button button-secondary" type="button">Edit Tricks</button>
-      </div>
-    </div>
-  </dialog>
+    </dialog>
 
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-</body>
+    <dialog id="edit-round-dialog" class="app-dialog">
+      <div class="dialog-content">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Correction</p>
+            <h2>Edit Round</h2>
+          </div>
+          <button id="btn-close-edit-dialog" class="button button-ghost button-small" type="button">Close</button>
+        </div>
+        <p>Which section should be corrected?</p>
+        <div class="stacked-actions">
+          <button id="btn-edit-bids" class="button button-secondary" type="button">Edit Bids</button>
+          <button id="btn-edit-specials" class="button button-secondary" type="button">Edit Special Cards</button>
+          <button id="btn-edit-tricks" class="button button-secondary" type="button">Edit Tricks</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
 </html>

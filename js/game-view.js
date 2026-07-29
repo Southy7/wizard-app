@@ -62,7 +62,7 @@
 
       const header = document.createElement("div");
       header.className = "score-row header";
-      header.innerHTML = "<span>Player</span><span class=\"number\">Bid</span><span class=\"number\">Points</span>";
+      header.innerHTML = '<span>Player</span><span class="number">Bid</span><span class="number">Points</span>';
       table.append(header);
 
       const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);

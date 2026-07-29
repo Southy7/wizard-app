@@ -2,7 +2,7 @@
 
 // Bump this version with each app-shell release so installed clients receive a coherent update.
 const CACHE_PREFIX = "wizard-scoreboard-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.120`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.121`;
 const APP_SHELL = [
   "./index.html",
   "./styles.css",
@@ -36,13 +36,12 @@ const APP_SHELL = [
 ];
 const SCOPE_URL = new URL(self.registration.scope);
 const INDEX_URL = new URL("./index.html", SCOPE_URL).href;
-const APP_ASSET_URLS = new Set(
-  APP_SHELL.map((path) => new URL(path, SCOPE_URL).href)
-);
+const APP_ASSET_URLS = new Set(APP_SHELL.map((path) => new URL(path, SCOPE_URL).href));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches
+      .open(CACHE_NAME)
       .then((cache) => cache.addAll(APP_SHELL))
       .then(() => self.skipWaiting())
   );
@@ -50,13 +49,14 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    self.clients.claim()
+    self.clients
+      .claim()
       .then(() => caches.keys())
-      .then((keys) => Promise.all(
-        keys
-          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      ))
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key))
+        )
+      )
   );
 });
 

@@ -47,14 +47,16 @@ assert.deepEqual(
 );
 
 const moved = Logic.movePlayer(players, "chris", "up");
-assert.deepEqual(moved.map((entry) => entry.id), ["anna", "chris", "ben", "david"]);
-assert.deepEqual(moved.map((entry) => entry.seatPosition), [0, 1, 2, 3]);
+assert.deepEqual(
+  moved.map((entry) => entry.id),
+  ["anna", "chris", "ben", "david"]
+);
+assert.deepEqual(
+  moved.map((entry) => entry.seatPosition),
+  [0, 1, 2, 3]
+);
 
-const duplicateIds = Logic.getDuplicateNameIds([
-  player("1", "Anna"),
-  player("2", " anna "),
-  player("3", "Ben")
-]);
+const duplicateIds = Logic.getDuplicateNameIds([player("1", "Anna"), player("2", " anna "), player("3", "Ben")]);
 assert.equal(duplicateIds.has("1"), true);
 assert.equal(duplicateIds.has("2"), true);
 assert.equal(duplicateIds.has("3"), false);
@@ -148,7 +150,6 @@ negativeRound = Logic.recalculateCurrentBids(negativeRound, players);
 assert.equal(negativeRound.playerResults.ben.currentBid, -1);
 assert.ok(Logic.getSpecialCardErrors(negativeRound, players).some((error) => error.includes("negative bid")));
 
-
 let incompleteWitchRound = Logic.createRound(players, "anna", 3);
 incompleteWitchRound.specialCards.witch = { active: true, secondEffect: "cloud" };
 assert.ok(Logic.getSpecialCardErrors(incompleteWitchRound, players).some((error) => error.includes("incomplete")));
@@ -235,14 +236,8 @@ assert.equal("unknownCard" in canonicalImport.rounds[0].specialCards.cloud, fals
 
 const importWithInvalidArchiveDate = JSON.parse(JSON.stringify(validImport));
 importWithInvalidArchiveDate.archivedAt = "not-a-date";
-assert.equal(
-  "archivedAt" in Logic.createCanonicalGameState(importWithInvalidArchiveDate),
-  false
-);
-assert.equal(
-  "archivedAt" in Logic.createCanonicalGameState(importWithUnknownFields),
-  false
-);
+assert.equal("archivedAt" in Logic.createCanonicalGameState(importWithInvalidArchiveDate), false);
+assert.equal("archivedAt" in Logic.createCanonicalGameState(importWithUnknownFields), false);
 
 const bidTotalInvariantState = Logic.createInitialGameState(3);
 bidTotalInvariantState.players.forEach((entry, index) => {
@@ -263,16 +258,13 @@ firstBidResult.originalBid = 1;
 firstBidResult.currentBid = 1;
 bidTotalInvariantState.rounds = [bidTotalInvariantRound];
 
-assert.ok(!Logic.validatePersistableGameState(bidTotalInvariantState)
-  .some((error) => error.includes("bid total")));
+assert.ok(!Logic.validatePersistableGameState(bidTotalInvariantState).some((error) => error.includes("bid total")));
 
 for (const phase of ["play", "tricks", "result"]) {
   const candidate = JSON.parse(JSON.stringify(bidTotalInvariantState));
   candidate.rounds[0].phase = phase;
-  assert.ok(Logic.validatePersistableGameState(candidate)
-    .some((error) => error.includes("bid total")));
-  assert.ok(Logic.validateImportedGameState(candidate)
-    .some((error) => error.includes("bid total")));
+  assert.ok(Logic.validatePersistableGameState(candidate).some((error) => error.includes("bid total")));
+  assert.ok(Logic.validateImportedGameState(candidate).some((error) => error.includes("bid total")));
 }
 
 const persistableWitchState = Logic.createInitialGameState(3);
@@ -283,11 +275,7 @@ persistableWitchState.status = "running";
 persistableWitchState.setupDealerRandomized = true;
 persistableWitchState.roundMode = "individual";
 persistableWitchState.totalRounds = 1;
-const persistableWitchRound = Logic.createRound(
-  persistableWitchState.players,
-  persistableWitchState.firstDealerId,
-  1
-);
+const persistableWitchRound = Logic.createRound(persistableWitchState.players, persistableWitchState.firstDealerId, 1);
 persistableWitchRound.phase = "play";
 persistableWitchRound.specialCards.bomb.active = true;
 persistableWitchRound.specialCards.witch = { active: true, secondEffect: null };
@@ -304,11 +292,7 @@ cloudValidationState.setupDealerRandomized = true;
 cloudValidationState.roundMode = "individual";
 cloudValidationState.totalRounds = 1;
 cloudValidationState.currentRound = 1;
-let cloudValidationRound = Logic.createRound(
-  cloudValidationState.players,
-  cloudValidationState.firstDealerId,
-  1
-);
+let cloudValidationRound = Logic.createRound(cloudValidationState.players, cloudValidationState.firstDealerId, 1);
 cloudValidationRound.phase = "play";
 cloudValidationRound.playerResults[cloudValidationState.players[0].id].originalBid = 1;
 cloudValidationRound.playerResults[cloudValidationState.players[1].id].originalBid = 1;
@@ -317,10 +301,7 @@ cloudValidationRound.specialCards.cloud = {
   playerId: cloudValidationState.players[0].id,
   change: 1
 };
-cloudValidationRound = Logic.recalculateCurrentBids(
-  cloudValidationRound,
-  cloudValidationState.players
-);
+cloudValidationRound = Logic.recalculateCurrentBids(cloudValidationRound, cloudValidationState.players);
 cloudValidationState.rounds = [cloudValidationRound];
 assert.equal(cloudValidationRound.playerResults[cloudValidationState.players[0].id].currentBid, 2);
 assert.deepEqual(Logic.validateImportedGameState(cloudValidationState), []);
@@ -331,10 +312,7 @@ cloudValidationRound.specialCards.secondCloud = {
   playerId: cloudValidationState.players[0].id,
   change: 1
 };
-cloudValidationRound = Logic.recalculateCurrentBids(
-  cloudValidationRound,
-  cloudValidationState.players
-);
+cloudValidationRound = Logic.recalculateCurrentBids(cloudValidationRound, cloudValidationState.players);
 cloudValidationState.rounds = [cloudValidationRound];
 assert.equal(cloudValidationRound.playerResults[cloudValidationState.players[0].id].currentBid, 3);
 assert.deepEqual(Logic.validateImportedGameState(cloudValidationState), []);
@@ -356,76 +334,106 @@ for (const [field, expectedMessage] of [
   ["setupDealerRandomized", "dealer-selection status"],
   ["roundOneHintConfirmed", "first-round confirmation status"]
 ]) {
-  assert.ok(invalidImport((candidate) => {
-    delete candidate[field];
-  }).some((error) => error.includes(expectedMessage)));
+  assert.ok(
+    invalidImport((candidate) => {
+      delete candidate[field];
+    }).some((error) => error.includes(expectedMessage))
+  );
 }
 
-assert.ok(invalidImport((candidate) => {
-  candidate.gameId = "invalid game id";
-}).some((error) => error.includes("game ID")));
+assert.ok(
+  invalidImport((candidate) => {
+    candidate.gameId = "invalid game id";
+  }).some((error) => error.includes("game ID"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  candidate.updatedAt = "2099-01-01T00:00:00.000Z";
-}).some((error) => error.includes("far in the future")));
+assert.ok(
+  invalidImport((candidate) => {
+    candidate.updatedAt = "2099-01-01T00:00:00.000Z";
+  }).some((error) => error.includes("far in the future"))
+);
 
 const clockSkewImport = JSON.parse(JSON.stringify(validImport));
-clockSkewImport.updatedAt = new Date(Date.now() + (60 * 60 * 1000)).toISOString();
+clockSkewImport.updatedAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 assert.deepEqual(Logic.validateImportedGameState(clockSkewImport), []);
 
-assert.ok(invalidImport((candidate) => {
-  candidate.updatedAt = "2026-07-20";
-}).some((error) => error.includes("valid last-updated date")));
+assert.ok(
+  invalidImport((candidate) => {
+    candidate.updatedAt = "2026-07-20";
+  }).some((error) => error.includes("valid last-updated date"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  candidate.roundOneHintConfirmed = "yes";
-}).some((error) => error.includes("first-round confirmation status")));
+assert.ok(
+  invalidImport((candidate) => {
+    candidate.roundOneHintConfirmed = "yes";
+  }).some((error) => error.includes("first-round confirmation status"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.players[0].seatPosition;
-}).some((error) => error.includes("seating order")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.players[0].seatPosition;
+  }).some((error) => error.includes("seating order"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].dealerId;
-}).some((error) => error.includes("dealer in round 1")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].dealerId;
+  }).some((error) => error.includes("dealer in round 1"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].startingPlayerId;
-}).some((error) => error.includes("starting player in round 1")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].startingPlayerId;
+  }).some((error) => error.includes("starting player in round 1"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].completedAt;
-}).some((error) => error.includes("completion date field")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].completedAt;
+  }).some((error) => error.includes("completion date field"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].specialCards;
-}).some((error) => error.includes("special-card data for round 1 is missing")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].specialCards;
+  }).some((error) => error.includes("special-card data for round 1 is missing"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].specialCards.secondBomb;
-}).some((error) => error.includes("special-card data for round 1 is incomplete")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].specialCards.secondBomb;
+  }).some((error) => error.includes("special-card data for round 1 is incomplete"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].specialCards.cloud.change;
-}).some((error) => error.includes("cloud special card in round 1 is invalid")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].specialCards.cloud.change;
+  }).some((error) => error.includes("cloud special card in round 1 is invalid"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].specialCards.witch.secondEffect;
-}).some((error) => error.includes("Witch in round 1 is invalid")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].specialCards.witch.secondEffect;
+  }).some((error) => error.includes("Witch in round 1 is invalid"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  delete candidate.rounds[0].playerResults["example-1-lena"].roundPoints;
-}).some((error) => error.includes("player data for round 1 is incomplete")));
+assert.ok(
+  invalidImport((candidate) => {
+    delete candidate.rounds[0].playerResults["example-1-lena"].roundPoints;
+  }).some((error) => error.includes("player data for round 1 is incomplete"))
+);
 
 const missingRequiredPersistableField = Logic.createInitialGameState();
 delete missingRequiredPersistableField.gameId;
-assert.ok(Logic.validatePersistableGameState(missingRequiredPersistableField)
-  .some((error) => error.includes("game ID")));
+assert.ok(
+  Logic.validatePersistableGameState(missingRequiredPersistableField).some((error) => error.includes("game ID"))
+);
 
 const futurePersistableState = Logic.createInitialGameState();
 futurePersistableState.updatedAt = "2099-01-01T00:00:00.000Z";
-assert.ok(Logic.validatePersistableGameState(futurePersistableState)
-  .some((error) => error.includes("far in the future")));
+assert.ok(
+  Logic.validatePersistableGameState(futurePersistableState).some((error) => error.includes("far in the future"))
+);
 
 assertInvalidImport((candidate) => {
   candidate.players[1].id = candidate.players[0].id;
@@ -471,17 +479,21 @@ assertInvalidImport((candidate) => {
   candidate.rounds.splice(0, 1);
 });
 
-assert.ok(invalidImport((candidate) => {
-  candidate.currentRound = 1;
-}).some((error) => error.includes("every round as completed")));
+assert.ok(
+  invalidImport((candidate) => {
+    candidate.currentRound = 1;
+  }).some((error) => error.includes("every round as completed"))
+);
 
-assert.ok(invalidImport((candidate) => {
-  candidate.rounds[0].completed = false;
-  candidate.rounds[0].phase = "tricks";
-  candidate.rounds[0].completedAt = null;
-  Object.values(candidate.rounds[0].playerResults).forEach((result) => {
-    result.roundPoints = null;
-  });
-}).some((error) => error.includes("every round as completed")));
+assert.ok(
+  invalidImport((candidate) => {
+    candidate.rounds[0].completed = false;
+    candidate.rounds[0].phase = "tricks";
+    candidate.rounds[0].completedAt = null;
+    Object.values(candidate.rounds[0].playerResults).forEach((result) => {
+      result.roundPoints = null;
+    });
+  }).some((error) => error.includes("every round as completed"))
+);
 
 console.log("All game-logic tests passed.");

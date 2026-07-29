@@ -137,9 +137,7 @@ function createFile(payload, size = 1_000) {
     status: "running",
     updatedAt: null
   };
-  gameHarness.elements["import-file-input"].files = [
-    createFile({ exportFormat: "wizard-scoreboard-game", gameState })
-  ];
+  gameHarness.elements["import-file-input"].files = [createFile({ exportFormat: "wizard-scoreboard-game", gameState })];
   gameHarness.elements["import-file-input"].value = "wizard-game.json";
   await gameHarness.listeners["input:change"]({
     target: gameHarness.elements["import-file-input"]

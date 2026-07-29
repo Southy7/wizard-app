@@ -55,23 +55,23 @@
       const rawStoredState = localStorage.getItem(STORAGE_KEY);
       const storedState = rawStoredState ? safelyParseStoredGame(rawStoredState) : null;
       const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(options, "expectedUpdatedAt");
-      const expectedUpdatedAt = hasExpectedUpdatedAt
-        ? options.expectedUpdatedAt
-        : state?.updatedAt ?? null;
+      const expectedUpdatedAt = hasExpectedUpdatedAt ? options.expectedUpdatedAt : (state?.updatedAt ?? null);
       const storedUpdatedAt = storedState?.updatedAt ?? null;
       const expectedGameId = Object.prototype.hasOwnProperty.call(options, "expectedGameId")
         ? options.expectedGameId
-        : state?.gameId ?? null;
+        : (state?.gameId ?? null);
       const storedGameId = storedState?.gameId ?? null;
       const storedValueIsDamaged = rawStoredState !== null && !isValidStoredGame(storedState);
       const implicitInitialWrite = rawStoredState === null && !hasExpectedUpdatedAt;
       const storedIdentityChanged = rawStoredState !== null && storedGameId !== expectedGameId;
 
       // The stored identity and timestamp form a compare-and-set baseline for rejecting stale tabs.
-      if (storedValueIsDamaged
-        || implicitInitialWrite
-        || storedIdentityChanged
-        || storedUpdatedAt !== expectedUpdatedAt) {
+      if (
+        storedValueIsDamaged ||
+        implicitInitialWrite ||
+        storedIdentityChanged ||
+        storedUpdatedAt !== expectedUpdatedAt
+      ) {
         lastGameSaveConflict = true;
         setError(
           "gameError",
@@ -86,10 +86,7 @@
       };
       const validationErrors = getPersistableGameValidationErrors(payload);
       if (validationErrors.length > 0) {
-        setError(
-          "gameError",
-          `The current game state is inconsistent: ${validationErrors[0]}`
-        );
+        setError("gameError", `The current game state is inconsistent: ${validationErrors[0]}`);
         return false;
       }
 
@@ -130,9 +127,7 @@
   function createNextUpdatedAt(previousUpdatedAt) {
     // Keep revisions monotonic when writes share a millisecond or the system clock moves backward.
     const previousTime = Date.parse(previousUpdatedAt);
-    const nextTime = Number.isNaN(previousTime)
-      ? Date.now()
-      : Math.max(Date.now(), previousTime + 1);
+    const nextTime = Number.isNaN(previousTime) ? Date.now() : Math.max(Date.now(), previousTime + 1);
     return new Date(nextTime).toISOString();
   }
 
@@ -222,16 +217,17 @@
       }
 
       const parsed = JSON.parse(raw);
-      const validEnvelope = parsed
-        && typeof parsed === "object"
-        && !Array.isArray(parsed)
-        && parsed.format === HISTORY_STORAGE_FORMAT
-        && parsed.version === HISTORY_STORAGE_VERSION
-        && typeof parsed.revision === "string"
-        && parsed.revision
-        && typeof parsed.updatedAt === "string"
-        && !Number.isNaN(Date.parse(parsed.updatedAt))
-        && Array.isArray(parsed.games);
+      const validEnvelope =
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        parsed.format === HISTORY_STORAGE_FORMAT &&
+        parsed.version === HISTORY_STORAGE_VERSION &&
+        typeof parsed.revision === "string" &&
+        parsed.revision &&
+        typeof parsed.updatedAt === "string" &&
+        !Number.isNaN(Date.parse(parsed.updatedAt)) &&
+        Array.isArray(parsed.games);
       if (!validEnvelope) {
         throw new Error("Unknown archive format.");
       }
@@ -330,9 +326,11 @@
 
   function mergeGameHistory(importedGames) {
     const importedIds = Array.isArray(importedGames) ? importedGames.map((game) => game?.gameId) : [];
-    if (!Array.isArray(importedGames)
-      || new Set(importedIds).size !== importedIds.length
-      || importedGames.some((game) => !isCompletedGameConsistent(game))) {
+    if (
+      !Array.isArray(importedGames) ||
+      new Set(importedIds).size !== importedIds.length ||
+      importedGames.some((game) => !isCompletedGameConsistent(game))
+    ) {
       return { success: false, added: 0, updated: 0, skipped: 0 };
     }
     const mutation = updateGameHistory((history) => {
@@ -357,9 +355,9 @@
       }
 
       return {
-        games: [...merged.values()]
-          .sort((a, b) => String(b.archivedAt ?? b.updatedAt ?? "")
-            .localeCompare(String(a.archivedAt ?? a.updatedAt ?? ""))),
+        games: [...merged.values()].sort((a, b) =>
+          String(b.archivedAt ?? b.updatedAt ?? "").localeCompare(String(a.archivedAt ?? a.updatedAt ?? ""))
+        ),
         value: { added, updated, skipped }
       };
     }, "The imported archive could not be saved locally.");
@@ -374,10 +372,7 @@
     return !Number.isNaN(candidateTime) && candidateTime > existingTime;
   }
 
-  function updateGameHistory(
-    transform,
-    fallbackMessage = "The completed game could not be saved to the archive."
-  ) {
+  function updateGameHistory(transform, fallbackMessage = "The completed game could not be saved to the archive.") {
     try {
       // localStorage has no transactions, so retry compare-and-set after a concurrent write.
       for (let attempt = 0; attempt < HISTORY_WRITE_ATTEMPTS; attempt += 1) {
@@ -386,8 +381,7 @@
 
         const mutation = transform(JSON.parse(JSON.stringify(snapshot.games)));
         if (!mutation) return { success: false, value: null };
-        if (!Array.isArray(mutation.games)
-          || mutation.games.some((game) => !isCompletedGameConsistent(game))) {
+        if (!Array.isArray(mutation.games) || mutation.games.some((game) => !isCompletedGameConsistent(game))) {
           setError("historyError", "The updated game archive would be inconsistent.");
           return { success: false, value: null };
         }
@@ -425,10 +419,7 @@
   }
 
   function setHistoryConflictError() {
-    setError(
-      "historyError",
-      "History changed in another tab while it was being saved. Please try the action again."
-    );
+    setError("historyError", "History changed in another tab while it was being saved. Please try the action again.");
   }
 
   function setHistoryWriteError(error, fallbackMessage = "The completed game could not be saved to the archive.") {
@@ -439,10 +430,12 @@
   }
 
   function isQuotaExceededError(error) {
-    return error?.name === "QuotaExceededError"
-      || error?.name === "NS_ERROR_DOM_QUOTA_REACHED"
-      || error?.code === 22
-      || error?.code === 1014;
+    return (
+      error?.name === "QuotaExceededError" ||
+      error?.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      error?.code === 22 ||
+      error?.code === 1014
+    );
   }
 
   function getHistoryStorageStatus(history = loadGameHistory()) {
@@ -461,24 +454,28 @@
   }
 
   function hasCompleteRoundSequence(state) {
-    if (!state
-      || state.status !== "completed"
-      || !Number.isInteger(state.totalRounds)
-      || state.totalRounds < 1
-      || state.currentRound !== state.totalRounds
-      || !Array.isArray(state.players)
-      || !Array.isArray(state.rounds)
-      || state.rounds.length !== state.totalRounds) {
+    if (
+      !state ||
+      state.status !== "completed" ||
+      !Number.isInteger(state.totalRounds) ||
+      state.totalRounds < 1 ||
+      state.currentRound !== state.totalRounds ||
+      !Array.isArray(state.players) ||
+      !Array.isArray(state.rounds) ||
+      state.rounds.length !== state.totalRounds
+    ) {
       return false;
     }
 
     const roundNumbers = new Set();
     for (const round of state.rounds) {
-      if (!Number.isInteger(round?.number)
-        || round.number < 1
-        || round.number > state.totalRounds
-        || roundNumbers.has(round.number)
-        || round.completed !== true) {
+      if (
+        !Number.isInteger(round?.number) ||
+        round.number < 1 ||
+        round.number > state.totalRounds ||
+        roundNumbers.has(round.number) ||
+        round.completed !== true
+      ) {
         return false;
       }
       roundNumbers.add(round.number);
@@ -488,10 +485,12 @@
   }
 
   function isCompletedGameConsistent(state) {
-    if (!hasCompleteRoundSequence(state)
-      || state.version !== "1.0"
-      || typeof state.gameId !== "string"
-      || !state.gameId) {
+    if (
+      !hasCompleteRoundSequence(state) ||
+      state.version !== "1.0" ||
+      typeof state.gameId !== "string" ||
+      !state.gameId
+    ) {
       return false;
     }
 

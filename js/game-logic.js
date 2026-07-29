@@ -120,18 +120,16 @@
     const groups = new Map();
 
     for (const player of players) {
-      const normalizedName = String(player.name ?? "").trim().toLocaleLowerCase("en-US");
+      const normalizedName = String(player.name ?? "")
+        .trim()
+        .toLocaleLowerCase("en-US");
       if (!normalizedName) continue;
 
       if (!groups.has(normalizedName)) groups.set(normalizedName, []);
       groups.get(normalizedName).push(player.id);
     }
 
-    return new Set(
-      [...groups.values()]
-        .filter((ids) => ids.length > 1)
-        .flat()
-    );
+    return new Set([...groups.values()].filter((ids) => ids.length > 1).flat());
   }
 
   function validateSetup(state) {
@@ -224,9 +222,11 @@
         playerIds.push(id);
       }
 
-      if (typeof player?.name !== "string"
-        || player.name.length > 30
-        || (candidate.status !== "setup" && !player.name.trim())) {
+      if (
+        typeof player?.name !== "string" ||
+        player.name.length > 30 ||
+        (candidate.status !== "setup" && !player.name.trim())
+      ) {
         errors.push(`Player ${index + 1} does not have a valid name.`);
       }
 
@@ -256,18 +256,22 @@
     }
 
     const maximumRounds = getMaximumRounds(players.length, TOTAL_CARDS);
-    if (!Number.isInteger(candidate.totalRounds)
-      || candidate.totalRounds < 1
-      || candidate.totalRounds > maximumRounds) {
+    if (
+      !Number.isInteger(candidate.totalRounds) ||
+      candidate.totalRounds < 1 ||
+      candidate.totalRounds > maximumRounds
+    ) {
       errors.push(`The number of rounds must be between 1 and ${maximumRounds}.`);
     } else if (candidate.roundMode === "full" && candidate.totalRounds !== getStandardRounds(players.length)) {
       errors.push("The number of rounds does not match the selected full game.");
     }
 
-    if (!Number.isInteger(candidate.currentRound)
-      || !Number.isInteger(candidate.totalRounds)
-      || candidate.currentRound < 1
-      || candidate.currentRound > candidate.totalRounds) {
+    if (
+      !Number.isInteger(candidate.currentRound) ||
+      !Number.isInteger(candidate.totalRounds) ||
+      candidate.currentRound < 1 ||
+      candidate.currentRound > candidate.totalRounds
+    ) {
       errors.push("The current round is invalid.");
     }
 
@@ -298,10 +302,12 @@
 
     for (const rawRound of rounds) {
       const roundNumber = rawRound?.number;
-      if (!Number.isInteger(roundNumber)
-        || !Number.isInteger(candidate.totalRounds)
-        || roundNumber < 1
-        || roundNumber > candidate.totalRounds) {
+      if (
+        !Number.isInteger(roundNumber) ||
+        !Number.isInteger(candidate.totalRounds) ||
+        roundNumber < 1 ||
+        roundNumber > candidate.totalRounds
+      ) {
         errors.push("At least one round number is invalid.");
         continue;
       }
@@ -352,13 +358,13 @@
         specialCards
       };
 
-      if (["play", "tricks", "result"].includes(rawRound.phase)
-        && !isBidSumValid(normalizedRound)) {
+      if (["play", "tricks", "result"].includes(rawRound.phase) && !isBidSumValid(normalizedRound)) {
         errors.push(`The bid total in round ${roundNumber} is invalid.`);
       }
 
-      getSpecialCardErrors(normalizedRound, players, options)
-        .forEach((error) => errors.push(`Round ${roundNumber}: ${error}`));
+      getSpecialCardErrors(normalizedRound, players, options).forEach((error) =>
+        errors.push(`Round ${roundNumber}: ${error}`)
+      );
 
       // Verify derived values from storage and imports against the primary round inputs.
       const recalculated = recalculateCurrentBids(normalizedRound, players);
@@ -428,12 +434,14 @@
         return null;
       }
 
-      if (!Number.isInteger(rawResult.originalBid)
-        || rawResult.originalBid < 0
-        || rawResult.originalBid > roundNumber
-        || !Number.isInteger(rawResult.tricks)
-        || rawResult.tricks < 0
-        || rawResult.tricks > roundNumber) {
+      if (
+        !Number.isInteger(rawResult.originalBid) ||
+        rawResult.originalBid < 0 ||
+        rawResult.originalBid > roundNumber ||
+        !Number.isInteger(rawResult.tricks) ||
+        rawResult.tricks < 0 ||
+        rawResult.tricks > roundNumber
+      ) {
         errors.push(`Original bids and tricks in round ${roundNumber} must be between 0 and ${roundNumber}.`);
         return null;
       }
@@ -481,11 +489,15 @@
 
     for (const key of ["cloud", "secondCloud"]) {
       const rawCloud = cards[key];
-      if (!rawCloud || typeof rawCloud !== "object" || Array.isArray(rawCloud)
-        || !hasOwn(rawCloud, "active")
-        || !hasOwn(rawCloud, "playerId")
-        || !hasOwn(rawCloud, "change")
-        || typeof rawCloud.active !== "boolean") {
+      if (
+        !rawCloud ||
+        typeof rawCloud !== "object" ||
+        Array.isArray(rawCloud) ||
+        !hasOwn(rawCloud, "active") ||
+        !hasOwn(rawCloud, "playerId") ||
+        !hasOwn(rawCloud, "change") ||
+        typeof rawCloud.active !== "boolean"
+      ) {
         errors.push(`The ${key} special card in round ${roundNumber} is invalid.`);
         return null;
       }
@@ -496,30 +508,40 @@
         change: rawCloud.change
       };
 
-      if ((rawCloud.active && (!players.some((player) => player.id === normalized[key].playerId)
-          || ![-1, 1].includes(normalized[key].change)))
-        || (!rawCloud.active && (normalized[key].playerId !== null
-          || normalized[key].change !== 0))) {
+      if (
+        (rawCloud.active &&
+          (!players.some((player) => player.id === normalized[key].playerId) ||
+            ![-1, 1].includes(normalized[key].change))) ||
+        (!rawCloud.active && (normalized[key].playerId !== null || normalized[key].change !== 0))
+      ) {
         errors.push(`The ${key} special card in round ${roundNumber} is inconsistent.`);
       }
     }
 
     for (const key of ["bomb", "secondBomb"]) {
       const rawBomb = cards[key];
-      if (!rawBomb || typeof rawBomb !== "object" || Array.isArray(rawBomb)
-        || !hasOwn(rawBomb, "active")
-        || typeof rawBomb.active !== "boolean") {
+      if (
+        !rawBomb ||
+        typeof rawBomb !== "object" ||
+        Array.isArray(rawBomb) ||
+        !hasOwn(rawBomb, "active") ||
+        typeof rawBomb.active !== "boolean"
+      ) {
         errors.push(`The ${key} special card in round ${roundNumber} is invalid.`);
         return null;
       }
       normalized[key].active = rawBomb.active;
     }
 
-    if (!cards.witch || typeof cards.witch !== "object" || Array.isArray(cards.witch)
-      || !hasOwn(cards.witch, "active")
-      || !hasOwn(cards.witch, "secondEffect")
-      || typeof cards.witch.active !== "boolean"
-      || ![null, "cloud", "bomb"].includes(cards.witch.secondEffect)) {
+    if (
+      !cards.witch ||
+      typeof cards.witch !== "object" ||
+      Array.isArray(cards.witch) ||
+      !hasOwn(cards.witch, "active") ||
+      !hasOwn(cards.witch, "secondEffect") ||
+      typeof cards.witch.active !== "boolean" ||
+      ![null, "cloud", "bomb"].includes(cards.witch.secondEffect)
+    ) {
       errors.push(`The Witch in round ${roundNumber} is invalid.`);
       return null;
     }
@@ -541,12 +563,9 @@
       return;
     }
 
-    const expectedCount = candidate.status === "completed"
-      ? candidate.totalRounds
-      : candidate.currentRound;
+    const expectedCount = candidate.status === "completed" ? candidate.totalRounds : candidate.currentRound;
 
-    if (sorted.length !== expectedCount
-      || sorted.some((round, index) => round.number !== index + 1)) {
+    if (sorted.length !== expectedCount || sorted.some((round, index) => round.number !== index + 1)) {
       errors.push("Rounds must be complete, unique, and consecutive.");
       return;
     }
@@ -690,8 +709,10 @@
   }
 
   function getBidSum(round) {
-    return Object.values(round?.playerResults ?? {})
-      .reduce((sum, result) => sum + (Number(result?.originalBid) || 0), 0);
+    return Object.values(round?.playerResults ?? {}).reduce(
+      (sum, result) => sum + (Number(result?.originalBid) || 0),
+      0
+    );
   }
 
   function getBidDifference(round) {
@@ -779,9 +800,11 @@
       errors.push("The Witch requires a Cloud or Bomb first.");
     }
 
-    if (cards.witch?.active
-      && !cards.witch?.secondEffect
-      && !(options.allowIncompleteWitchSelection && round?.phase === "play")) {
+    if (
+      cards.witch?.active &&
+      !cards.witch?.secondEffect &&
+      !(options.allowIncompleteWitchSelection && round?.phase === "play")
+    ) {
       errors.push("Select a second Cloud or Bomb for the Witch.");
     }
 
@@ -826,8 +849,7 @@
   }
 
   function getTrickSum(round) {
-    return Object.values(round?.playerResults ?? {})
-      .reduce((sum, result) => sum + (Number(result?.tricks) || 0), 0);
+    return Object.values(round?.playerResults ?? {}).reduce((sum, result) => sum + (Number(result?.tricks) || 0), 0);
   }
 
   function validateTrickSum(round) {
@@ -847,7 +869,7 @@
     const won = Number(tricks) || 0;
 
     if (bid === won) {
-      return 20 + (won * 10);
+      return 20 + won * 10;
     }
 
     return -10 * Math.abs(bid - won);

@@ -5,6 +5,11 @@
   "description": "Lightweight Wizard scoreboard – complete version 1.0",
   "scripts": {
     "test": "npm run test:all",
+    "lint": "eslint \"js/**/*.js\" \"tests/**/*.js\" service-worker.js eslint.config.cjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --project tsconfig.check.json",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "test:all": "npm run test:core && npm run test:history-import",
     "test:core": "npm run test:unit && npm run test:browser:core-suite",
     "test:history-import": "npm run test:browser:smoke",
@@ -17,5 +22,12 @@
     "test:browser:rounds": "python tests/browser-round-flow.py",
     "test:browser:multitab": "python tests/browser-multitab.py",
     "test:browser:offline": "python tests/browser-offline.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.0",
+    "globals": "17.7.0",
+    "prettier": "3.9.6",
+    "typescript": "7.0.2"
   }
 }

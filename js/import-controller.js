@@ -1,10 +1,52 @@
-(function attachImportController(root) {
+// @ts-check
+
+/**
+ * @typedef {Record<string, unknown> & {
+ *   gameId?: string | null,
+ *   status?: string,
+ *   updatedAt?: string | null
+ * }} GameState
+ *
+ * @typedef {{
+ *   loadGame: () => GameState | null,
+ *   hasStoredData: () => boolean,
+ *   deleteGame: () => boolean,
+ *   saveGame: (state: GameState, options: {
+ *     expectedUpdatedAt: string | null,
+ *     expectedGameId: string | null
+ *   }) => boolean
+ * }} ImportStorage
+ *
+ * @typedef {{
+ *   validatePersistableGameState: (state: GameState) => string[],
+ *   validateImportedGameState: (state: GameState) => string[],
+ *   createCanonicalGameState: (state: GameState) => GameState
+ * }} ImportLogic
+ *
+ * @typedef {{
+ *   Storage: ImportStorage,
+ *   Logic: ImportLogic,
+ *   elements: Record<string, HTMLElement>,
+ *   historyController: { importArchive: (archive: unknown) => void },
+ *   persistenceController: { markStateImported: () => void },
+ *   setState: (state: GameState) => void,
+ *   archiveCompletedGame: (state: GameState) => unknown,
+ *   refreshHomeScreen: () => void,
+ *   showToast: (message: string) => void,
+ *   confirmReplace?: (message: string) => boolean
+ * }} ImportControllerDependencies
+ */
+
+(function attachImportController(/** @type {any} */ root) {
   "use strict";
 
   const MAX_ARCHIVE_IMPORT_BYTES = 10_000_000;
   const MAX_GAME_IMPORT_BYTES = 2_000_000;
   const RECOVERY_REASONS = new Set(["storage-conflict", "unsaved-changes"]);
 
+  /**
+   * @param {ImportControllerDependencies} dependencies
+   */
   function createImportController({
     Storage,
     Logic,
@@ -18,15 +60,16 @@
     confirmReplace = (message) => window.confirm(message)
   }) {
     function bindEvents() {
-      elements["btn-import-game"].addEventListener(
-        "click",
-        () => elements["import-file-input"].click()
-      );
+      elements["btn-import-game"].addEventListener("click", () => elements["import-file-input"].click());
       elements["import-file-input"].addEventListener("change", handleFileSelection);
     }
 
+    /**
+     * @param {Event} event
+     */
     async function handleFileSelection(event) {
-      const input = event.target;
+      const input = /** @type {HTMLInputElement | null} */ (event.target);
+      if (!input) return;
       const file = input.files?.[0];
       input.value = "";
       if (!file) return;
@@ -45,6 +88,10 @@
       }
     }
 
+    /**
+     * @param {any} parsed
+     * @param {number} fileSize
+     */
     function importPayload(parsed, fileSize) {
       if (parsed?.exportFormat === "wizard-scoreboard-history") {
         historyController.importArchive(parsed);
@@ -53,16 +100,18 @@
       importGamePayload(parsed, fileSize);
     }
 
+    /**
+     * @param {any} parsed
+     * @param {number} fileSize
+     */
     function importGamePayload(parsed, fileSize) {
       if (fileSize > MAX_GAME_IMPORT_BYTES) {
         throw new Error("The individual game state is unusually large and was rejected.");
       }
 
-      const candidate = parsed?.exportFormat === "wizard-scoreboard-game"
-        ? parsed.gameState
-        : parsed;
-      const isRecoveryExport = parsed?.exportFormat === "wizard-scoreboard-game"
-        && RECOVERY_REASONS.has(parsed?.recoveryReason);
+      const candidate = parsed?.exportFormat === "wizard-scoreboard-game" ? parsed.gameState : parsed;
+      const isRecoveryExport =
+        parsed?.exportFormat === "wizard-scoreboard-game" && RECOVERY_REASONS.has(parsed?.recoveryReason);
       const validationErrors = isRecoveryExport
         ? Logic.validatePersistableGameState(candidate)
         : Logic.validateImportedGameState(candidate);
@@ -72,9 +121,8 @@
 
       const savedBeforeImport = Storage.loadGame();
       const hasStoredGameData = Storage.hasStoredData();
-      const shouldReplace = !hasStoredGameData || confirmReplace(
-        "The existing save will be replaced by the imported save. Continue?"
-      );
+      const shouldReplace =
+        !hasStoredGameData || confirmReplace("The existing save will be replaced by the imported save. Continue?");
       if (!shouldReplace) return;
 
       if (!savedBeforeImport && hasStoredGameData && !Storage.deleteGame()) {
@@ -82,10 +130,12 @@
       }
 
       const importedState = Logic.createCanonicalGameState(candidate);
-      if (!Storage.saveGame(importedState, {
-        expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
-        expectedGameId: savedBeforeImport?.gameId ?? null
-      })) {
+      if (
+        !Storage.saveGame(importedState, {
+          expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
+          expectedGameId: savedBeforeImport?.gameId ?? null
+        })
+      ) {
         throw new Error("The imported game could not be saved locally.");
       }
       if (importedState.status === "completed") {

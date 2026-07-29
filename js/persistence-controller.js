@@ -45,11 +45,10 @@
         storageConflict = Storage.wasLastGameSaveConflict?.() === true;
         hasUnsavedChanges = !storageConflict;
         // A technical retry must keep its original compare-and-set baseline to remain safe.
-        pendingSaveOptions = storageConflict
-          ? null
-          : cloneSaveOptions(effectiveOptions);
-        const error = Storage.getStorageErrors?.().gameError
-          || "The game could not be saved on this device. Export the game state as soon as storage is available again.";
+        pendingSaveOptions = storageConflict ? null : cloneSaveOptions(effectiveOptions);
+        const error =
+          Storage.getStorageErrors?.().gameError ||
+          "The game could not be saved on this device. Export the game state as soon as storage is available again.";
         updateWarning(error);
         showToast(error);
       } else {
@@ -104,22 +103,23 @@
 
       const storageAvailable = Storage.isStorageAvailable();
       const storageError = Storage.getLastError?.();
-      const externalWarning = [
-        externalGameWarning,
-        externalHistoryWarning,
-        getHistoryCapacityWarning()
-      ].filter(Boolean).join(" ");
-      const text = message || externalWarning || storageError || (!storageAvailable
-        ? "The browser does not provide persistent local storage. Changes may be lost when it is closed."
-        : "");
+      const externalWarning = [externalGameWarning, externalHistoryWarning, getHistoryCapacityWarning()]
+        .filter(Boolean)
+        .join(" ");
+      const text =
+        message ||
+        externalWarning ||
+        storageError ||
+        (!storageAvailable
+          ? "The browser does not provide persistent local storage. Changes may be lost when it is closed."
+          : "");
 
       warning.textContent = text;
       warning.hidden = !text;
     }
 
     function handleExternalStorageChange(event) {
-      if (event.storageArea !== localStorage
-        || ![Storage.STORAGE_KEY, Storage.HISTORY_KEY].includes(event.key)) {
+      if (event.storageArea !== localStorage || ![Storage.STORAGE_KEY, Storage.HISTORY_KEY].includes(event.key)) {
         return;
       }
 
@@ -154,10 +154,10 @@
       document.body.classList.toggle("game-storage-conflict", storageConflict);
 
       const stateUi = document.querySelectorAll(
-        "#screen-setup button, #screen-setup input, #screen-setup select, #screen-setup textarea, "
-        + "#screen-setup-summary button, #screen-game button, #screen-game input, "
-        + "#screen-game select, #screen-game textarea, #screen-finished button, "
-        + "#cloud-dialog button, #edit-round-dialog button"
+        "#screen-setup button, #screen-setup input, #screen-setup select, #screen-setup textarea, " +
+          "#screen-setup-summary button, #screen-game button, #screen-game input, " +
+          "#screen-game select, #screen-game textarea, #screen-finished button, " +
+          "#cloud-dialog button, #edit-round-dialog button"
       );
 
       stateUi.forEach((control) => {
@@ -180,14 +180,15 @@
       if (!storageConflict) return;
 
       // This capture-phase guard blocks events that bypass disabled-state updates.
-      const control = event.target instanceof Element
-        ? event.target.closest("button, input, select, textarea, form")
-        : null;
+      const control =
+        event.target instanceof Element ? event.target.closest("button, input, select, textarea, form") : null;
       if (!control || conflictAllowedControlIds.has(control.id)) return;
-      if (!control.closest(
-        "#screen-setup, #screen-setup-summary, #screen-game, #screen-finished, "
-        + "#cloud-dialog, #edit-round-dialog"
-      )) return;
+      if (
+        !control.closest(
+          "#screen-setup, #screen-setup-summary, #screen-game, #screen-finished, " + "#cloud-dialog, #edit-round-dialog"
+        )
+      )
+        return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -200,13 +201,16 @@
 
       const exportedAt = new Date();
       const recoveryReason = storageConflict ? "storage-conflict" : "unsaved-changes";
-      FileUtils.downloadJson({
-        exportFormat: "wizard-scoreboard-game",
-        exportVersion: 1,
-        exportedAt: exportedAt.toISOString(),
-        recoveryReason,
-        gameState: JSON.parse(JSON.stringify(state))
-      }, `wizard-recovery-${FileUtils.formatFileTimestamp(exportedAt)}.json`);
+      FileUtils.downloadJson(
+        {
+          exportFormat: "wizard-scoreboard-game",
+          exportVersion: 1,
+          exportedAt: exportedAt.toISOString(),
+          recoveryReason,
+          gameState: JSON.parse(JSON.stringify(state))
+        },
+        `wizard-recovery-${FileUtils.formatFileTimestamp(exportedAt)}.json`
+      );
     }
 
     async function requestPersistentStorage() {

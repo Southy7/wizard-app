@@ -30,7 +30,8 @@
 
       const header = document.createElement("div");
       header.className = "score-row header";
-      header.innerHTML = '<span>Player</span><span class="number bid-column">Bid</span><span class="number tricks-column">Tricks</span><span class="number round-column">Round</span><span class="number total-column">Total</span>';
+      header.innerHTML =
+        '<span>Player</span><span class="number bid-column">Bid</span><span class="number tricks-column">Tricks</span><span class="number round-column">Round</span><span class="number total-column">Total</span>';
       table.append(header);
 
       const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
@@ -54,13 +55,16 @@
           name.append(crown);
         }
 
-        const bid = numberCell(result.currentBid, `bid-value${result.currentBid !== result.originalBid ? " changed-bid" : ""}`);
-        const tricks = numberCell(result.tricks, "tricks-value");
-        const points = numberCell(formatSigned(result.roundPoints), `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`);
-        const total = numberCell(
-          formatNumber(totals[player.id]),
-          `total-points${isLeader ? " leader-points" : ""}`
+        const bid = numberCell(
+          result.currentBid,
+          `bid-value${result.currentBid !== result.originalBid ? " changed-bid" : ""}`
         );
+        const tricks = numberCell(result.tricks, "tricks-value");
+        const points = numberCell(
+          formatSigned(result.roundPoints),
+          `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`
+        );
+        const total = numberCell(formatNumber(totals[player.id]), `total-points${isLeader ? " leader-points" : ""}`);
         row.append(name, bid, tricks, points, total);
         table.append(row);
       });
@@ -71,11 +75,13 @@
       actions.append(createButton("Edit Round", "button-secondary", onEditRound));
 
       const isLastRound = round.number >= state.totalRounds;
-      actions.append(createButton(
-        isLastRound ? "Finish Game" : "Next Round",
-        "button-primary",
-        isLastRound ? onFinishGame : onNextRound
-      ));
+      actions.append(
+        createButton(
+          isLastRound ? "Finish Game" : "Next Round",
+          "button-primary",
+          isLastRound ? onFinishGame : onNextRound
+        )
+      );
 
       panel.append(tableWrap, actions);
       elements["game-content"].replaceChildren(panel);

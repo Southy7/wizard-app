@@ -11,11 +11,7 @@ assert.deepEqual(clonedState, currentState);
 assert.notEqual(clonedState, currentState);
 assert.notEqual(clonedState.players, currentState.players);
 
-const round = global.WizardGameLogic.createRound(
-  currentState.players,
-  currentState.firstDealerId,
-  1
-);
+const round = global.WizardGameLogic.createRound(currentState.players, currentState.firstDealerId, 1);
 round.specialCards.cloud = {
   active: false,
   playerId: currentState.players[0].id,

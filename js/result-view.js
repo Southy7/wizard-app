@@ -20,9 +20,7 @@
       const row = document.createElement("div");
       row.className = "ranking-row";
       row.dataset.rank = String(displayedPosition);
-      row.dataset.playerColor = String(
-        gameState.players.findIndex((player) => player.id === entry.player.id) + 1
-      );
+      row.dataset.playerColor = String(gameState.players.findIndex((player) => player.id === entry.player.id) + 1);
 
       const position = document.createElement("span");
       position.className = "ranking-position";
@@ -112,7 +110,7 @@
         originalIndex,
         points: Number(totals[player.id]) || 0
       }))
-      .sort((a, b) => (b.points - a.points) || (a.originalIndex - b.originalIndex));
+      .sort((a, b) => b.points - a.points || a.originalIndex - b.originalIndex);
   }
 
   root.WizardResultView = Object.freeze({

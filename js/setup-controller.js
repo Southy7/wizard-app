@@ -82,7 +82,12 @@
         moveUp.addEventListener("click", () => reorderPlayer(player.id, "up"));
         const moveDown = createIconButton("↓", `Move player ${index + 1} down`, index === state.players.length - 1);
         moveDown.addEventListener("click", () => reorderPlayer(player.id, "down"));
-        const remove = createIconButton("×", `Remove player ${index + 1}`, state.players.length <= Logic.MIN_PLAYERS, true);
+        const remove = createIconButton(
+          "×",
+          `Remove player ${index + 1}`,
+          state.players.length <= Logic.MIN_PLAYERS,
+          true
+        );
         remove.addEventListener("click", () => removePlayer(player.id));
         actions.append(moveUp, moveDown, remove);
         row.append(inputWrap, actions);
@@ -202,14 +207,17 @@
       const corrected = Logic.clampRoundCount(entered, state.players.length, state.totalCards);
       state.totalRounds = corrected;
       persistState();
-      renderRoundControls(entered !== corrected ? `Choose between 1 and ${maximum} rounds. The value was adjusted.` : "");
+      renderRoundControls(
+        entered !== corrected ? `Choose between 1 and ${maximum} rounds. The value was adjusted.` : ""
+      );
       renderSummary();
     }
 
     function syncRoundsAfterPlayerChange() {
-      state.totalRounds = state.roundMode === "individual"
-        ? Logic.clampRoundCount(state.totalRounds, state.players.length, state.totalCards)
-        : Logic.getStandardRounds(state.players.length);
+      state.totalRounds =
+        state.roundMode === "individual"
+          ? Logic.clampRoundCount(state.totalRounds, state.players.length, state.totalCards)
+          : Logic.getStandardRounds(state.players.length);
     }
 
     function renderSummary() {
@@ -311,8 +319,7 @@
     }
 
     function focusFirstInvalidField() {
-      const invalidNameInput = [...document.querySelectorAll(".text-input")]
-        .find((input) => !input.value.trim());
+      const invalidNameInput = [...document.querySelectorAll(".text-input")].find((input) => !input.value.trim());
       (invalidNameInput ?? elements["rounds-input"]).focus();
     }
 

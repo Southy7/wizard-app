@@ -49,8 +49,12 @@ global.localStorage = {
     }
     return values.has(normalizedKey) ? values.get(normalizedKey) : null;
   },
-  removeItem(key) { values.delete(String(key)); },
-  clear() { values.clear(); }
+  removeItem(key) {
+    values.delete(String(key));
+  },
+  clear() {
+    values.clear();
+  }
 };
 
 global.WizardGameLogic = require("../js/game-logic.js");
@@ -136,9 +140,7 @@ const latestGame = Storage.loadGame();
 
 failGameWrites = true;
 assert.equal(
-  withoutExpectedConsoleError(
-    () => Storage.saveGame(JSON.parse(JSON.stringify(latestGame)))
-  ),
+  withoutExpectedConsoleError(() => Storage.saveGame(JSON.parse(JSON.stringify(latestGame)))),
   false
 );
 assert.equal(Storage.wasLastGameSaveConflict(), false);
@@ -148,43 +150,72 @@ const completedGame = require("../examples/history-game-1.json").gameState;
 
 const validActiveGameValue = localStorage.getItem(Storage.STORAGE_KEY);
 for (const mutate of [
-  (game) => { delete game.gameId; },
-  (game) => { delete game.updatedAt; },
-  (game) => { game.players[1].id = game.players[0].id; },
-  (game) => { delete game.players[0].seatPosition; },
-  (game) => { game.rounds.push(JSON.parse(JSON.stringify(game.rounds[0]))); },
-  (game) => { delete game.rounds[0].dealerId; },
-  (game) => { delete game.rounds[0].startingPlayerId; },
-  (game) => { game.rounds[0].playerResults["example-1-lena"].originalBid = 999; },
-  (game) => { delete game.rounds[0].playerResults["example-1-lena"].roundPoints; },
-  (game) => { game.rounds[0].phase = "invalid"; },
-  (game) => { delete game.rounds[0].specialCards; },
-  (game) => { game.rounds[0].specialCards = { witch: { active: true, secondEffect: null } }; },
-  (game) => { game.rounds[0].playerResults["example-1-lena"].roundPoints += 1; },
-  (game) => { game.rounds.pop(); }
+  (game) => {
+    delete game.gameId;
+  },
+  (game) => {
+    delete game.updatedAt;
+  },
+  (game) => {
+    game.players[1].id = game.players[0].id;
+  },
+  (game) => {
+    delete game.players[0].seatPosition;
+  },
+  (game) => {
+    game.rounds.push(JSON.parse(JSON.stringify(game.rounds[0])));
+  },
+  (game) => {
+    delete game.rounds[0].dealerId;
+  },
+  (game) => {
+    delete game.rounds[0].startingPlayerId;
+  },
+  (game) => {
+    game.rounds[0].playerResults["example-1-lena"].originalBid = 999;
+  },
+  (game) => {
+    delete game.rounds[0].playerResults["example-1-lena"].roundPoints;
+  },
+  (game) => {
+    game.rounds[0].phase = "invalid";
+  },
+  (game) => {
+    delete game.rounds[0].specialCards;
+  },
+  (game) => {
+    game.rounds[0].specialCards = { witch: { active: true, secondEffect: null } };
+  },
+  (game) => {
+    game.rounds[0].playerResults["example-1-lena"].roundPoints += 1;
+  },
+  (game) => {
+    game.rounds.pop();
+  }
 ]) {
   const invalidStoredGame = JSON.parse(JSON.stringify(completedGame));
   mutate(invalidStoredGame);
   const invalidStoredValue = JSON.stringify(invalidStoredGame);
   localStorage.setItem(Storage.STORAGE_KEY, invalidStoredValue);
-  assert.equal(withoutExpectedConsoleError(() => Storage.loadGame()), null);
+  assert.equal(
+    withoutExpectedConsoleError(() => Storage.loadGame()),
+    null
+  );
   assert.match(Storage.getStorageErrors().gameError, /corrupted|unreadable/i);
   assert.equal(localStorage.getItem(Storage.STORAGE_KEY), invalidStoredValue);
 }
 
 // Round states that are valid only during local interaction must remain resumable.
 const transientWitchGame = Logic.createInitialGameState(3);
-transientWitchGame.players.forEach((player, index) => { player.name = `Player ${index + 1}`; });
+transientWitchGame.players.forEach((player, index) => {
+  player.name = `Player ${index + 1}`;
+});
 transientWitchGame.status = "running";
 transientWitchGame.setupDealerRandomized = true;
 transientWitchGame.roundMode = "individual";
 transientWitchGame.totalRounds = 1;
 transientWitchGame.currentRound = 1;
-const transientRound = Logic.createRound(
-  transientWitchGame.players,
-  transientWitchGame.firstDealerId,
-  1
-);
+const transientRound = Logic.createRound(transientWitchGame.players, transientWitchGame.firstDealerId, 1);
 transientRound.phase = "play";
 transientRound.specialCards.bomb.active = true;
 transientRound.specialCards.witch.active = true;
@@ -204,11 +235,7 @@ cloudStoredGame.setupDealerRandomized = true;
 cloudStoredGame.roundMode = "individual";
 cloudStoredGame.totalRounds = 1;
 cloudStoredGame.currentRound = 1;
-let cloudStoredRound = Logic.createRound(
-  cloudStoredGame.players,
-  cloudStoredGame.firstDealerId,
-  1
-);
+let cloudStoredRound = Logic.createRound(cloudStoredGame.players, cloudStoredGame.firstDealerId, 1);
 cloudStoredRound.phase = "play";
 cloudStoredRound.playerResults[cloudStoredGame.players[0].id].originalBid = 1;
 cloudStoredRound.playerResults[cloudStoredGame.players[1].id].originalBid = 1;
@@ -224,19 +251,13 @@ assert.equal(Storage.saveGame(cloudStoredGame, { expectedUpdatedAt: null }), tru
 
 const loadedCloudGame = Storage.loadGame();
 assert.notEqual(loadedCloudGame, null);
-assert.equal(
-  loadedCloudGame.rounds[0].playerResults[cloudStoredGame.players[0].id].currentBid,
-  2
-);
+assert.equal(loadedCloudGame.rounds[0].playerResults[cloudStoredGame.players[0].id].currentBid, 2);
 loadedCloudGame.rounds[0].specialCards.bomb.active = true;
 assert.equal(Storage.saveGame(loadedCloudGame), true);
 const reloadedCloudGame = Storage.loadGame();
 assert.notEqual(reloadedCloudGame, null);
 assert.equal(reloadedCloudGame.rounds[0].specialCards.bomb.active, true);
-assert.equal(
-  reloadedCloudGame.rounds[0].playerResults[cloudStoredGame.players[0].id].currentBid,
-  2
-);
+assert.equal(reloadedCloudGame.rounds[0].playerResults[cloudStoredGame.players[0].id].currentBid, 2);
 const invalidOutgoingGame = JSON.parse(JSON.stringify(reloadedCloudGame));
 invalidOutgoingGame.rounds[0].playerResults[cloudStoredGame.players[0].id].roundPoints = 0;
 const storedCloudValue = localStorage.getItem(Storage.STORAGE_KEY);
@@ -259,9 +280,7 @@ assert.equal(typeof Storage.loadGameHistory()[0].archivedAt, "string");
 
 const updatedCompletedGame = {
   ...completedGame,
-  players: completedGame.players.map((player, index) => (
-    index === 0 ? { ...player, name: "Lena updated" } : player
-  ))
+  players: completedGame.players.map((player, index) => (index === 0 ? { ...player, name: "Lena updated" } : player))
 };
 assert.equal(Storage.saveCompletedGame(updatedCompletedGame), true);
 assert.equal(Storage.loadGameHistory().length, 1);
@@ -276,23 +295,22 @@ historyReadInterference = {
   remainingReads: 2,
   interfere(raw) {
     const stored = JSON.parse(raw);
-    values.set(Storage.HISTORY_KEY, JSON.stringify({
-      format: "wizard-scoreboard-history-storage",
-      version: 1,
-      revision: "external-tab-revision",
-      updatedAt: new Date().toISOString(),
-      games: [...stored.games, concurrentlyArchivedGame]
-    }));
+    values.set(
+      Storage.HISTORY_KEY,
+      JSON.stringify({
+        format: "wizard-scoreboard-history-storage",
+        version: 1,
+        revision: "external-tab-revision",
+        updatedAt: new Date().toISOString(),
+        games: [...stored.games, concurrentlyArchivedGame]
+      })
+    );
   }
 };
 assert.equal(Storage.saveCompletedGame(secondCompletedGame), true);
 assert.deepEqual(
   new Set(Storage.loadGameHistory().map((game) => game.gameId)),
-  new Set([
-    completedGame.gameId,
-    concurrentlyArchivedGame.gameId,
-    secondCompletedGame.gameId
-  ])
+  new Set([completedGame.gameId, concurrentlyArchivedGame.gameId, secondCompletedGame.gameId])
 );
 const rebasedHistoryPayload = JSON.parse(localStorage.getItem(Storage.HISTORY_KEY));
 assert.equal(rebasedHistoryPayload.format, "wizard-scoreboard-history-storage");
@@ -376,7 +394,10 @@ const currentHistoryValueBeforeStrictValidation = localStorage.getItem(Storage.H
 
 const legacyHistoryValue = JSON.stringify([completedGame]);
 localStorage.setItem(Storage.HISTORY_KEY, legacyHistoryValue);
-assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
+assert.deepEqual(
+  withoutExpectedConsoleError(() => Storage.loadGameHistory()),
+  []
+);
 assert.match(Storage.getStorageErrors().historyError, /archive|unreadable/i);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), legacyHistoryValue);
 
@@ -393,7 +414,10 @@ const incompleteHistoryEnvelope = JSON.parse(currentHistoryValueBeforeStrictVali
 incompleteHistoryEnvelope.games = [incompleteArchivedGame];
 const incompleteHistoryValue = JSON.stringify(incompleteHistoryEnvelope);
 localStorage.setItem(Storage.HISTORY_KEY, incompleteHistoryValue);
-assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
+assert.deepEqual(
+  withoutExpectedConsoleError(() => Storage.loadGameHistory()),
+  []
+);
 assert.match(Storage.getStorageErrors().historyError, /archive|unreadable/i);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), incompleteHistoryValue);
 
@@ -411,11 +435,21 @@ assert.equal(Storage.loadGameHistory().length, 1);
 
 for (const mutate of [
   (game) => game.rounds.pop(),
-  (game) => { game.rounds[1].number = 1; },
-  (game) => { game.rounds[0].completed = false; },
-  (game) => { game.currentRound = 1; },
-  (game) => { game.rounds[0].playerResults["example-1-lena"].tricks = 0; },
-  (game) => { game.rounds[0].specialCards = { witch: { active: true, secondEffect: null } }; }
+  (game) => {
+    game.rounds[1].number = 1;
+  },
+  (game) => {
+    game.rounds[0].completed = false;
+  },
+  (game) => {
+    game.currentRound = 1;
+  },
+  (game) => {
+    game.rounds[0].playerResults["example-1-lena"].tricks = 0;
+  },
+  (game) => {
+    game.rounds[0].specialCards = { witch: { active: true, secondEffect: null } };
+  }
 ]) {
   const inconsistentGame = JSON.parse(JSON.stringify(completedGame));
   mutate(inconsistentGame);
@@ -428,13 +462,19 @@ inconsistentArchive.rounds.pop();
 const inconsistentHistoryEnvelope = JSON.parse(validHistoryValue);
 inconsistentHistoryEnvelope.games = [inconsistentArchive];
 localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify(inconsistentHistoryEnvelope));
-assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
+assert.deepEqual(
+  withoutExpectedConsoleError(() => Storage.loadGameHistory()),
+  []
+);
 assert.match(Storage.getStorageErrors().historyError, /inconsistent|unreadable/i);
 localStorage.setItem(Storage.HISTORY_KEY, validHistoryValue);
 assert.equal(Storage.loadGameHistory().length, 1);
 
 localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
-assert.equal(withoutExpectedConsoleError(() => Storage.loadGame()), null);
+assert.equal(
+  withoutExpectedConsoleError(() => Storage.loadGame()),
+  null
+);
 assert.match(Storage.getLastError(), /corrupted|unreadable/i);
 const damagedGameError = Storage.getStorageErrors().gameError;
 
@@ -444,7 +484,10 @@ assert.equal(Storage.getStorageErrors().gameError, damagedGameError);
 assert.equal(Storage.getStorageErrors().historyError, "");
 
 localStorage.setItem(Storage.HISTORY_KEY, "{invalid-json");
-assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
+assert.deepEqual(
+  withoutExpectedConsoleError(() => Storage.loadGameHistory()),
+  []
+);
 const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
 const damagedHistoryError = Storage.getStorageErrors().historyError;
 assert.match(damagedHistoryError, /game archive|unreadable/i);

@@ -74,9 +74,7 @@
         const title = document.createElement("strong");
         title.textContent = formatArchivedGameDate(archivedGame);
         const players = document.createElement("span");
-        players.textContent = gameState.players
-          .map(Formatters.formatPlayerName)
-          .join(", ");
+        players.textContent = gameState.players.map(Formatters.formatPlayerName).join(", ");
         main.append(title, players);
 
         const totals = Logic.calculateTotalPoints(completedRounds, gameState.players);
@@ -117,18 +115,11 @@
 
     function showArchivedGame(gameState) {
       selectedArchivedGame = gameState;
-      const completedRounds = gameState.rounds
-        .filter((round) => round.completed)
-        .sort((a, b) => a.number - b.number);
+      const completedRounds = gameState.rounds.filter((round) => round.completed).sort((a, b) => a.number - b.number);
       const totals = Logic.calculateTotalPoints(completedRounds, gameState.players);
 
       ResultView.renderRanking(elements["history-detail-ranking"], gameState, totals);
-      ResultView.renderScoreHistory(
-        elements["history-score-content"],
-        completedRounds,
-        totals,
-        gameState
-      );
+      ResultView.renderScoreHistory(elements["history-score-content"], completedRounds, totals, gameState);
       elements["history-list-view"].hidden = true;
       elements["history-detail-view"].hidden = false;
       elements["history-recovery-view"].hidden = true;
@@ -148,16 +139,14 @@
       elements["history-storage-status"].textContent = recoveryRequired
         ? "Recovery required"
         : `${status.count} ${status.count === 1 ? "game" : "games"} · ${formatStorageSize(status.bytes)}`;
-      capacityWarning = !recoveryRequired && status.softLimitReached
-        ? `History contains ${status.count} games and uses about ${formatStorageSize(status.bytes)}. Export or delete older games before local storage is full.`
-        : "";
+      capacityWarning =
+        !recoveryRequired && status.softLimitReached
+          ? `History contains ${status.count} games and uses about ${formatStorageSize(status.bytes)}. Export or delete older games before local storage is full.`
+          : "";
     }
 
     function needsRecovery() {
-      return Boolean(
-        Storage.getStorageErrors?.().historyError
-        && Storage.hasStoredHistoryData?.()
-      );
+      return Boolean(Storage.getStorageErrors?.().historyError && Storage.hasStoredHistoryData?.());
     }
 
     function showRecovery() {
@@ -181,24 +170,30 @@
         return;
       }
 
-      FileUtils.downloadJson({
-        exportFormat: "wizard-scoreboard-history",
-        exportVersion: 1,
-        exportedAt: new Date().toISOString(),
-        games
-      }, `wizard-history-${FileUtils.formatFileTimestamp(new Date())}.json`);
+      FileUtils.downloadJson(
+        {
+          exportFormat: "wizard-scoreboard-history",
+          exportVersion: 1,
+          exportedAt: new Date().toISOString(),
+          games
+        },
+        `wizard-history-${FileUtils.formatFileTimestamp(new Date())}.json`
+      );
       showToast("The complete history was exported.");
     }
 
     function exportSelected() {
       if (!selectedArchivedGame) return;
 
-      FileUtils.downloadJson({
-        exportFormat: "wizard-scoreboard-game",
-        exportVersion: 1,
-        exportedAt: new Date().toISOString(),
-        gameState: selectedArchivedGame
-      }, `wizard-game-${FileUtils.formatFileTimestamp(new Date())}.json`);
+      FileUtils.downloadJson(
+        {
+          exportFormat: "wizard-scoreboard-game",
+          exportVersion: 1,
+          exportedAt: new Date().toISOString(),
+          gameState: selectedArchivedGame
+        },
+        `wizard-game-${FileUtils.formatFileTimestamp(new Date())}.json`
+      );
       showToast("The game was exported.");
     }
 
@@ -246,10 +241,7 @@
         return;
       }
 
-      FileUtils.downloadText(
-        raw,
-        `wizard-damaged-history-${FileUtils.formatFileTimestamp(new Date())}.json`
-      );
+      FileUtils.downloadText(raw, `wizard-damaged-history-${FileUtils.formatFileTimestamp(new Date())}.json`);
       showToast("The damaged history data was exported.");
     }
 
@@ -315,24 +307,21 @@
           throw new Error("The history archive contains the same game more than once.");
         }
         gameIds.add(candidate.gameId);
-        games.push(Logic.createCanonicalGameState(candidate, {
-          includeArchiveMetadata: true
-        }));
+        games.push(
+          Logic.createCanonicalGameState(candidate, {
+            includeArchiveMetadata: true
+          })
+        );
       }
 
       const result = Storage.mergeGameHistory(games);
       if (!result.success) {
-        throw new Error(
-          Storage.getStorageErrors?.().historyError
-            || "The history archive could not be imported."
-        );
+        throw new Error(Storage.getStorageErrors?.().historyError || "The history archive could not be imported.");
       }
 
       refreshHomeScreen();
       if (Storage.hasGameHistory()) open();
-      showToast(
-        `History imported: ${result.added} new, ${result.updated} updated, ${result.skipped} already present.`
-      );
+      showToast(`History imported: ${result.added} new, ${result.updated} updated, ${result.skipped} already present.`);
     }
 
     function formatArchivedGameDate(gameState) {

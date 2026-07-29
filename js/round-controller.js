@@ -39,18 +39,20 @@
       const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
       order.forEach((player) => {
         const result = round.playerResults[player.id];
-        list.append(createValueEntry({
-          name: getPlayerDisplayNameById(player.id),
-          badges: [
-            ...(player.id === round.dealerId ? [{ label: "Dealer", role: "dealer" }] : []),
-            ...(player.id === round.startingPlayerId ? [{ label: "Starting Player", role: "starter" }] : [])
-          ],
-          value: result.originalBid,
-          min: 0,
-          max: round.number,
-          colorIndex: getPlayerColorIndex(player.id),
-          onChange: (next) => updateBid(round.number, player.id, next)
-        }));
+        list.append(
+          createValueEntry({
+            name: getPlayerDisplayNameById(player.id),
+            badges: [
+              ...(player.id === round.dealerId ? [{ label: "Dealer", role: "dealer" }] : []),
+              ...(player.id === round.startingPlayerId ? [{ label: "Starting Player", role: "starter" }] : [])
+            ],
+            value: result.originalBid,
+            min: 0,
+            max: round.number,
+            colorIndex: getPlayerColorIndex(player.id),
+            onChange: (next) => updateBid(round.number, player.id, next)
+          })
+        );
       });
 
       const sum = Logic.getBidSum(round);
@@ -73,7 +75,9 @@
         summary.append(createStatusCard("error", "Check Special Cards", specialErrors.join(" ")));
       }
 
-      const confirm = createButton("Confirm Bids", "button-primary full-width bid-confirm-button", () => confirmBids(round.number));
+      const confirm = createButton("Confirm Bids", "button-primary full-width bid-confirm-button", () =>
+        confirmBids(round.number)
+      );
       confirm.disabled = !validSum || specialErrors.length > 0;
       panel.append(list, summary, confirm);
       elements["game-content"].replaceChildren(panel);
@@ -118,9 +122,7 @@
       const round = getCurrentRound();
       if (!round) return;
 
-      if (phase === "bids"
-        && round.specialCards.witch.active
-        && !round.specialCards.witch.secondEffect) {
+      if (phase === "bids" && round.specialCards.witch.active && !round.specialCards.witch.secondEffect) {
         showToast("Choose the Witch's second special card first or remove the Witch.");
         return;
       }
@@ -156,23 +158,26 @@
       order.forEach((player) => {
         const result = round.playerResults[player.id];
         const predictionIsCorrect = result.tricks === result.currentBid;
-        list.append(createValueEntry({
-          name: getPlayerDisplayNameById(player.id),
-          value: result.tricks,
-          min: 0,
-          max: round.number,
-          colorIndex: getPlayerColorIndex(player.id),
-          onChange: (next) => updateTricks(round.number, player.id, next),
-          quickAction: {
-            label: `Bid ${result.currentBid}`,
-            onClick: () => updateTricks(round.number, player.id, result.currentBid),
-            disabled: predictionIsCorrect || result.currentBid > maximumTricks,
-            completed: predictionIsCorrect,
-            title: result.currentBid > maximumTricks
-              ? "This bid cannot be reached with the available tricks."
-              : "Set tricks to the current bid"
-          }
-        }));
+        list.append(
+          createValueEntry({
+            name: getPlayerDisplayNameById(player.id),
+            value: result.tricks,
+            min: 0,
+            max: round.number,
+            colorIndex: getPlayerColorIndex(player.id),
+            onChange: (next) => updateTricks(round.number, player.id, next),
+            quickAction: {
+              label: `Bid ${result.currentBid}`,
+              onClick: () => updateTricks(round.number, player.id, result.currentBid),
+              disabled: predictionIsCorrect || result.currentBid > maximumTricks,
+              completed: predictionIsCorrect,
+              title:
+                result.currentBid > maximumTricks
+                  ? "This bid cannot be reached with the available tricks."
+                  : "Set tricks to the current bid"
+            }
+          })
+        );
       });
 
       const validation = Logic.validateTrickSum(round);
@@ -191,7 +196,9 @@
 
       const actions = document.createElement("div");
       actions.className = "round-actions tricks-actions";
-      const backToSpecialsButton = createButton("<", "button-secondary special-back-button", () => setRoundPhase("play"));
+      const backToSpecialsButton = createButton("<", "button-secondary special-back-button", () =>
+        setRoundPhase("play")
+      );
       backToSpecialsButton.setAttribute("aria-label", "Back to Special Cards");
       backToSpecialsButton.title = "Back to Special Cards";
       actions.append(
@@ -302,4 +309,4 @@
   }
 
   root.WizardRoundController = Object.freeze({ createRoundController });
-}(window));
+})(window);

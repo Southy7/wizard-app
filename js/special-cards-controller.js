@@ -85,7 +85,10 @@
       if (cards.cloud.active) {
         const secondCloud = createSpecialButton("☁ 2nd Cloud", secondCloudActive);
         secondCloud.disabled = Boolean(cards.witch.secondEffect) && !secondCloudActive;
-        secondCloud.addEventListener("click", secondCloudActive ? undoSecondEffect : () => openCloudDialog("secondCloud"));
+        secondCloud.addEventListener(
+          "click",
+          secondCloudActive ? undoSecondEffect : () => openCloudDialog("secondCloud")
+        );
         grid.append(secondCloud);
       }
 
@@ -150,7 +153,8 @@
 
     function activateSecondBomb() {
       const round = getCurrentRound();
-      if (!round.specialCards.witch.active || !round.specialCards.bomb.active || round.specialCards.witch.secondEffect) return;
+      if (!round.specialCards.witch.active || !round.specialCards.bomb.active || round.specialCards.witch.secondEffect)
+        return;
       updateRound((currentRound) => {
         currentRound.specialCards.witch.secondEffect = "bomb";
         currentRound.specialCards.secondBomb.active = true;
@@ -197,7 +201,9 @@
       container.innerHTML = "";
       const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
       order.forEach((player) => {
-        const button = createButton(getPlayerDisplayNameById(player.id), "button-secondary choice-button", () => selectCloudPlayer(player.id));
+        const button = createButton(getPlayerDisplayNameById(player.id), "button-secondary choice-button", () =>
+          selectCloudPlayer(player.id)
+        );
         button.dataset.playerColor = String(getPlayerColorIndex(player.id));
         if (cloudDialogContext?.playerId === player.id) button.classList.add("selected");
         container.append(button);
@@ -258,4 +264,4 @@
   }
 
   root.WizardSpecialCardsController = Object.freeze({ createSpecialCardsController });
-}(window));
+})(window);

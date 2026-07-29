@@ -19,8 +19,14 @@
       intro: "Record only the special-card effects that occurred in this round.",
       steps: [
         ["Select cards", "Tap Cloud, Bomb, or Witch to activate it. Tap an active card again to undo it."],
-        ["Complete effects", "For Cloud, choose the affected player and −1 or +1. Witch requires a second Cloud or Bomb."],
-        ["Cloud with Bomb", "If both were played in the same trick, Bomb cancels Cloud. Record only Bomb and do not enter a Cloud change."],
+        [
+          "Complete effects",
+          "For Cloud, choose the affected player and −1 or +1. Witch requires a second Cloud or Bomb."
+        ],
+        [
+          "Cloud with Bomb",
+          "If both were played in the same trick, Bomb cancels Cloud. Record only Bomb and do not enter a Cloud change."
+        ],
         ["Continue", "Select Enter Tricks when all played special cards are recorded."]
       ]
     },
@@ -37,7 +43,10 @@
       title: "Round Result",
       intro: "Review the completed round before continuing.",
       steps: [
-        ["Read the result", "Bid and Tricks show the entries; Round shows points earned now; Total shows the overall score. Gold marks the current leader."],
+        [
+          "Read the result",
+          "Bid and Tricks show the entries; Round shows points earned now; Total shows the overall score. Gold marks the current leader."
+        ],
         ["Correct mistakes", "Select Edit Round and choose the section that needs changing."],
         ["Continue", "Select Next Round, or Finish Game after the final round."]
       ]
@@ -75,9 +84,22 @@
     closeDialog
   } = Ui ?? {};
 
-  if (!Logic || !StateManager || !Storage || !FileUtils || !Formatters || !ResultView
-    || !ImportControllerModule || !PersistenceControllerModule || !SetupControllerModule || !GameViewModule
-    || !RoundResultViewModule || !RoundControllerModule || !SpecialCardsControllerModule || !Ui) {
+  if (
+    !Logic ||
+    !StateManager ||
+    !Storage ||
+    !FileUtils ||
+    !Formatters ||
+    !ResultView ||
+    !ImportControllerModule ||
+    !PersistenceControllerModule ||
+    !SetupControllerModule ||
+    !GameViewModule ||
+    !RoundResultViewModule ||
+    !RoundControllerModule ||
+    !SpecialCardsControllerModule ||
+    !Ui
+  ) {
     console.error("Application dependencies could not be loaded.");
     return;
   }
@@ -111,18 +133,18 @@
     });
     historyController = historyAvailable
       ? HistoryControllerModule.createHistoryController({
-        Storage,
-        Logic,
-        StateManager,
-        ResultView,
-        FileUtils,
-        Formatters,
-        elements,
-        showScreen,
-        showToast,
-        refreshHomeScreen,
-        updateStorageWarning
-      })
+          Storage,
+          Logic,
+          StateManager,
+          ResultView,
+          FileUtils,
+          Formatters,
+          elements,
+          showScreen,
+          showToast,
+          refreshHomeScreen,
+          updateStorageWarning
+        })
       : createUnavailableHistoryController();
     importController = ImportControllerModule.createImportController({
       Storage,
@@ -232,38 +254,93 @@
 
   function cacheElements() {
     const ids = [
-      "screen-home", "screen-setup", "screen-setup-summary",
-      "screen-game", "screen-history", "screen-finished",
-      "btn-new-game", "btn-continue-game", "btn-history", "btn-import-game",
-      "import-file-input", "storage-warning", "storage-conflict-actions",
-      "btn-export-conflict-state", "btn-reload-after-conflict",
-      "btn-setup-home", "setup-form", "player-list", "player-count-badge",
-      "btn-add-player", "round-mode-toggle", "btn-round-mode-full",
-      "btn-round-mode-individual", "full-game-rounds", "custom-round-controls",
-      "btn-rounds-minus", "rounds-input", "btn-rounds-plus",
+      "screen-home",
+      "screen-setup",
+      "screen-setup-summary",
+      "screen-game",
+      "screen-history",
+      "screen-finished",
+      "btn-new-game",
+      "btn-continue-game",
+      "btn-history",
+      "btn-import-game",
+      "import-file-input",
+      "storage-warning",
+      "storage-conflict-actions",
+      "btn-export-conflict-state",
+      "btn-reload-after-conflict",
+      "btn-setup-home",
+      "setup-form",
+      "player-list",
+      "player-count-badge",
+      "btn-add-player",
+      "round-mode-toggle",
+      "btn-round-mode-full",
+      "btn-round-mode-individual",
+      "full-game-rounds",
+      "custom-round-controls",
+      "btn-rounds-minus",
+      "rounds-input",
+      "btn-rounds-plus",
       "rounds-message",
-      "summary-player-count", "summary-round-count",
-      "summary-seat-order", "btn-summary-back",
-      "btn-summary-start", "form-errors",
-      "btn-game-help", "btn-game-cards", "btn-game-home", "game-phase-label", "game-title",
-      "game-round-overview", "game-total-points", "game-content", "btn-history-home",
-      "history-list-view", "history-game-list", "history-detail-view", "btn-history-list-back",
-      "history-detail-ranking", "history-score-content",
-      "btn-history-export-all", "btn-history-import", "history-storage-status",
-      "btn-history-clear", "btn-history-export-game", "btn-history-delete-game",
-      "history-recovery-view", "history-recovery-message",
-      "btn-history-export-damaged", "btn-history-reset-damaged",
-      "final-ranking", "final-score-history", "btn-review-last-round",
-      "btn-finished-export-game", "btn-finished-go-home",
-      "round-one-dialog", "btn-confirm-round-one-hint",
-      "game-help-dialog", "game-help-dialog-title", "game-help-intro",
-      "game-help-steps", "btn-close-game-help-dialog",
-      "special-cards-dialog", "btn-close-special-cards-dialog",
-      "cloud-dialog", "cloud-dialog-kicker",
-      "cloud-player-options", "cloud-change-options", "btn-cloud-minus",
-      "btn-cloud-plus", "btn-close-cloud-dialog", "edit-round-dialog",
-      "btn-close-edit-dialog", "btn-edit-bids", "btn-edit-specials",
-      "btn-edit-tricks", "toast"
+      "summary-player-count",
+      "summary-round-count",
+      "summary-seat-order",
+      "btn-summary-back",
+      "btn-summary-start",
+      "form-errors",
+      "btn-game-help",
+      "btn-game-cards",
+      "btn-game-home",
+      "game-phase-label",
+      "game-title",
+      "game-round-overview",
+      "game-total-points",
+      "game-content",
+      "btn-history-home",
+      "history-list-view",
+      "history-game-list",
+      "history-detail-view",
+      "btn-history-list-back",
+      "history-detail-ranking",
+      "history-score-content",
+      "btn-history-export-all",
+      "btn-history-import",
+      "history-storage-status",
+      "btn-history-clear",
+      "btn-history-export-game",
+      "btn-history-delete-game",
+      "history-recovery-view",
+      "history-recovery-message",
+      "btn-history-export-damaged",
+      "btn-history-reset-damaged",
+      "final-ranking",
+      "final-score-history",
+      "btn-review-last-round",
+      "btn-finished-export-game",
+      "btn-finished-go-home",
+      "round-one-dialog",
+      "btn-confirm-round-one-hint",
+      "game-help-dialog",
+      "game-help-dialog-title",
+      "game-help-intro",
+      "game-help-steps",
+      "btn-close-game-help-dialog",
+      "special-cards-dialog",
+      "btn-close-special-cards-dialog",
+      "cloud-dialog",
+      "cloud-dialog-kicker",
+      "cloud-player-options",
+      "cloud-change-options",
+      "btn-cloud-minus",
+      "btn-cloud-plus",
+      "btn-close-cloud-dialog",
+      "edit-round-dialog",
+      "btn-close-edit-dialog",
+      "btn-edit-bids",
+      "btn-edit-specials",
+      "btn-edit-tricks",
+      "toast"
     ];
 
     for (const id of ids) {
@@ -280,7 +357,9 @@
     elements["btn-game-help"].addEventListener("click", openGameHelp);
     elements["btn-close-game-help-dialog"].addEventListener("click", () => closeDialog(elements["game-help-dialog"]));
     elements["btn-game-cards"].addEventListener("click", () => openDialog(elements["special-cards-dialog"]));
-    elements["btn-close-special-cards-dialog"].addEventListener("click", () => closeDialog(elements["special-cards-dialog"]));
+    elements["btn-close-special-cards-dialog"].addEventListener("click", () =>
+      closeDialog(elements["special-cards-dialog"])
+    );
     elements["btn-history-home"].addEventListener("click", goHome);
     historyController.bindEvents();
     elements["btn-finished-export-game"].addEventListener("click", exportCompletedGame);
@@ -288,7 +367,6 @@
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
     elements["btn-confirm-round-one-hint"].addEventListener("click", confirmRoundOneHint);
     elements["round-one-dialog"].addEventListener("cancel", (event) => event.preventDefault());
-
   }
 
   function startNewGame() {
@@ -296,9 +374,7 @@
     const hasStoredGameData = Storage.hasStoredData();
     const hasUnsavedMemoryGame = persistenceController.canContinueFromMemory();
     if (hasStoredGameData || hasUnsavedMemoryGame) {
-      const shouldReplace = window.confirm(
-        "A game already exists. Starting a new game will replace it. Continue?"
-      );
+      const shouldReplace = window.confirm("A game already exists. Starting a new game will replace it. Continue?");
       if (!shouldReplace) return;
     }
 
@@ -428,10 +504,7 @@
     const historyButton = elements["btn-history"];
 
     const games = Storage.loadGameHistory();
-    const historyNeedsRecovery = Boolean(
-      Storage.getStorageErrors?.().historyError
-      && Storage.hasStoredHistoryData?.()
-    );
+    const historyNeedsRecovery = Boolean(Storage.getStorageErrors?.().historyError && Storage.hasStoredHistoryData?.());
     const canContinueFromMemory = persistenceController.canContinueFromMemory();
     continueButton.disabled = !savedState && !canContinueFromMemory;
     historyButton.disabled = !historyAvailable || (games.length === 0 && !historyNeedsRecovery);
@@ -592,8 +665,8 @@
 
     const archived = Storage.saveCompletedGame(gameState);
     if (!archived) {
-      const message = Storage.getStorageErrors?.().historyError
-        || "The completed game could not be saved to the local archive.";
+      const message =
+        Storage.getStorageErrors?.().historyError || "The completed game could not be saved to the local archive.";
       updateStorageWarning(message);
       showToast(message);
     } else {
@@ -623,12 +696,15 @@
     if (state?.status !== "completed") return;
 
     const exportedAt = new Date();
-    FileUtils.downloadJson({
-      exportFormat: "wizard-scoreboard-game",
-      exportVersion: 1,
-      exportedAt: exportedAt.toISOString(),
-      gameState: JSON.parse(JSON.stringify(state))
-    }, `wizard-game-${FileUtils.formatFileTimestamp(exportedAt)}.json`);
+    FileUtils.downloadJson(
+      {
+        exportFormat: "wizard-scoreboard-game",
+        exportVersion: 1,
+        exportedAt: exportedAt.toISOString(),
+        gameState: JSON.parse(JSON.stringify(state))
+      },
+      `wizard-game-${FileUtils.formatFileTimestamp(exportedAt)}.json`
+    );
     showToast("The completed game was exported.");
   }
 
@@ -657,7 +733,8 @@
     if (!("serviceWorker" in navigator)) return;
 
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./service-worker.js")
+      navigator.serviceWorker
+        .register("./service-worker.js")
         .catch((error) => console.warn("The service worker could not be registered:", error));
     });
   }

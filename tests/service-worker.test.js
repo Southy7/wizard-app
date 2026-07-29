@@ -74,11 +74,7 @@ const context = vm.createContext({
       return cache;
     },
     async keys() {
-      return [
-        "wizard-scoreboard-v1.0.51",
-        "wizard-scoreboard-v1.0.52",
-        "another-application-cache"
-      ];
+      return ["wizard-scoreboard-v1.0.51", "wizard-scoreboard-v1.0.52", "another-application-cache"];
     },
     async delete(key) {
       deletedCaches.push(key);
@@ -104,11 +100,9 @@ const context = vm.createContext({
   }
 });
 
-vm.runInContext(
-  fs.readFileSync(require.resolve("../service-worker.js"), "utf8"),
-  context,
-  { filename: "service-worker.js" }
-);
+vm.runInContext(fs.readFileSync(require.resolve("../service-worker.js"), "utf8"), context, {
+  filename: "service-worker.js"
+});
 
 function dispatchLifecycle(type) {
   let lifetimePromise;
@@ -151,9 +145,9 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   await dispatchLifecycle("install");
   assert.ok(installedAppShell.includes("./index.html"));
   assert.ok(!installedAppShell.includes("./"));
-  const documentAssets = [...indexHtml.matchAll(
-    /<(?:link|script)\b[^>]*(?:href|src)="([^"]+)"/g
-  )].map((match) => `./${match[1]}`);
+  const documentAssets = [...indexHtml.matchAll(/<(?:link|script)\b[^>]*(?:href|src)="([^"]+)"/g)].map(
+    (match) => `./${match[1]}`
+  );
   for (const asset of documentAssets) {
     assert.ok(installedAppShell.includes(asset), `${asset} is missing from the app shell.`);
   }
@@ -178,28 +172,34 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(installedAppShell.includes("./js/special-cards-controller.js"));
 
   await dispatchLifecycle("activate");
-  assert.deepEqual(deletedCaches, [
-    "wizard-scoreboard-v1.0.51",
-    "wizard-scoreboard-v1.0.52"
-  ]);
+  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.51", "wizard-scoreboard-v1.0.52"]);
 
-  assert.equal(dispatchFetch({
-    method: "GET",
-    mode: "cors",
-    url: "https://cdn.example.test/library.js"
-  }), undefined);
+  assert.equal(
+    dispatchFetch({
+      method: "GET",
+      mode: "cors",
+      url: "https://cdn.example.test/library.js"
+    }),
+    undefined
+  );
 
-  assert.equal(dispatchFetch({
-    method: "GET",
-    mode: "cors",
-    url: "https://example.test/another-app/app.js"
-  }), undefined);
+  assert.equal(
+    dispatchFetch({
+      method: "GET",
+      mode: "cors",
+      url: "https://example.test/another-app/app.js"
+    }),
+    undefined
+  );
 
-  assert.equal(dispatchFetch({
-    method: "GET",
-    mode: "cors",
-    url: "https://example.test/wizard/api/future"
-  }), undefined);
+  assert.equal(
+    dispatchFetch({
+      method: "GET",
+      mode: "cors",
+      url: "https://example.test/wizard/api/future"
+    }),
+    undefined
+  );
 
   cachedResponse = { source: "cached-css" };
   networkHandler = async () => {
