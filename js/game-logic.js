@@ -614,6 +614,81 @@
     };
   }
 
+  function createCanonicalGameState(candidate, { includeArchiveMetadata = false } = {}) {
+    const players = candidate.players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      seatPosition: player.seatPosition
+    }));
+    const rounds = candidate.rounds.map((round) => {
+      const playerResults = {};
+
+      for (const player of players) {
+        const result = round.playerResults[player.id];
+        playerResults[player.id] = {
+          originalBid: result.originalBid,
+          currentBid: result.currentBid,
+          tricks: result.tricks,
+          roundPoints: result.roundPoints
+        };
+      }
+
+      return {
+        number: round.number,
+        dealerId: round.dealerId,
+        startingPlayerId: round.startingPlayerId,
+        phase: round.phase,
+        playerResults,
+        specialCards: {
+          cloud: {
+            active: round.specialCards.cloud.active,
+            playerId: round.specialCards.cloud.playerId,
+            change: round.specialCards.cloud.change
+          },
+          bomb: {
+            active: round.specialCards.bomb.active
+          },
+          witch: {
+            active: round.specialCards.witch.active,
+            secondEffect: round.specialCards.witch.secondEffect
+          },
+          secondCloud: {
+            active: round.specialCards.secondCloud.active,
+            playerId: round.specialCards.secondCloud.playerId,
+            change: round.specialCards.secondCloud.change
+          },
+          secondBomb: {
+            active: round.specialCards.secondBomb.active
+          }
+        },
+        completed: round.completed,
+        completedAt: round.completedAt
+      };
+    });
+    const state = {
+      version: candidate.version,
+      schemaVersion: candidate.schemaVersion,
+      gameId: candidate.gameId,
+      status: candidate.status,
+      totalCards: candidate.totalCards,
+      players,
+      firstDealerId: candidate.firstDealerId,
+      setupDealerRandomized: candidate.setupDealerRandomized,
+      roundMode: candidate.roundMode,
+      totalRounds: candidate.totalRounds,
+      currentRound: candidate.currentRound,
+      roundOneHintConfirmed: candidate.roundOneHintConfirmed,
+      rounds,
+      updatedAt: candidate.updatedAt
+    };
+
+    if (includeArchiveMetadata && isValidDateString(candidate.archivedAt)) {
+      state.archivedAt = candidate.archivedAt;
+    }
+
+    return state;
+  }
+
   function getBidSum(round) {
     return Object.values(round?.playerResults ?? {})
       .reduce((sum, result) => sum + (Number(result?.originalBid) || 0), 0);
@@ -848,6 +923,7 @@
     validateSetup,
     validateImportedGameState,
     validatePersistableGameState,
+    createCanonicalGameState,
     createRound,
     getBidSum,
     getBidDifference,

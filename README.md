@@ -26,6 +26,14 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 > A local server or HTTPS is required for installation and offline support.
 
+## Deployment archive
+
+Create a compact deployment ZIP without Git metadata, tests, or examples:
+
+```bash
+git archive --format=zip --output wizard-scoreboard.zip HEAD
+```
+
 ## Testing
 
 The test suite requires Node.js, Python, and Playwright:

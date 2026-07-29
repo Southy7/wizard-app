@@ -206,8 +206,43 @@ assert.equal(totalsWithoutSecond.ben, 30);
 // Strict import validation and explicitly allowed transient persisted states
 const validImport = require("../examples/history-game-1.json").gameState;
 assert.deepEqual(Logic.validateImportedGameState(validImport), []);
+assert.deepEqual(Logic.createCanonicalGameState(validImport), validImport);
 assert.deepEqual(Logic.validateImportedGameState(Logic.createInitialGameState()), []);
 assert.deepEqual(Logic.validatePersistableGameState(Logic.createInitialGameState()), []);
+
+const importWithUnknownFields = JSON.parse(JSON.stringify(validImport));
+const importedPlayerId = importWithUnknownFields.players[0].id;
+importWithUnknownFields.archivedAt = "2026-07-20T12:00:00.000Z";
+importWithUnknownFields.unknownState = { retained: false };
+importWithUnknownFields.players[0].unknownPlayer = true;
+importWithUnknownFields.rounds[0].unknownRound = true;
+importWithUnknownFields.rounds[0].playerResults[importedPlayerId].unknownResult = true;
+importWithUnknownFields.rounds[0].specialCards.unknownCollection = true;
+importWithUnknownFields.rounds[0].specialCards.cloud.unknownCard = true;
+assert.deepEqual(Logic.validateImportedGameState(importWithUnknownFields), []);
+
+const canonicalImport = Logic.createCanonicalGameState(importWithUnknownFields, {
+  includeArchiveMetadata: true
+});
+assert.deepEqual(Logic.validateImportedGameState(canonicalImport), []);
+assert.equal(canonicalImport.archivedAt, importWithUnknownFields.archivedAt);
+assert.equal("unknownState" in canonicalImport, false);
+assert.equal("unknownPlayer" in canonicalImport.players[0], false);
+assert.equal("unknownRound" in canonicalImport.rounds[0], false);
+assert.equal("unknownResult" in canonicalImport.rounds[0].playerResults[importedPlayerId], false);
+assert.equal("unknownCollection" in canonicalImport.rounds[0].specialCards, false);
+assert.equal("unknownCard" in canonicalImport.rounds[0].specialCards.cloud, false);
+
+const importWithInvalidArchiveDate = JSON.parse(JSON.stringify(validImport));
+importWithInvalidArchiveDate.archivedAt = "not-a-date";
+assert.equal(
+  "archivedAt" in Logic.createCanonicalGameState(importWithInvalidArchiveDate),
+  false
+);
+assert.equal(
+  "archivedAt" in Logic.createCanonicalGameState(importWithUnknownFields),
+  false
+);
 
 const bidTotalInvariantState = Logic.createInitialGameState(3);
 bidTotalInvariantState.players.forEach((entry, index) => {

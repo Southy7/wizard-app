@@ -7,6 +7,13 @@ playwright-report/
 test-results/
 .tmp-*/
 
+# Release artifacts
+/wizard-scoreboard.zip
+
+# Python
+__pycache__/
+*.pyc
+
 # Local environment
 .env
 .env.*

@@ -254,8 +254,8 @@
       closeDialog(elements["cloud-dialog"]);
     }
 
-    return { bindEvents, render };
+    return Object.freeze({ bindEvents, render });
   }
 
-  root.WizardSpecialCardsController = { createSpecialCardsController };
+  root.WizardSpecialCardsController = Object.freeze({ createSpecialCardsController });
 }(window));

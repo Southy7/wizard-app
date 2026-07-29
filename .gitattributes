@@ -14,3 +14,12 @@
 *.webp binary
 *.woff binary
 *.woff2 binary
+
+# Keep deployment archives focused on runtime files.
+/.github export-ignore
+/examples export-ignore
+/tests export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/package.json export-ignore
+/requirements-test.txt export-ignore

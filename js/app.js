@@ -1,6 +1,47 @@
 (function bootstrapWizardApp() {
   "use strict";
 
+  const TOAST_DURATION_MS = 3_200;
+  const GAME_HELP_CONTENT = createGameHelpContent({
+    bids: {
+      title: "Bids",
+      intro: "Enter how many tricks each player expects to win.",
+      steps: [
+        ["Set each bid", "Use − and + next to each player."],
+        ["Check Total Bids", "The total must not equal the round number. Green is valid; red must be changed."],
+        ["Continue", "Select Confirm Bids when every bid is correct."]
+      ]
+    },
+    play: {
+      title: "Special Cards",
+      intro: "Record only the special-card effects that occurred in this round.",
+      steps: [
+        ["Select cards", "Tap Cloud, Bomb, or Witch to activate it. Tap an active card again to undo it."],
+        ["Complete effects", "For Cloud, choose the affected player and −1 or +1. Witch requires a second Cloud or Bomb."],
+        ["Cloud with Bomb", "If both were played in the same trick, Bomb cancels Cloud. Record only Bomb and do not enter a Cloud change."],
+        ["Continue", "Select Enter Tricks when all played special cards are recorded."]
+      ]
+    },
+    tricks: {
+      title: "Tricks",
+      intro: "Enter how many tricks each player actually won.",
+      steps: [
+        ["Set each result", "Use − and +, or tap Bid to set a player's tricks directly to their current bid."],
+        ["Check Total Tricks", "The assigned total must match the displayed target. Bombs reduce that target."],
+        ["Continue", "Select Complete Round when the total is correct."]
+      ]
+    },
+    result: {
+      title: "Round Result",
+      intro: "Review the completed round before continuing.",
+      steps: [
+        ["Read the result", "Bid and Tricks show the entries; Round shows points earned now; Total shows the overall score. Gold marks the current leader."],
+        ["Correct mistakes", "Select Edit Round and choose the section that needs changing."],
+        ["Continue", "Select Next Round, or Finish Game after the final round."]
+      ]
+    }
+  });
+
   const Logic = window.WizardGameLogic;
   const StateManager = window.WizardStateManager;
   const Storage = window.WizardStorage;
@@ -85,7 +126,6 @@
       Storage,
       Logic,
       elements,
-      cloneState,
       historyController,
       persistenceController,
       setState: (nextState) => {
@@ -343,45 +383,7 @@
 
   function openGameHelp() {
     const phase = getCurrentRound()?.phase;
-    const help = {
-      bids: {
-        title: "Bids",
-        intro: "Enter how many tricks each player expects to win.",
-        steps: [
-          ["Set each bid", "Use − and + next to each player."],
-          ["Check Total Bids", "The total must not equal the round number. Green is valid; red must be changed."],
-          ["Continue", "Select Confirm Bids when every bid is correct."]
-        ]
-      },
-      play: {
-        title: "Special Cards",
-        intro: "Record only the special-card effects that occurred in this round.",
-        steps: [
-          ["Select cards", "Tap Cloud, Bomb, or Witch to activate it. Tap an active card again to undo it."],
-          ["Complete effects", "For Cloud, choose the affected player and −1 or +1. Witch requires a second Cloud or Bomb."],
-          ["Cloud with Bomb", "If both were played in the same trick, Bomb cancels Cloud. Record only Bomb and do not enter a Cloud change."],
-          ["Continue", "Select Enter Tricks when all played special cards are recorded."]
-        ]
-      },
-      tricks: {
-        title: "Tricks",
-        intro: "Enter how many tricks each player actually won.",
-        steps: [
-          ["Set each result", "Use − and +, or tap Bid to set a player's tricks directly to their current bid."],
-          ["Check Total Tricks", "The assigned total must match the displayed target. Bombs reduce that target."],
-          ["Continue", "Select Complete Round when the total is correct."]
-        ]
-      },
-      result: {
-        title: "Round Result",
-        intro: "Review the completed round before continuing.",
-        steps: [
-          ["Read the result", "Bid and Tricks show the entries; Round shows points earned now; Total shows the overall score. Gold marks the current leader."],
-          ["Correct mistakes", "Select Edit Round and choose the section that needs changing."],
-          ["Continue", "Select Next Round, or Finish Game after the final round."]
-        ]
-      }
-    }[phase];
+    const help = GAME_HELP_CONTENT[phase];
 
     if (!help) return;
 
@@ -497,7 +499,6 @@
 
     ResultView.renderRanking(elements["final-ranking"], state, totals);
     ResultView.renderScoreHistory(elements["final-score-history"], completedRounds, totals, state);
-    persistenceController.refreshConflictMode();
   }
 
   function reviewLastRound() {
@@ -587,8 +588,20 @@
     toast.hidden = false;
     toastTimeout = window.setTimeout(() => {
       toast.hidden = true;
-    }, 3200);
+    }, TOAST_DURATION_MS);
   }
+
+  function createGameHelpContent(content) {
+    const entries = Object.entries(content).map(([phase, help]) => [
+      phase,
+      Object.freeze({
+        ...help,
+        steps: Object.freeze(help.steps.map((step) => Object.freeze(step)))
+      })
+    ]);
+    return Object.freeze(Object.fromEntries(entries));
+  }
+
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
 

@@ -9,7 +9,6 @@
     Storage,
     Logic,
     elements,
-    cloneState,
     historyController,
     persistenceController,
     setState,
@@ -82,7 +81,7 @@
         throw new Error("The corrupted game could not be replaced.");
       }
 
-      const importedState = cloneState(candidate);
+      const importedState = Logic.createCanonicalGameState(candidate);
       if (!Storage.saveGame(importedState, {
         expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
         expectedGameId: savedBeforeImport?.gameId ?? null

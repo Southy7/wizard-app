@@ -315,7 +315,9 @@
           throw new Error("The history archive contains the same game more than once.");
         }
         gameIds.add(candidate.gameId);
-        games.push(StateManager.cloneState(candidate));
+        games.push(Logic.createCanonicalGameState(candidate, {
+          includeArchiveMetadata: true
+        }));
       }
 
       const result = Storage.mergeGameHistory(games);

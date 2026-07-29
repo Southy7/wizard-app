@@ -17,6 +17,7 @@ function createHarness(overrides = {}) {
   let archivedGames = 0;
   let strictValidations = 0;
   let persistableValidations = 0;
+  let canonicalizations = 0;
 
   const elements = {
     "btn-import-game": {
@@ -54,13 +55,18 @@ function createHarness(overrides = {}) {
       persistableValidations += 1;
       return [];
     },
+    createCanonicalGameState(state) {
+      canonicalizations += 1;
+      const canonicalState = JSON.parse(JSON.stringify(state));
+      delete canonicalState.unknownState;
+      return canonicalState;
+    },
     ...overrides.Logic
   };
   const controller = ImportController.createImportController({
     Storage,
     Logic,
     elements,
-    cloneState: (state) => JSON.parse(JSON.stringify(state)),
     historyController: {
       importArchive(archive) {
         importedArchives.push(archive);
@@ -100,7 +106,8 @@ function createHarness(overrides = {}) {
       refreshes,
       archivedGames,
       strictValidations,
-      persistableValidations
+      persistableValidations,
+      canonicalizations
     })
   };
 }
@@ -119,7 +126,17 @@ function createFile(payload, size = 1_000) {
   gameHarness.listeners["button:click"]();
   assert.equal(gameHarness.getCounts().inputClicks, 1);
 
-  const gameState = { gameId: "game-1", status: "running", updatedAt: null };
+  const gameState = {
+    gameId: "game-1",
+    status: "running",
+    updatedAt: null,
+    unknownState: true
+  };
+  const canonicalGameState = {
+    gameId: "game-1",
+    status: "running",
+    updatedAt: null
+  };
   gameHarness.elements["import-file-input"].files = [
     createFile({ exportFormat: "wizard-scoreboard-game", gameState })
   ];
@@ -134,14 +151,16 @@ function createFile(payload, size = 1_000) {
     expectedUpdatedAt: null,
     expectedGameId: null
   });
-  assert.deepEqual(gameHarness.importedStates, [gameState]);
+  assert.deepEqual(gameHarness.importedStates, [canonicalGameState]);
+  assert.deepEqual(gameHarness.savedStates[0].state, canonicalGameState);
   assert.deepEqual(gameHarness.getCounts(), {
     inputClicks: 1,
     importedMarks: 1,
     refreshes: 1,
     archivedGames: 0,
     strictValidations: 1,
-    persistableValidations: 0
+    persistableValidations: 0,
+    canonicalizations: 1
   });
   assert.equal(gameHarness.toasts.at(-1), "Game imported successfully.");
 

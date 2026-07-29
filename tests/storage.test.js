@@ -6,6 +6,17 @@ const values = new Map();
 let failHistoryWrites = false;
 let failGameWrites = false;
 let historyReadInterference = null;
+
+function withoutExpectedConsoleError(callback) {
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    return callback();
+  } finally {
+    console.error = originalConsoleError;
+  }
+}
+
 global.localStorage = {
   setItem(key, value) {
     if (failGameWrites && String(key) === "wizard-scoreboard:game-state:v1") {
@@ -118,7 +129,12 @@ assert.equal(Storage.wasLastGameSaveConflict(), false);
 const latestGame = Storage.loadGame();
 
 failGameWrites = true;
-assert.equal(Storage.saveGame(JSON.parse(JSON.stringify(latestGame))), false);
+assert.equal(
+  withoutExpectedConsoleError(
+    () => Storage.saveGame(JSON.parse(JSON.stringify(latestGame)))
+  ),
+  false
+);
 assert.equal(Storage.wasLastGameSaveConflict(), false);
 failGameWrites = false;
 
@@ -145,10 +161,7 @@ for (const mutate of [
   mutate(invalidStoredGame);
   const invalidStoredValue = JSON.stringify(invalidStoredGame);
   localStorage.setItem(Storage.STORAGE_KEY, invalidStoredValue);
-  const validationConsoleError = console.error;
-  console.error = () => {};
-  assert.equal(Storage.loadGame(), null);
-  console.error = validationConsoleError;
+  assert.equal(withoutExpectedConsoleError(() => Storage.loadGame()), null);
   assert.match(Storage.getStorageErrors().gameError, /corrupted|unreadable/i);
   assert.equal(localStorage.getItem(Storage.STORAGE_KEY), invalidStoredValue);
 }
@@ -329,12 +342,10 @@ const oversizedHistory = Array.from({ length: 100 }, (_, index) => ({
 assert.equal(Storage.getHistoryStorageStatus(oversizedHistory).softLimitReached, true);
 
 const currentHistoryValueBeforeStrictValidation = localStorage.getItem(Storage.HISTORY_KEY);
-const archiveConsoleError = console.error;
-console.error = () => {};
 
 const legacyHistoryValue = JSON.stringify([completedGame]);
 localStorage.setItem(Storage.HISTORY_KEY, legacyHistoryValue);
-assert.deepEqual(Storage.loadGameHistory(), []);
+assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
 assert.match(Storage.getStorageErrors().historyError, /archive|unreadable/i);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), legacyHistoryValue);
 
@@ -351,20 +362,19 @@ const incompleteHistoryEnvelope = JSON.parse(currentHistoryValueBeforeStrictVali
 incompleteHistoryEnvelope.games = [incompleteArchivedGame];
 const incompleteHistoryValue = JSON.stringify(incompleteHistoryEnvelope);
 localStorage.setItem(Storage.HISTORY_KEY, incompleteHistoryValue);
-assert.deepEqual(Storage.loadGameHistory(), []);
+assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
 assert.match(Storage.getStorageErrors().historyError, /archive|unreadable/i);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), incompleteHistoryValue);
 
 localStorage.setItem(Storage.HISTORY_KEY, currentHistoryValueBeforeStrictValidation);
 assert.equal(Storage.loadGameHistory().length, 1);
-console.error = archiveConsoleError;
 
 failHistoryWrites = true;
-const quotaConsoleError = console.error;
-console.error = () => {};
-assert.equal(Storage.saveCompletedGame(secondCompletedGame), false);
+assert.equal(
+  withoutExpectedConsoleError(() => Storage.saveCompletedGame(secondCompletedGame)),
+  false
+);
 assert.match(Storage.getStorageErrors().historyError, /storage is full/i);
-console.error = quotaConsoleError;
 failHistoryWrites = false;
 assert.equal(Storage.loadGameHistory().length, 1);
 
@@ -387,18 +397,13 @@ inconsistentArchive.rounds.pop();
 const inconsistentHistoryEnvelope = JSON.parse(validHistoryValue);
 inconsistentHistoryEnvelope.games = [inconsistentArchive];
 localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify(inconsistentHistoryEnvelope));
-const inconsistentArchiveConsoleError = console.error;
-console.error = () => {};
-assert.deepEqual(Storage.loadGameHistory(), []);
+assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
 assert.match(Storage.getStorageErrors().historyError, /inconsistent|unreadable/i);
-console.error = inconsistentArchiveConsoleError;
 localStorage.setItem(Storage.HISTORY_KEY, validHistoryValue);
 assert.equal(Storage.loadGameHistory().length, 1);
 
 localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
-const originalConsoleError = console.error;
-console.error = () => {};
-assert.equal(Storage.loadGame(), null);
+assert.equal(withoutExpectedConsoleError(() => Storage.loadGame()), null);
 assert.match(Storage.getLastError(), /corrupted|unreadable/i);
 const damagedGameError = Storage.getStorageErrors().gameError;
 
@@ -408,7 +413,7 @@ assert.equal(Storage.getStorageErrors().gameError, damagedGameError);
 assert.equal(Storage.getStorageErrors().historyError, "");
 
 localStorage.setItem(Storage.HISTORY_KEY, "{invalid-json");
-assert.deepEqual(Storage.loadGameHistory(), []);
+assert.deepEqual(withoutExpectedConsoleError(() => Storage.loadGameHistory()), []);
 const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
 const damagedHistoryError = Storage.getStorageErrors().historyError;
 assert.match(damagedHistoryError, /game archive|unreadable/i);
@@ -420,9 +425,11 @@ assert.equal(Storage.loadGame().version, "1.0");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
 // A damaged archive is preserved until the user chooses the dedicated recovery path.
-assert.equal(Storage.saveCompletedGame(completedGame), false);
+assert.equal(
+  withoutExpectedConsoleError(() => Storage.saveCompletedGame(completedGame)),
+  false
+);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), damagedHistoryValue);
-console.error = originalConsoleError;
 
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.hasStoredData(), false);

@@ -5,8 +5,39 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const indexHtml = fs.readFileSync(require.resolve("../index.html"), "utf8");
-assert.match(indexHtml, /const hadController = Boolean\(navigator\.serviceWorker\.controller\)/);
-assert.match(indexHtml, /if \(!hadController \|\| isReloadingForUpdate\) return/);
+const updateScript = indexHtml.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+assert.ok(updateScript);
+
+function simulateControllerChanges(initialController, changeCount) {
+  let listener = null;
+  let reloads = 0;
+  const pageContext = vm.createContext({
+    navigator: {
+      serviceWorker: {
+        controller: initialController,
+        addEventListener(type, callback) {
+          if (type === "controllerchange") listener = callback;
+        }
+      }
+    },
+    window: {
+      location: {
+        reload() {
+          reloads += 1;
+        }
+      }
+    }
+  });
+  vm.runInContext(updateScript, pageContext, { filename: "index-service-worker-update.js" });
+  assert.equal(typeof listener, "function");
+  for (let index = 0; index < changeCount; index += 1) listener();
+  return reloads;
+}
+
+assert.equal(simulateControllerChanges(null, 1), 0);
+assert.equal(simulateControllerChanges(null, 2), 1);
+assert.equal(simulateControllerChanges({}, 1), 1);
+assert.equal(simulateControllerChanges({}, 2), 1);
 
 const listeners = {};
 const deletedCaches = [];

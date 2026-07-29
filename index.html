@@ -26,10 +26,14 @@
   <script>
     if ("serviceWorker" in navigator) {
       // Reload only when an existing worker is replaced; first install must not interrupt startup.
-      const hadController = Boolean(navigator.serviceWorker.controller);
+      let hadController = Boolean(navigator.serviceWorker.controller);
       let isReloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (!hadController || isReloadingForUpdate) return;
+        if (!hadController) {
+          hadController = true;
+          return;
+        }
+        if (isReloadingForUpdate) return;
         isReloadingForUpdate = true;
         window.location.reload();
       });

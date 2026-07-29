@@ -291,15 +291,15 @@
       window.scrollTo({ top: 0, behavior: "auto" });
     }
 
-    return {
+    return Object.freeze({
       bindEvents,
       renderBids,
       renderTricks,
       setRoundPhase,
       openEditRoundDialog,
       goToNextRound
-    };
+    });
   }
 
-  root.WizardRoundController = { createRoundController };
+  root.WizardRoundController = Object.freeze({ createRoundController });
 }(window));
