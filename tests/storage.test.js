@@ -34,6 +34,7 @@ assert.equal(Storage.loadGame(), null);
 assert.equal(Storage.hasStoredData(), false);
 assert.deepEqual(Storage.loadGameHistory(), []);
 assert.equal(Storage.hasGameHistory(), false);
+assert.equal(Storage.hasStoredHistoryData(), false);
 assert.deepEqual(Storage.getStorageErrors(), {
   storageError: "",
   gameError: "",
@@ -364,6 +365,8 @@ assert.deepEqual(Storage.loadGameHistory(), []);
 const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
 const damagedHistoryError = Storage.getStorageErrors().historyError;
 assert.match(damagedHistoryError, /game archive|unreadable/i);
+assert.equal(Storage.hasStoredHistoryData(), true);
+assert.equal(Storage.getRawGameHistoryData(), damagedHistoryValue);
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.saveGame(latestGame, { expectedUpdatedAt: null }), true);
 assert.equal(Storage.loadGame().version, "1.0");
@@ -382,6 +385,7 @@ assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
 assert.equal(Storage.clearGameHistory(), true);
 assert.deepEqual(Storage.loadGameHistory(), []);
+assert.equal(Storage.hasStoredHistoryData(), false);
 Storage.clearLastError();
 assert.equal(Storage.getLastError(), "");
 

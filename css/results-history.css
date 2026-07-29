@@ -1,8 +1,34 @@
 /* Final result and score history */
 .history-game-list,
-.history-detail-view {
+.history-detail-view,
+.history-recovery-view {
   display: grid;
   gap: 12px;
+}
+
+.history-recovery-view[hidden] {
+  display: none;
+}
+
+.history-recovery-panel h3 {
+  margin-top: 0;
+}
+
+.history-recovery-panel p {
+  margin-bottom: 18px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.history-recovery-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.history-recovery-actions .button {
+  min-width: 0;
+  padding-inline: 10px;
 }
 
 .history-game-list {

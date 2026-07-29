@@ -200,6 +200,33 @@
     return loadGame() !== null;
   }
 
+  function hasStoredHistoryData() {
+    if (!isStorageAvailable()) return false;
+
+    try {
+      return localStorage.getItem(HISTORY_KEY) !== null;
+    } catch (error) {
+      setError("historyError", "The saved history could not be accessed.", error);
+      return false;
+    }
+  }
+
+  function getRawGameHistoryData() {
+    if (!isStorageAvailable()) return null;
+
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw === null) {
+        setError("historyError", "There is no saved history data to export.");
+        return null;
+      }
+      return raw;
+    } catch (error) {
+      setError("historyError", "The damaged history data could not be exported.", error);
+      return null;
+    }
+  }
+
   function loadGameHistory() {
     if (!isStorageAvailable()) return [];
 
@@ -473,6 +500,8 @@
     deleteGame,
     hasStoredData,
     hasSavedGame,
+    hasStoredHistoryData,
+    getRawGameHistoryData,
     loadGameHistory,
     saveCompletedGame,
     deleteCompletedGame,

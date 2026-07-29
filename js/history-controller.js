@@ -23,11 +23,18 @@
       elements["btn-history-clear"].addEventListener("click", clearAll);
       elements["btn-history-export-game"].addEventListener("click", exportSelected);
       elements["btn-history-delete-game"].addEventListener("click", deleteSelected);
+      elements["btn-history-export-damaged"].addEventListener("click", exportDamagedData);
+      elements["btn-history-reset-damaged"].addEventListener("click", resetDamagedHistory);
     }
 
     function open() {
       const games = Storage.loadGameHistory();
       updateControls(games);
+      if (needsRecovery()) {
+        showRecovery();
+        showScreen("history");
+        return;
+      }
       if (games.length === 0) {
         showToast("There are no completed games yet.");
         refreshHomeScreen();
@@ -102,6 +109,7 @@
       selectedArchivedGame = null;
       elements["history-list-view"].hidden = false;
       elements["history-detail-view"].hidden = true;
+      elements["history-recovery-view"].hidden = true;
       window.scrollTo({ top: 0, behavior: "auto" });
     }
 
@@ -121,20 +129,43 @@
       );
       elements["history-list-view"].hidden = true;
       elements["history-detail-view"].hidden = false;
+      elements["history-recovery-view"].hidden = true;
       window.scrollTo({ top: 0, behavior: "auto" });
     }
 
     function updateControls(games = Storage.loadGameHistory()) {
       const status = Storage.getHistoryStorageStatus(games);
       const hasGames = status.count > 0;
+      const recoveryRequired = needsRecovery();
 
-      elements["btn-history-export-all"].disabled = !hasGames;
-      elements["btn-history-clear"].disabled = !hasGames;
-      elements["history-storage-status"].textContent =
-        `${status.count} ${status.count === 1 ? "game" : "games"} · ${formatStorageSize(status.bytes)}`;
-      capacityWarning = status.softLimitReached
+      elements["btn-history-export-all"].disabled = !hasGames || recoveryRequired;
+      elements["btn-history-import"].disabled = recoveryRequired;
+      elements["btn-history-clear"].disabled = !hasGames || recoveryRequired;
+      elements["btn-history-export-damaged"].disabled = !recoveryRequired;
+      elements["btn-history-reset-damaged"].disabled = !recoveryRequired;
+      elements["history-storage-status"].textContent = recoveryRequired
+        ? "Recovery required"
+        : `${status.count} ${status.count === 1 ? "game" : "games"} · ${formatStorageSize(status.bytes)}`;
+      capacityWarning = !recoveryRequired && status.softLimitReached
         ? `History contains ${status.count} games and uses about ${formatStorageSize(status.bytes)}. Export or delete older games before local storage is full.`
         : "";
+    }
+
+    function needsRecovery() {
+      return Boolean(
+        Storage.getStorageErrors?.().historyError
+        && Storage.hasStoredHistoryData?.()
+      );
+    }
+
+    function showRecovery() {
+      selectedArchivedGame = null;
+      elements["history-list-view"].hidden = true;
+      elements["history-detail-view"].hidden = true;
+      elements["history-recovery-view"].hidden = false;
+      elements["history-recovery-message"].textContent =
+        "The saved history is damaged and cannot be opened. Export the damaged data before resetting it if you may need it later.";
+      window.scrollTo({ top: 0, behavior: "auto" });
     }
 
     function getCapacityWarning() {
@@ -202,6 +233,42 @@
       selectedArchivedGame = null;
       refreshAfterMutation();
       showToast("All history was cleared.");
+    }
+
+    function exportDamagedData() {
+      if (!needsRecovery()) return;
+
+      const raw = Storage.getRawGameHistoryData?.();
+      if (typeof raw !== "string") {
+        showStorageError("The damaged history data could not be exported.");
+        return;
+      }
+
+      downloadText(raw, `wizard-damaged-history-${formatFileTimestamp(new Date())}.json`);
+      showToast("The damaged history data was exported.");
+    }
+
+    function resetDamagedHistory() {
+      if (!needsRecovery()) return;
+
+      const confirmed = window.confirm(
+        "Do you really want to permanently delete the damaged history? Export the damaged data first if you may need it later."
+      );
+      if (!confirmed) return;
+
+      if (!Storage.clearGameHistory()) {
+        showStorageError("The damaged history could not be reset.");
+        return;
+      }
+
+      selectedArchivedGame = null;
+      renderGameList([]);
+      updateControls([]);
+      showList();
+      refreshHomeScreen();
+      showScreen("history");
+      updateStorageWarning();
+      showToast("History was reset.");
     }
 
     function refreshAfterMutation() {
@@ -276,7 +343,11 @@
     }
 
     function downloadJson(payload, filename) {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      downloadText(JSON.stringify(payload, null, 2), filename);
+    }
+
+    function downloadText(text, filename) {
+      const blob = new Blob([text], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

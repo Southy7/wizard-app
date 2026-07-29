@@ -182,6 +182,8 @@
       "history-detail-ranking", "history-score-content",
       "btn-history-export-all", "btn-history-import", "history-storage-status",
       "btn-history-clear", "btn-history-export-game", "btn-history-delete-game",
+      "history-recovery-view", "history-recovery-message",
+      "btn-history-export-damaged", "btn-history-reset-damaged",
       "final-ranking", "final-score-history", "btn-review-last-round",
       "btn-finished-go-home", "round-one-dialog", "btn-confirm-round-one-hint",
       "cloud-dialog", "cloud-dialog-kicker",
@@ -304,9 +306,13 @@
     const historyButton = elements["btn-history"];
 
     const games = Storage.loadGameHistory();
+    const historyNeedsRecovery = Boolean(
+      Storage.getStorageErrors?.().historyError
+      && Storage.hasStoredHistoryData?.()
+    );
     const canContinueFromMemory = persistenceController.canContinueFromMemory();
     continueButton.disabled = !savedState && !canContinueFromMemory;
-    historyButton.disabled = !historyAvailable || games.length === 0;
+    historyButton.disabled = !historyAvailable || (games.length === 0 && !historyNeedsRecovery);
     historyController.updateControls(games);
     updateStorageWarning();
   }
@@ -329,7 +335,9 @@
         "btn-history-import",
         "btn-history-clear",
         "btn-history-export-game",
-        "btn-history-delete-game"
+        "btn-history-delete-game",
+        "btn-history-export-damaged",
+        "btn-history-reset-damaged"
       ].forEach((id) => {
         if (elements[id]) elements[id].disabled = true;
       });

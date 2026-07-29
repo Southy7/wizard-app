@@ -700,6 +700,49 @@ def main() -> None:
         assert conflict_page.locator("#btn-add-player").is_enabled()
         conflict_page.close()
 
+        # A damaged archive remains reachable and can be exported or reset.
+        recovery_page = browser.new_page(viewport={"width": 390, "height": 844})
+        recovery_page.set_content(html)
+        recovery_page.evaluate(LOCAL_STORAGE_MOCK)
+        for script in scripts:
+            recovery_page.add_script_tag(content=script)
+        damaged_history = "{invalid-json"
+        recovery_page.evaluate(
+            "(raw) => localStorage.setItem(WizardStorage.HISTORY_KEY, raw)",
+            damaged_history,
+        )
+        recovery_page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+        assert recovery_page.locator("#btn-history").is_enabled()
+        recovery_page.click("#btn-history")
+        assert recovery_page.locator("#screen-history").is_visible()
+        assert recovery_page.locator("#history-recovery-view").is_visible()
+        assert recovery_page.locator("#history-list-view").is_hidden()
+        assert recovery_page.locator("#history-storage-status").text_content() == "Recovery required"
+        assert recovery_page.locator("#btn-history-export-all").is_disabled()
+        assert recovery_page.locator("#btn-history-import").is_disabled()
+        assert recovery_page.locator("#btn-history-clear").is_disabled()
+
+        with recovery_page.expect_download() as damaged_download_info:
+            recovery_page.click("#btn-history-export-damaged")
+        damaged_download = damaged_download_info.value
+        assert damaged_download.suggested_filename.startswith("wizard-damaged-history-")
+        assert Path(damaged_download.path()).read_text(encoding="utf-8") == damaged_history
+
+        recovery_page.once("dialog", lambda dialog: dialog.dismiss())
+        recovery_page.click("#btn-history-reset-damaged")
+        assert recovery_page.locator("#history-recovery-view").is_visible()
+
+        recovery_page.once("dialog", lambda dialog: dialog.accept())
+        recovery_page.click("#btn-history-reset-damaged")
+        assert recovery_page.locator("#history-recovery-view").is_hidden()
+        assert recovery_page.locator("#history-list-view").is_visible()
+        assert recovery_page.get_by_text("No archived games available.").is_visible()
+        assert recovery_page.locator("#btn-history").is_disabled()
+        assert recovery_page.evaluate(
+            "localStorage.getItem(WizardStorage.HISTORY_KEY)"
+        ) is None
+        recovery_page.close()
+
         browser.close()
 
     print("Browser smoke test passed.")

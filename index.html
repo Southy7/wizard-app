@@ -226,6 +226,23 @@
           <button id="btn-history-clear" class="button button-danger full-width" type="button">Clear All History</button>
         </div>
 
+        <div id="history-recovery-view" class="history-recovery-view" hidden>
+          <section class="panel history-recovery-panel" aria-labelledby="history-recovery-title">
+            <h3 id="history-recovery-title">History Recovery</h3>
+            <p id="history-recovery-message">
+              The saved history is damaged and cannot be opened. Export the damaged data before resetting it if you may need it later.
+            </p>
+            <div class="history-recovery-actions">
+              <button id="btn-history-export-damaged" class="button button-secondary" type="button">
+                Export damaged data
+              </button>
+              <button id="btn-history-reset-damaged" class="button button-danger" type="button">
+                Reset history
+              </button>
+            </div>
+          </section>
+        </div>
+
         <div id="history-detail-view" class="history-detail-view" hidden>
           <section class="panel history-detail-ranking-panel" aria-labelledby="history-detail-title">
             <h3 id="history-detail-title">Final Result</h3>
