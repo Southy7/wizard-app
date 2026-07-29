@@ -255,8 +255,16 @@ assert.deepEqual(Storage.mergeGameHistory([secondCompletedGame]), {
   updated: 0,
   skipped: 1
 });
+const futureSecondGame = JSON.parse(JSON.stringify(secondCompletedGame));
+futureSecondGame.updatedAt = "2099-01-01T00:00:00.000Z";
+assert.deepEqual(Storage.mergeGameHistory([futureSecondGame]), {
+  success: false,
+  added: 0,
+  updated: 0,
+  skipped: 0
+});
 const newerSecondGame = JSON.parse(JSON.stringify(secondCompletedGame));
-newerSecondGame.updatedAt = "2099-01-01T00:00:00.000Z";
+newerSecondGame.updatedAt = "2026-07-21T20:31:00.000Z";
 newerSecondGame.players[0].name = "Neuere Fassung";
 assert.deepEqual(Storage.mergeGameHistory([newerSecondGame]), {
   success: true,

@@ -12,6 +12,7 @@
   const MIN_PLAYERS = 3;
   const MAX_PLAYERS = 6;
   const TOTAL_CARDS = 70;
+  const MAX_FUTURE_TIMESTAMP_SKEW_MS = 24 * 60 * 60 * 1000;
 
   const STANDARD_ROUNDS = Object.freeze({
     3: 20,
@@ -205,6 +206,8 @@
 
     if (!isValidDateString(candidate.updatedAt)) {
       errors.push("The game does not have a valid last-updated date.");
+    } else if (Date.parse(candidate.updatedAt) > Date.now() + MAX_FUTURE_TIMESTAMP_SKEW_MS) {
+      errors.push("The game's last-updated date is implausibly far in the future.");
     }
 
     const players = Array.isArray(candidate.players) ? candidate.players : [];

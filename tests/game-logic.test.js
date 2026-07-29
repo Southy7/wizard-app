@@ -341,6 +341,26 @@ for (const [field, expectedMessage] of [
 }
 
 assert.ok(invalidImport((candidate) => {
+  candidate.gameId = "invalid game id";
+}).some((error) => error.includes("game ID")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.updatedAt = "2099-01-01T00:00:00.000Z";
+}).some((error) => error.includes("far in the future")));
+
+const clockSkewImport = JSON.parse(JSON.stringify(validImport));
+clockSkewImport.updatedAt = new Date(Date.now() + (60 * 60 * 1000)).toISOString();
+assert.deepEqual(Logic.validateImportedGameState(clockSkewImport), []);
+
+assert.ok(invalidImport((candidate) => {
+  candidate.updatedAt = "2026-07-20";
+}).some((error) => error.includes("valid last-updated date")));
+
+assert.ok(invalidImport((candidate) => {
+  candidate.roundOneHintConfirmed = "yes";
+}).some((error) => error.includes("first-round confirmation status")));
+
+assert.ok(invalidImport((candidate) => {
   delete candidate.players[0].seatPosition;
 }).some((error) => error.includes("seating order")));
 
@@ -380,6 +400,11 @@ const missingRequiredPersistableField = Logic.createInitialGameState();
 delete missingRequiredPersistableField.gameId;
 assert.ok(Logic.validatePersistableGameState(missingRequiredPersistableField)
   .some((error) => error.includes("game ID")));
+
+const futurePersistableState = Logic.createInitialGameState();
+futurePersistableState.updatedAt = "2099-01-01T00:00:00.000Z";
+assert.ok(Logic.validatePersistableGameState(futurePersistableState)
+  .some((error) => error.includes("far in the future")));
 
 assertInvalidImport((candidate) => {
   candidate.players[1].id = candidate.players[0].id;
