@@ -302,7 +302,13 @@
       if (!shouldReplace) return;
     }
 
-    const gameToReplace = hasUnsavedMemoryGame ? state : savedGame;
+    if (hasUnsavedMemoryGame && state?.status === "completed") {
+      updateStorageWarning(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
+      showToast(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
+      return;
+    }
+
+    const gameToReplace = hasUnsavedMemoryGame ? null : savedGame;
     if (!ensureCompletedGameArchived(gameToReplace)) {
       updateStorageWarning(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
       showToast(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
@@ -326,6 +332,7 @@
   function continueGame() {
     const canContinueFromMemory = persistenceController.canContinueFromMemory();
     const savedState = canContinueFromMemory ? state : Storage.loadGame();
+    let stateIsPersisted = !canContinueFromMemory;
 
     if (!savedState) {
       showToast("No valid game state was found.");
@@ -337,11 +344,11 @@
       state = cloneState(savedState);
       persistenceController.markStateLoaded();
     } else {
-      persistState();
+      stateIsPersisted = persistState();
     }
 
     if (state.status === "completed") {
-      ensureCompletedGameArchived(state);
+      if (stateIsPersisted) ensureCompletedGameArchived(state);
       renderFinished();
       showScreen("finished");
       return;
@@ -359,8 +366,8 @@
   }
 
   function goHome() {
-    persistState();
-    ensureCompletedGameArchived(state);
+    const stateIsPersisted = persistState();
+    if (stateIsPersisted) ensureCompletedGameArchived(state);
     refreshHomeScreen();
     showScreen("home");
   }
@@ -499,7 +506,9 @@
     if (!round?.completed || round.number < state.totalRounds) return;
 
     state.status = "completed";
-    persistState();
+    const stateIsPersisted = persistState();
+    if (!stateIsPersisted) return;
+
     archiveCompletedGame(state);
     renderFinished();
     showScreen("finished");

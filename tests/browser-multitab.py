@@ -4,7 +4,13 @@ import json
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-from browser_helpers import launch_browser, open_clean_page, serve_app
+from browser_helpers import (
+    launch_browser,
+    open_clean_page,
+    serve_app,
+    set_values,
+    start_game,
+)
 
 FAIL_WRITES_SCRIPT = """
 (() => {
@@ -57,6 +63,40 @@ def main():
         assert second.locator("#btn-export-conflict-state").is_enabled()
         assert second.locator("#btn-reload-after-conflict").is_visible()
         context.close()
+
+        stale_finish_context = browser.new_context()
+        stale_finish = open_clean_page(stale_finish_context, url)
+        start_game(stale_finish, rounds=1)
+        set_values(stale_finish, ".bid-panel", (1, 0, 0))
+        stale_finish.get_by_role("button", name="Confirm Bids").click()
+        stale_finish.get_by_role("button", name="Enter Tricks").click()
+        set_values(stale_finish, ".tricks-panel", (1, 0, 0))
+        stale_finish.get_by_role("button", name="Complete Round").click()
+        stale_finish.evaluate(
+            """
+            (() => {
+              const externalState = WizardStorage.loadGame();
+              externalState.players[0].name = "Name from another tab";
+              externalState.updatedAt = new Date(
+                Date.parse(externalState.updatedAt) + 1
+              ).toISOString();
+              localStorage.setItem(
+                WizardStorage.STORAGE_KEY,
+                JSON.stringify(externalState)
+              );
+            })()
+            """
+        )
+        stale_finish.get_by_role("button", name="Finish Game").click()
+        assert stale_finish.locator("#screen-game").is_visible()
+        assert stale_finish.locator("#screen-finished").is_hidden()
+        assert stale_finish.locator("#storage-conflict-actions").is_visible()
+        assert stale_finish.locator("#btn-export-conflict-state").is_enabled()
+        assert stale_finish.evaluate("WizardStorage.loadGameHistory().length") == 0
+        assert stale_finish.evaluate(
+            "WizardStorage.loadGame().players[0].name"
+        ) == "Name from another tab"
+        stale_finish_context.close()
 
         quota_context = browser.new_context()
         quota_context.add_init_script(FAIL_WRITES_SCRIPT)
