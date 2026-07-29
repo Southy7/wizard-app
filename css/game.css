@@ -1,4 +1,4 @@
-/* Active game: inputs and phase status */
+/* Bids, tricks, and phase status */
 .points-strip {
   display: grid;
   grid-template-columns: repeat(var(--player-count), minmax(0, 1fr));
@@ -239,7 +239,7 @@
   color: var(--warning);
 }
 
-/* Active game: special cards */
+/* Special-card controls */
 .special-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -9,11 +9,11 @@
 })(typeof globalThis !== "undefined" ? globalThis : window, function createStateManager() {
   "use strict";
 
-  // States are validated before this function is called and then copied unchanged.
   function cloneState(state) {
     return JSON.parse(JSON.stringify(state));
   }
 
+  // Keep denormalized special-card flags coherent when a parent effect is removed.
   function normalizeSpecialDependencies(round) {
     const cards = round.specialCards;
 

@@ -251,6 +251,7 @@
       const round = getCurrentRound();
       if (!round) return;
 
+      // Reopening a round invalidates its completion metadata and derived points before editing.
       round.completed = false;
       round.completedAt = null;
       round.phase = phase;

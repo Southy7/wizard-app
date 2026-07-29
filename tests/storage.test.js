@@ -88,14 +88,13 @@ assert.match(Storage.getStorageErrors().gameError, /another tab/i);
 assert.equal(Storage.loadGame().players[0].name, "Anna from Tab A");
 assert.equal(Storage.loadGame().updatedAt, tabAUpdatedAt);
 
-// Another tab deletes the previously loaded game state.
+// Compare-and-set protection for deletion, replacement, and corruption races
 const staleAfterDeletion = JSON.parse(JSON.stringify(Storage.loadGame()));
 assert.equal(Storage.deleteGame(), true);
 assert.equal(Storage.saveGame(staleAfterDeletion), false);
 assert.equal(Storage.wasLastGameSaveConflict(), true);
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
 
-// Another tab replaces the deleted state with a new game.
 const replacementState = Logic.createInitialGameState(3);
 replacementState.players[0].name = "New Game";
 assert.equal(Storage.saveGame(replacementState, { expectedUpdatedAt: null }), true);
@@ -106,13 +105,11 @@ localStorage.setItem(Storage.STORAGE_KEY, JSON.stringify(replacementWithCollidin
 assert.equal(Storage.saveGame(staleAfterDeletion), false);
 assert.equal(Storage.loadGame().gameId, replacementId);
 
-// A copy corrupted between loading and saving is not overwritten.
 const staleBeforeDamage = JSON.parse(JSON.stringify(Storage.loadGame()));
 localStorage.setItem(Storage.STORAGE_KEY, "{invalid-json");
 assert.equal(Storage.saveGame(staleBeforeDamage), false);
 assert.equal(localStorage.getItem(Storage.STORAGE_KEY), "{invalid-json");
 
-// Only the explicit recovery path may start over afterward.
 assert.equal(Storage.deleteGame(), true);
 const recoveryState = Logic.createInitialGameState(3);
 recoveryState.players[0].name = "Recovered";
@@ -120,7 +117,6 @@ assert.equal(Storage.saveGame(recoveryState, { expectedUpdatedAt: null }), true)
 assert.equal(Storage.wasLastGameSaveConflict(), false);
 const latestGame = Storage.loadGame();
 
-// A technical write failure is not a multi-tab conflict.
 failGameWrites = true;
 assert.equal(Storage.saveGame(JSON.parse(JSON.stringify(latestGame))), false);
 assert.equal(Storage.wasLastGameSaveConflict(), false);
@@ -157,7 +153,7 @@ for (const mutate of [
   assert.equal(localStorage.getItem(Storage.STORAGE_KEY), invalidStoredValue);
 }
 
-// The Witch may be saved locally while its selection is in progress.
+// Round states that are valid only during local interaction must remain resumable.
 const transientWitchGame = Logic.createInitialGameState(3);
 transientWitchGame.players.forEach((player, index) => { player.name = `Player ${index + 1}`; });
 transientWitchGame.status = "running";
@@ -179,7 +175,6 @@ assert.notEqual(Storage.loadGame(), null);
 assert.ok(Logic.validateImportedGameState(transientWitchGame).some((error) => error.includes("Witch")));
 assert.deepEqual(Logic.validatePersistableGameState(transientWitchGame), []);
 
-// A Cloud +1 in round 1 remains saveable, editable, and reloadable.
 assert.equal(Storage.deleteGame(), true);
 const cloudStoredGame = Logic.createInitialGameState(3);
 cloudStoredGame.players.forEach((player, index) => {
@@ -397,12 +392,11 @@ assert.equal(Storage.loadGame(), null);
 assert.match(Storage.getLastError(), /corrupted|unreadable/i);
 const damagedGameError = Storage.getStorageErrors().gameError;
 
-// A successful history query must not clear the active game's error.
+// Successful operations in one storage domain must not clear errors from another.
 assert.equal(Storage.loadGameHistory().length, 1);
 assert.equal(Storage.getStorageErrors().gameError, damagedGameError);
 assert.equal(Storage.getStorageErrors().historyError, "");
 
-// Conversely, successful game access must not clear a history error.
 localStorage.setItem(Storage.HISTORY_KEY, "{invalid-json");
 assert.deepEqual(Storage.loadGameHistory(), []);
 const damagedHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
@@ -415,7 +409,7 @@ assert.equal(Storage.saveGame(latestGame, { expectedUpdatedAt: null }), true);
 assert.equal(Storage.loadGame().version, "1.0");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
-// A corrupted archive is not silently overwritten during a save.
+// A damaged archive is preserved until the user chooses the dedicated recovery path.
 assert.equal(Storage.saveCompletedGame(completedGame), false);
 assert.equal(localStorage.getItem(Storage.HISTORY_KEY), damagedHistoryValue);
 console.error = originalConsoleError;

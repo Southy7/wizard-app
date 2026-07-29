@@ -21,7 +21,7 @@ def main():
         page.evaluate("navigator.serviceWorker.ready")
         page.wait_for_function("navigator.serviceWorker.controller !== null")
 
-        # Claiming the page during the first installation must not reload it.
+        # The first worker claim must not be mistaken for an update and reload the initial page.
         assert page.evaluate("Number(sessionStorage.getItem('wizardPageLoads'))") == 1
 
         page.reload()

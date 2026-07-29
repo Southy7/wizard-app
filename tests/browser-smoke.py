@@ -312,7 +312,6 @@ def main() -> None:
         bomb.click()
         assert page.locator(".special-button", has_text="Witch").is_disabled()
 
-        # With both Cloud and Bomb active, the Witch offers both possible repeats.
         page.locator(".special-button", has_text="Cloud").click()
         assert page.locator("#cloud-dialog-help").count() == 0
         cloud_heading_box = page.locator("#cloud-dialog .dialog-heading").bounding_box()
@@ -330,7 +329,6 @@ def main() -> None:
         page.click("#btn-cloud-plus")
         page.locator(".special-button", has_text="Bomb").click()
 
-        # Cloud +1 may result in a current bid of 2 in round 1.
         saved_cloud_state = page.evaluate(
             """
             (() => {
@@ -354,7 +352,6 @@ def main() -> None:
         assert saved_cloud_state["bombActive"]
         assert saved_cloud_state["storageError"] == ""
 
-        # A fresh page context must load and continue the same state.
         reload_page = browser.new_page(viewport={"width": 390, "height": 844})
         reload_page.set_content(html)
         reload_page.evaluate(LOCAL_STORAGE_MOCK)
@@ -389,7 +386,6 @@ def main() -> None:
         assert second_effect_box and special_actions_box
         assert special_actions_box["y"] - (second_effect_box["y"] + second_effect_box["height"]) >= 16
 
-        # An incomplete Witch selection blocks navigation back to bids.
         page.get_by_role("button", name="Edit Bids").click()
         assert page.locator("#toast").text_content() == (
             "Choose the Witch's second special card first or remove the Witch."
@@ -398,7 +394,6 @@ def main() -> None:
         assert page.locator(".special-button", has_text="Witch").get_attribute("aria-pressed") == "true"
         assert page.evaluate("WizardStorage.loadGame().rounds[0].phase") == "play"
 
-        # This temporary state remains resumable after a reload.
         incomplete_witch_state = page.evaluate(
             "localStorage.getItem(WizardStorage.STORAGE_KEY)"
         )
@@ -426,7 +421,6 @@ def main() -> None:
         assert witch_reload_page.evaluate("WizardStorage.getStorageErrors().gameError") == ""
         witch_reload_page.close()
 
-        # Navigation back is allowed after selecting a complete second card.
         second_bomb = page.locator(".special-button", has_text="2nd Bomb")
         second_bomb.click()
         page.get_by_role("button", name="Edit Bids").click()
@@ -436,7 +430,6 @@ def main() -> None:
         second_bomb = page.locator(".special-button", has_text="2nd Bomb")
         assert "active" in second_bomb.get_attribute("class")
 
-        # The second Bomb and second Cloud can each be toggled with the same button.
         second_bomb.click()
         assert page.get_by_role("button", name="Enter Tricks").is_disabled()
         second_bomb.click()
@@ -453,7 +446,6 @@ def main() -> None:
         second_cloud.click()
         assert page.get_by_role("button", name="Enter Tricks").is_disabled()
 
-        # Turn off the Witch and both primary cards again.
         page.locator(".special-button", has_text="Witch").click()
         page.locator(".special-button", has_text="Bomb").click()
         page.locator(".special-button", has_text="Cloud").click()
@@ -590,7 +582,6 @@ def main() -> None:
             "#final-ranking .ranking-row[data-rank='1']"
         ).count()
 
-        # The new Home button opens the same saved score history.
         page.click("#btn-finished-go-home")
         assert page.locator("#screen-home").is_visible()
         assert page.evaluate("document.activeElement.id") == "home-title"
@@ -662,7 +653,7 @@ def main() -> None:
         assert page.get_by_text("No archived games available.").is_visible()
         assert page.locator("#btn-history").is_disabled()
 
-        # Without usable localStorage, the in-memory game remains accessible.
+        # Storage failure must keep the current game usable from memory.
         memory_page = browser.new_page(viewport={"width": 390, "height": 844})
         memory_page.set_content(html)
         memory_page.evaluate(LOCAL_STORAGE_MOCK)
@@ -686,8 +677,7 @@ def main() -> None:
         assert memory_page.locator("#screen-setup").is_visible()
         memory_page.close()
 
-        # After an external deletion, an outdated in-memory state must not be
-        # offered as a resumable game.
+        # External deletion must lock stale state instead of presenting it as a resumable game.
         conflict_page = browser.new_page(viewport={"width": 390, "height": 844})
         conflict_page.set_content(html)
         conflict_page.evaluate(LOCAL_STORAGE_MOCK)
@@ -725,7 +715,6 @@ def main() -> None:
         assert conflict_page.locator("#btn-continue-game").is_disabled()
         assert "another tab" in conflict_page.locator("#storage-warning").text_content()
 
-        # The separate conflict export can then be restored deliberately.
         conflict_page.set_input_files(
             "#import-file-input",
             conflict_download_info.value.path(),
@@ -738,7 +727,7 @@ def main() -> None:
         assert conflict_page.locator("#btn-add-player").is_enabled()
         conflict_page.close()
 
-        # A damaged archive remains reachable and can be exported or reset.
+        # Corrupt archive bytes remain exportable until the user explicitly resets them.
         recovery_page = browser.new_page(viewport={"width": 390, "height": 844})
         recovery_page.set_content(html)
         recovery_page.evaluate(LOCAL_STORAGE_MOCK)

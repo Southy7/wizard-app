@@ -38,15 +38,12 @@
       const state = getState();
       if (!state) return false;
 
-      // Preserve the last known storage baseline after a technical write error.
-      // This is especially important when the first save has not succeeded yet:
-      // subsequent writes must remain explicit initial writes instead of looking
-      // like a stale tab trying to recreate a deleted game.
       const effectiveOptions = options ?? pendingSaveOptions ?? undefined;
       const saved = Storage.saveGame(state, effectiveOptions);
       if (!saved) {
         storageConflict = Storage.wasLastGameSaveConflict?.() === true;
         hasUnsavedChanges = !storageConflict;
+        // A technical retry must keep its original compare-and-set baseline to remain safe.
         pendingSaveOptions = storageConflict
           ? null
           : cloneSaveOptions(effectiveOptions);
@@ -127,6 +124,7 @@
 
       if (event.key === Storage.STORAGE_KEY) {
         if (!getState()) {
+          // Without an in-memory game, only the home screen is stale; no conflict exists.
           storageConflict = false;
           externalGameWarning = "";
           refreshConflictMode();
@@ -166,6 +164,7 @@
 
         if (storageConflict) {
           if (!control.disabled) {
+            // Track controls disabled here so their previous disabled state remains intact.
             control.dataset.conflictDisabled = "true";
             control.disabled = true;
           }
@@ -179,6 +178,7 @@
     function blockInteractionDuringConflict(event) {
       if (!storageConflict) return;
 
+      // This capture-phase guard blocks events that bypass disabled-state updates.
       const control = event.target instanceof Element
         ? event.target.closest("button, input, select, textarea, form")
         : null;

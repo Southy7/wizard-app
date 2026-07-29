@@ -56,6 +56,7 @@
       table.className = "score-table bid-overview";
       const totals = Logic.calculateTotalPoints(state.rounds, state.players);
       const leadingTotal = Math.max(...Object.values(totals));
+      // Suppress leader styling before round one is scored because all players start tied.
       const showLeaders = round.number > 1;
 
       const header = document.createElement("div");

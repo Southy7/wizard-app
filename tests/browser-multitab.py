@@ -76,8 +76,7 @@ def main():
         assert quota_export["recoveryReason"] == "unsaved-changes"
         assert quota_export["gameState"]["gameId"]
 
-        # A later retry remains an explicit initial write and must not be
-        # mistaken for a stale tab recreating a deleted game.
+        # Retrying a failed initial write must not look like a stale tab recreating a deleted game.
         quota.evaluate("window.__failGameWrites = false")
         quota.locator("#player-list .text-input").first.fill("Recovered")
         assert quota.locator("#storage-conflict-actions").is_hidden()
@@ -100,8 +99,7 @@ def main():
         blocked.click("#btn-setup-home")
         assert blocked.locator("#btn-continue-game").is_enabled()
 
-        # Starting another game must ask before replacing a game that exists
-        # only in memory after an initial storage failure.
+        # An in-memory-only game still requires confirmation before it is replaced.
         dialog_messages = []
         blocked.once(
             "dialog",

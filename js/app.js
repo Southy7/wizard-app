@@ -44,11 +44,11 @@
   let specialCardsController = null;
   let state = null;
   let toastTimeout = null;
+  // History is intentionally degradable; the core scoreboard can still start if that module fails.
   const historyAvailable = typeof HistoryControllerModule?.createHistoryController === "function";
 
   document.addEventListener("DOMContentLoaded", init);
 
-  // Initialization and central DOM references
   function init() {
     cacheElements();
     persistenceController = PersistenceControllerModule.createPersistenceController({
@@ -156,6 +156,7 @@
     specialCardsController.bindEvents();
     refreshHomeScreen();
     updateStorageWarning();
+    // Avoid a focus ring on first paint; later client-side navigation still focuses headings.
     showScreen("home", { focusHeading: false });
     registerServiceWorker();
     persistenceController.requestPersistentStorage();
@@ -281,7 +282,6 @@
     showScreen("setup");
   }
 
-  // Navigation between the six views defined in index.html
   function goHome() {
     persistState();
     refreshHomeScreen();
@@ -376,7 +376,6 @@
     openDialog(elements["game-help-dialog"]);
   }
 
-  // Home screen and local game state
   function refreshHomeScreen() {
     const savedState = Storage.loadGame();
     const continueButton = elements["btn-continue-game"];
@@ -497,7 +496,6 @@
     }
   }
 
-  // Active game: select the phase view that matches the current round state.
   function renderGame() {
     ensureState();
     let round = ensureCurrentRound();
@@ -533,7 +531,6 @@
     showScreen("finished");
   }
 
-  // Final view with ranking and complete score history
   function renderFinished() {
     ensureState();
     const completedRounds = state.rounds.filter((round) => round.completed).sort((a, b) => a.number - b.number);
@@ -618,7 +615,6 @@
     return "0";
   }
 
-  // State, storage, and browser helpers
   function ensureState() {
     if (!state) state = Logic.createInitialGameState();
   }

@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Core document and PWA metadata -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0c0e">
@@ -24,9 +23,9 @@
   <link rel="stylesheet" href="css/dialogs.css">
   <link rel="stylesheet" href="css/responsive.css">
 
-  <!-- Reload once when an updated PWA worker takes control to avoid mixed app versions. -->
   <script>
     if ("serviceWorker" in navigator) {
+      // Reload only when an existing worker is replaced; first install must not interrupt startup.
       const hadController = Boolean(navigator.serviceWorker.controller);
       let isReloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -37,7 +36,6 @@
     }
   </script>
 
-  <!-- Script order matters: app.js depends on the logic and storage modules. -->
   <script defer src="js/game-logic.js"></script>
   <script defer src="js/state-manager.js"></script>
   <script defer src="js/storage.js"></script>
@@ -68,19 +66,13 @@
       </button>
     </section>
 
-    <!--
-      View container for the single-page application.
-      JavaScript displays exactly one of the following six views at a time.
-    -->
     <main id="app" class="app-main">
-      <!-- ==================== HOME ==================== -->
       <section id="screen-home" class="screen screen-home" aria-labelledby="home-title">
         <header class="home-header">
           <h1 id="home-title" tabindex="-1">Wizard</h1>
           <p class="home-subtitle">Scoreboard</p>
         </header>
 
-        <!-- Main menu on the home screen -->
         <nav class="home-actions" aria-label="Main menu">
           <button id="btn-new-game" class="button button-primary" type="button">New Game</button>
           <button id="btn-continue-game" class="button button-secondary" type="button" disabled>Continue Game</button>
@@ -90,29 +82,22 @@
           </div>
         </nav>
 
-        <!-- The file dialog is opened through the Import button. -->
         <input id="import-file-input" type="file" accept="application/json,.json" hidden>
 
         <footer class="home-footer">Saved locally · Version 1.0</footer>
       </section>
-      <!-- ================== END HOME ================== -->
-
-      <!-- ================= GAME SETUP ================= -->
       <section id="screen-setup" class="screen screen-setup" aria-label="New Game" hidden>
         <form id="setup-form" novalidate>
-          <!-- 1. Enter players and define their seating order -->
           <section class="panel" aria-labelledby="players-title">
             <div class="panel-heading">
               <h3 id="players-title" tabindex="-1">Players and Seating Order</h3>
               <span id="player-count-badge" class="count-badge">3 / 6</span>
             </div>
 
-            <!-- Player inputs are created dynamically by the setup controller. -->
             <div id="player-list" class="player-list"></div>
             <button id="btn-add-player" class="button button-secondary full-width" type="button">Add Player</button>
           </section>
 
-          <!-- 2. Select the number of rounds -->
           <section class="panel" aria-labelledby="rounds-title">
             <h3 id="rounds-title">Game Length</h3>
             <div id="round-mode-toggle" class="round-mode-toggle" role="radiogroup" aria-label="Select game length" data-mode="full">
@@ -146,9 +131,6 @@
           </div>
         </form>
       </section>
-      <!-- =============== END GAME SETUP =============== -->
-
-      <!-- ================= SETUP SUMMARY ================= -->
       <section id="screen-setup-summary" class="screen screen-setup-summary" aria-labelledby="summary-title" hidden>
         <section class="panel summary-panel">
           <h2 id="summary-title" tabindex="-1">Summary</h2>
@@ -159,7 +141,6 @@
           </div>
           <section class="seat-order-section" aria-labelledby="seat-order-title">
             <h3 id="seat-order-title">Seating Order</h3>
-            <!-- Numbered player rows are created dynamically for the summary. -->
             <ol id="summary-seat-order" class="seat-order-list"></ol>
           </section>
         </section>
@@ -169,9 +150,6 @@
           <button id="btn-summary-start" class="button button-primary" type="button">Start Game</button>
         </div>
       </section>
-      <!-- =============== END SETUP SUMMARY =============== -->
-
-      <!-- ================= ACTIVE GAME ================= -->
       <section id="screen-game" class="screen screen-game" aria-labelledby="game-phase-label game-title" hidden>
         <div class="game-topbar">
           <div class="game-utility-actions">
@@ -192,17 +170,12 @@
         </div>
         <h2 id="game-phase-label" class="visually-hidden" tabindex="-1">Bids</h2>
 
-        <!-- Total scores are displayed only during the bidding phase. -->
         <div id="game-round-overview" class="panel compact-panel" aria-label="Total scores" hidden>
           <div id="game-total-points" class="game-total-points"></div>
         </div>
 
-        <!-- app.js renders the current phase: bids, special cards, tricks, or result. -->
         <div id="game-content" class="game-content"></div>
       </section>
-      <!-- =============== END ACTIVE GAME =============== -->
-
-      <!-- ==================== HISTORY ==================== -->
       <section id="screen-history" class="screen screen-history" aria-labelledby="history-page-title" hidden>
         <div class="screen-heading history-heading">
           <h2 id="history-page-title" tabindex="-1">History</h2>
@@ -262,9 +235,6 @@
           <button id="btn-history-list-back" class="button button-secondary full-width" type="button">Back to Overview</button>
         </div>
       </section>
-      <!-- ================== END HISTORY ================== -->
-
-      <!-- ================== FINAL RESULT ================== -->
       <section id="screen-finished" class="screen screen-finished" aria-labelledby="finished-title" hidden>
         <section class="panel final-ranking-panel" aria-labelledby="finished-title">
           <h2 id="finished-title" tabindex="-1">Final Result</h2>
@@ -281,14 +251,9 @@
           <button id="btn-finished-go-home" class="button button-primary" type="button">Home</button>
         </div>
       </section>
-      <!-- ================ END FINAL RESULT ================ -->
     </main>
   </div>
 
-  <!--
-    Global dialogs live outside the views because several game phases can open them.
-  -->
-  <!-- Reminder shown before the first round -->
   <dialog id="round-one-dialog" class="app-dialog">
     <div class="dialog-content">
       <p class="dialog-icon" aria-hidden="true">🃏</p>
@@ -299,7 +264,6 @@
     </div>
   </dialog>
 
-  <!-- Context-sensitive instructions for the current game phase -->
   <dialog id="game-help-dialog" class="app-dialog game-help-dialog" aria-labelledby="game-help-dialog-title">
     <div class="dialog-content game-help-content">
       <div class="dialog-heading game-help-heading">
@@ -314,7 +278,6 @@
     </div>
   </dialog>
 
-  <!-- Compact rules reference for all cards in the anniversary edition -->
   <dialog id="special-cards-dialog" class="app-dialog special-cards-dialog" aria-labelledby="special-cards-dialog-title">
     <div class="dialog-content special-cards-reference-content">
       <div class="dialog-heading special-cards-reference-heading">
@@ -582,7 +545,6 @@
     </div>
   </dialog>
 
-  <!-- Selection dialog for the Cloud special card -->
   <dialog id="cloud-dialog" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -600,7 +562,6 @@
     </div>
   </dialog>
 
-  <!-- Selection dialog for choosing which round data to edit -->
   <dialog id="edit-round-dialog" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -619,7 +580,6 @@
     </div>
   </dialog>
 
-  <!-- Global status message shown briefly -->
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

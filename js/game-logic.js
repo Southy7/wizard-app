@@ -12,6 +12,7 @@
   const MIN_PLAYERS = 3;
   const MAX_PLAYERS = 6;
   const TOTAL_CARDS = 70;
+  // Allow clock drift while rejecting timestamps that could dominate conflict resolution.
   const MAX_FUTURE_TIMESTAMP_SKEW_MS = 24 * 60 * 60 * 1000;
 
   const STANDARD_ROUNDS = Object.freeze({
@@ -21,7 +22,6 @@
     6: 10
   });
 
-  // Players, seating order, and round limits
   function createId(prefix = "player") {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       return `${prefix}-${crypto.randomUUID()}`;
@@ -158,8 +158,7 @@
     return errors;
   }
 
-  // Imported data must represent a complete, playable state. Temporary UI states
-  // are accepted exclusively by validatePersistableGameState.
+  // Imports must be complete; local saves may capture an in-progress Witch selection.
   function validateImportedGameState(candidate) {
     return validateGameState(candidate, { allowIncompleteWitchSelection: false });
   }
@@ -361,6 +360,7 @@
       getSpecialCardErrors(normalizedRound, players, options)
         .forEach((error) => errors.push(`Round ${roundNumber}: ${error}`));
 
+      // Verify derived values from storage and imports against the primary round inputs.
       const recalculated = recalculateCurrentBids(normalizedRound, players);
       for (const player of players) {
         if (playerResults[player.id].currentBid !== recalculated.playerResults[player.id].currentBid) {
@@ -438,8 +438,6 @@
         return null;
       }
 
-      // Clouds may increase the current bid beyond the round number. Its exact
-      // value is verified below by recalculating all current bids.
       if (!Number.isInteger(rawResult.currentBid) || rawResult.currentBid < 0) {
         errors.push(`The current bid in round ${roundNumber} must be a non-negative integer.`);
         return null;
@@ -565,7 +563,6 @@
     }
   }
 
-  // Base structure of a round, including every supported special card
   function createPlayerResult() {
     return {
       originalBid: 0,
@@ -617,7 +614,6 @@
     };
   }
 
-  // Bids and special-card effects
   function getBidSum(round) {
     return Object.values(round?.playerResults ?? {})
       .reduce((sum, result) => sum + (Number(result?.originalBid) || 0), 0);
@@ -628,6 +624,7 @@
   }
 
   function isBidSumValid(round) {
+    // This Wizard variant forbids the total bids from matching the number of available tricks.
     return getBidDifference(round) !== 0;
   }
 
@@ -748,8 +745,8 @@
     return errors;
   }
 
-  // Trick validation and point calculation
   function getExpectedTrickCount(round) {
+    // Bombed tricks are discarded and therefore cannot be assigned to a player.
     return Math.max(0, (Number(round?.number) || 0) - getActiveBombCount(round));
   }
 
@@ -813,7 +810,6 @@
     return totals;
   }
 
-  // Complete initial state for a new game
   function createInitialGameState(playerCount = MIN_PLAYERS) {
     const safeCount = Math.min(Math.max(playerCount, MIN_PLAYERS), MAX_PLAYERS);
     const players = Array.from({ length: safeCount }, (_, index) => createPlayer(index));

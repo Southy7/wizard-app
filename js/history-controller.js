@@ -300,6 +300,7 @@
 
       const games = [];
       const gameIds = new Set();
+      // Validate the whole archive before merging so rejected imports remain atomic.
       for (const candidate of parsed.games) {
         const validationErrors = Logic.validateImportedGameState(candidate);
         if (validationErrors.length > 0) {

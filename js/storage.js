@@ -8,6 +8,7 @@
   const HISTORY_WRITE_ATTEMPTS = 3;
   const HISTORY_SOFT_LIMIT_COUNT = 100;
   const HISTORY_SOFT_LIMIT_BYTES = 3_000_000;
+  // Independent channels prevent a successful history operation from hiding a game-save failure.
   const errors = {
     storageError: "",
     gameError: "",
@@ -15,7 +16,6 @@
   };
   let lastGameSaveConflict = false;
 
-  // Separate error channels prevent a successful operation from clearing unrelated errors.
   function setError(scope, message, error) {
     errors[scope] = message;
     if (error) console.error(message, error);
@@ -50,7 +50,6 @@
     }
   }
 
-  // All storage access is encapsulated in this module.
   function saveGame(state, options = {}) {
     lastGameSaveConflict = false;
     if (!isStorageAvailable()) return false;
@@ -71,6 +70,7 @@
       const implicitInitialWrite = rawStoredState === null && !hasExpectedUpdatedAt;
       const storedIdentityChanged = rawStoredState !== null && storedGameId !== expectedGameId;
 
+      // The stored identity and timestamp form a compare-and-set baseline for rejecting stale tabs.
       if (storedValueIsDamaged
         || implicitInitialWrite
         || storedIdentityChanged
@@ -128,6 +128,7 @@
   }
 
   function createNextUpdatedAt(previousUpdatedAt) {
+    // Keep revisions monotonic when writes share a millisecond or the system clock moves backward.
     const previousTime = Date.parse(previousUpdatedAt);
     const nextTime = Number.isNaN(previousTime)
       ? Date.now()
@@ -368,6 +369,7 @@
     if (typeof expectedRaw !== "string" || !isStorageAvailable()) return false;
 
     try {
+      // Delete only the reviewed payload; another tab may have replaced it in the meantime.
       if (localStorage.getItem(HISTORY_KEY) !== expectedRaw) {
         setHistoryConflictError();
         return false;
@@ -440,6 +442,7 @@
     if (!isStorageAvailable()) return { success: false, value: null };
 
     try {
+      // localStorage has no transactions, so retry compare-and-set after a concurrent write.
       for (let attempt = 0; attempt < HISTORY_WRITE_ATTEMPTS; attempt += 1) {
         const snapshot = readGameHistorySnapshot();
         if (!snapshot) return { success: false, value: null };
@@ -507,8 +510,7 @@
 
   function getHistoryStorageStatus(history = loadGameHistory()) {
     const serialized = JSON.stringify(Array.isArray(history) ? history : []);
-    // localStorage usually stores strings as UTF-16. This value is therefore a
-    // deliberately conservative estimate of the browser quota in use.
+    // localStorage commonly stores strings as UTF-16; use a conservative quota estimate.
     const bytes = serialized.length * 2;
     const count = Array.isArray(history) ? history.length : 0;
 

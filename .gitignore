@@ -1,13 +1,13 @@
 # Dependencies
 node_modules/
 
-# Test and coverage output
+# Test artifacts
 coverage/
 playwright-report/
 test-results/
 .tmp-*/
 
-# Local environment files
+# Local environment
 .env
 .env.*
 !.env.example
@@ -19,14 +19,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Editor settings and temporary files
+# Editor files
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# Operating-system files
+# Operating system files
 .DS_Store
 Thumbs.db
 Desktop.ini

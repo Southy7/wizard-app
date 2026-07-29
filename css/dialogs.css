@@ -1,4 +1,3 @@
-/* Dialogs, global messages, and footer */
 .app-dialog {
   width: min(calc(100% - 30px), 560px);
   max-height: min(86vh, 720px);

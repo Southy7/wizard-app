@@ -1,8 +1,8 @@
 "use strict";
 
-// Increment after app-shell changes so installed apps receive the latest files.
+// Bump this version with each app-shell release so installed clients receive a coherent update.
 const CACHE_PREFIX = "wizard-scoreboard-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.109`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.110`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -31,6 +31,7 @@ const APP_SHELL = [
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png"
 ];
+// History is optional so a feature-asset failure cannot block the core scoreboard from installing.
 const OPTIONAL_APP_SHELL = [
   "./js/history-controller.js"
 ];
@@ -75,6 +76,7 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const requestUrl = new URL(event.request.url);
+  // This worker owns only same-origin requests inside its registration scope.
   if (requestUrl.origin !== SCOPE_URL.origin || !requestUrl.href.startsWith(SCOPE_URL.href)) {
     return;
   }
@@ -89,6 +91,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 async function handleNavigationRequest(request, requestUrl) {
+  // Use network-first navigation for immediate updates and cached HTML as the offline fallback.
   try {
     const networkResponse = await fetch(request);
     if (!networkResponse.ok) {
@@ -107,8 +110,8 @@ async function handleNavigationRequest(request, requestUrl) {
   }
 }
 
-// Only the fixed app shell is refreshed; future API responses remain outside this cache.
 async function handleStaticAssetRequest(request) {
+  // Use network-first assets to avoid mixing deployments while retaining offline support.
   try {
     const networkResponse = await fetch(request);
     if (!networkResponse.ok || networkResponse.type === "opaque") {

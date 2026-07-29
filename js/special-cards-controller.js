@@ -133,6 +133,7 @@
         showToast("The Witch requires a Cloud or Bomb first.");
         return;
       }
+      // Persist the Witch as a valid transient state while its second effect is being selected.
       updateRound((currentRound) => {
         currentRound.specialCards.witch.active = true;
       }, false);
@@ -227,6 +228,7 @@
       const round = getCurrentRound();
       const key = cloudDialogContext.key;
       const cloud = round.specialCards[key];
+      // Validate against a snapshot because a Cloud choice may make a player's bid negative.
       const previousRound = cloneState(round);
       Object.assign(cloud, { active: true, playerId: cloudDialogContext.playerId, change });
       if (key === "secondCloud") {

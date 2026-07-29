@@ -25,7 +25,7 @@ function setOriginalBids(round, values) {
 
 const players = makePlayers();
 
-// Setup and rotation
+// Setup, seating, and dealer rotation
 assert.equal(Logic.getStandardRounds(3), 20);
 assert.equal(Logic.getStandardRounds(4), 15);
 assert.equal(Logic.getStandardRounds(5), 12);
@@ -79,7 +79,7 @@ const invalidState = {
 };
 assert.ok(Logic.validateSetup(invalidState).length >= 3);
 
-// Round and bid total
+// Bidding and dependent special-card effects
 let round = Logic.createRound(players, "anna", 5);
 assert.equal(round.number, 5);
 assert.equal(round.dealerId, "anna");
@@ -95,12 +95,10 @@ assert.equal(Logic.getBidSum(round), 5);
 assert.equal(Logic.isBidSumValid(round), false);
 round.playerResults.david.originalBid = 1;
 
-// The Witch requires a previously played Cloud or Bomb
 const invalidWitchRound = Logic.createRound(players, "anna", 2);
 invalidWitchRound.specialCards.witch.active = true;
 assert.ok(Logic.getSpecialCardErrors(invalidWitchRound, players).some((error) => error.includes("Witch requires")));
 
-// First Cloud
 round.specialCards.cloud = {
   active: true,
   playerId: "anna",
@@ -111,7 +109,6 @@ assert.equal(round.playerResults.anna.originalBid, 2);
 assert.equal(round.playerResults.anna.currentBid, 3);
 assert.equal(Logic.getSpecialCardErrors(round, players).length, 0);
 
-// Second Cloud through the Witch
 round.specialCards.witch = { active: true, secondEffect: "cloud" };
 round.specialCards.secondCloud = {
   active: true,
@@ -122,7 +119,6 @@ round = Logic.recalculateCurrentBids(round, players);
 assert.equal(round.playerResults.anna.currentBid, 2);
 assert.equal(Logic.getSpecialCardErrors(round, players).length, 0);
 
-// A Bomb changes only the expected trick total, not the Cloud adjustment
 round.specialCards.bomb.active = true;
 round = Logic.recalculateCurrentBids(round, players);
 assert.equal(round.playerResults.anna.currentBid, 2);
@@ -130,7 +126,6 @@ assert.equal(Logic.getActiveBombCount(round), 1);
 assert.equal(Logic.getExpectedTrickCount(round), 4);
 assert.equal(Logic.getSpecialCardErrors(round, players).length, 0);
 
-// Second Bomb through the Witch instead of a second Cloud
 round.specialCards.witch.secondEffect = "bomb";
 round.specialCards.secondCloud = {
   active: false,
@@ -143,7 +138,6 @@ assert.equal(Logic.getActiveBombCount(round), 2);
 assert.equal(Logic.getExpectedTrickCount(round), 3);
 assert.equal(Logic.getSpecialCardErrors(round, players).length, 0);
 
-// A negative bid caused by a Cloud is detected
 let negativeRound = Logic.createRound(players, "anna", 2);
 negativeRound.specialCards.cloud = {
   active: true,
@@ -155,12 +149,10 @@ assert.equal(negativeRound.playerResults.ben.currentBid, -1);
 assert.ok(Logic.getSpecialCardErrors(negativeRound, players).some((error) => error.includes("negative bid")));
 
 
-// An incomplete Witch selection is detected
 let incompleteWitchRound = Logic.createRound(players, "anna", 3);
 incompleteWitchRound.specialCards.witch = { active: true, secondEffect: "cloud" };
 assert.ok(Logic.getSpecialCardErrors(incompleteWitchRound, players).some((error) => error.includes("incomplete")));
 
-// Trick validation
 round.playerResults.anna.tricks = 1;
 round.playerResults.ben.tricks = 1;
 round.playerResults.chris.tricks = 1;
@@ -176,7 +168,7 @@ assert.equal(trickValidation.valid, false);
 assert.equal(trickValidation.difference, 1);
 round.playerResults.david.tricks = 0;
 
-// Point formula
+// Trick validation and scoring
 assert.equal(Logic.calculatePoints(0, 0), 20);
 assert.equal(Logic.calculatePoints(1, 1), 30);
 assert.equal(Logic.calculatePoints(3, 3), 50);
@@ -185,8 +177,8 @@ assert.equal(Logic.calculatePoints(2, 4), -20);
 assert.equal(Logic.calculatePoints(0, 3), -30);
 
 round = Logic.calculateRoundPoints(round, players);
-assert.equal(round.playerResults.anna.roundPoints, -20); // current bid 3, one trick
-assert.equal(round.playerResults.ben.roundPoints, 30);   // bid 1, one trick
+assert.equal(round.playerResults.anna.roundPoints, -20);
+assert.equal(round.playerResults.ben.roundPoints, 30);
 assert.equal(round.playerResults.chris.roundPoints, -10);
 assert.equal(round.playerResults.david.roundPoints, -10);
 
@@ -206,20 +198,17 @@ assert.equal(totals.ben, 50);
 assert.equal(totals.chris, 10);
 assert.equal(totals.david, 10);
 
-// Incomplete rounds must not affect total scores
 completedSecond.completed = false;
 const totalsWithoutSecond = Logic.calculateTotalPoints([round, completedSecond], players);
 assert.equal(totalsWithoutSecond.anna, -20);
 assert.equal(totalsWithoutSecond.ben, 30);
 
-// Importvalidierung
+// Strict import validation and explicitly allowed transient persisted states
 const validImport = require("../examples/history-game-1.json").gameState;
 assert.deepEqual(Logic.validateImportedGameState(validImport), []);
 assert.deepEqual(Logic.validateImportedGameState(Logic.createInitialGameState()), []);
 assert.deepEqual(Logic.validatePersistableGameState(Logic.createInitialGameState()), []);
 
-// Once bidding is complete, persisted and imported rounds must keep the
-// Wizard rule that the total bids cannot equal the round number.
 const bidTotalInvariantState = Logic.createInitialGameState(3);
 bidTotalInvariantState.players.forEach((entry, index) => {
   entry.name = ["Anna", "Ben", "Chris"][index];
@@ -251,7 +240,6 @@ for (const phase of ["play", "tricks", "result"]) {
     .some((error) => error.includes("bid total")));
 }
 
-// An incomplete Witch is allowed only as a clearly defined temporary persisted state.
 const persistableWitchState = Logic.createInitialGameState(3);
 persistableWitchState.players.forEach((entry, index) => {
   entry.name = ["Anna", "Ben", "Chris"][index];
@@ -272,7 +260,6 @@ persistableWitchState.rounds = [persistableWitchRound];
 assert.ok(Logic.validateImportedGameState(persistableWitchState).some((error) => error.includes("Witch")));
 assert.deepEqual(Logic.validatePersistableGameState(persistableWitchState), []);
 
-// Clouds may increase the current bid beyond the round number.
 const cloudValidationState = Logic.createInitialGameState(3);
 cloudValidationState.players.forEach((entry, index) => {
   entry.name = ["Anna", "Ben", "Chris"][index];
@@ -303,7 +290,6 @@ cloudValidationState.rounds = [cloudValidationRound];
 assert.equal(cloudValidationRound.playerResults[cloudValidationState.players[0].id].currentBid, 2);
 assert.deepEqual(Logic.validateImportedGameState(cloudValidationState), []);
 
-// Two Clouds at +1 are also constrained exclusively through recalculation.
 cloudValidationRound.specialCards.witch = { active: true, secondEffect: "cloud" };
 cloudValidationRound.specialCards.secondCloud = {
   active: true,

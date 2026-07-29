@@ -5,6 +5,7 @@
     const ranking = getRankedPlayers(gameState, totals);
 
     container.replaceChildren();
+    // Use competition ranking: tied players share a place and the following place is skipped.
     let displayedPosition = 0;
     let previousPoints = null;
     const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -102,6 +103,7 @@
   }
 
   function getRankedPlayers(gameState, totals) {
+    // Seat order is a deterministic layout tie-breaker; it does not change tied players' rank.
     return gameState.players
       .map((player, originalIndex) => ({
         player,
