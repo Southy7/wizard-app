@@ -13,7 +13,7 @@
     "test:all": "npm run test:core && npm run test:history-import",
     "test:core": "npm run test:unit && npm run test:browser:core-suite",
     "test:history-import": "npm run test:browser:smoke",
-    "test:unit": "node tests/game-logic.test.js && node tests/state-manager.test.js && node tests/storage.test.js && node tests/utilities.test.js && node tests/import-controller.test.js && node tests/controller-exports.test.js && node tests/service-worker.test.js",
+    "test:unit": "node tests/game-logic.test.js && node tests/state-manager.test.js && node tests/storage.test.js && node tests/utilities.test.js && node tests/import-controller.test.js && node tests/controller-exports.test.js && node tests/dom-contract.test.js && node tests/service-worker.test.js",
     "test:browser": "npm run test:browser:core-suite && npm run test:history-import",
     "test:browser:core-suite": "npm run test:browser:core && npm run test:browser:persistence && npm run test:browser:rounds && npm run test:browser:multitab && npm run test:browser:offline",
     "test:browser:smoke": "python tests/browser-smoke.py",

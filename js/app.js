@@ -252,6 +252,14 @@
     persistenceController.requestPersistentStorage();
   }
 
+  function getRequiredElement(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+      throw new Error(`Required element #${id} was not found.`);
+    }
+    return element;
+  }
+
   function cacheElements() {
     const ids = [
       "screen-home",
@@ -260,6 +268,11 @@
       "screen-game",
       "screen-history",
       "screen-finished",
+      "home-title",
+      "players-title",
+      "summary-title",
+      "history-page-title",
+      "finished-title",
       "btn-new-game",
       "btn-continue-game",
       "btn-history",
@@ -344,7 +357,7 @@
     ];
 
     for (const id of ids) {
-      elements[id] = document.getElementById(id);
+      elements[id] = getRequiredElement(id);
     }
   }
 
@@ -471,7 +484,7 @@
       finished: "finished-title"
     };
     if (focusHeading) {
-      document.getElementById(focusTargetIds[name])?.focus({ preventScroll: true });
+      elements[focusTargetIds[name]]?.focus({ preventScroll: true });
     }
     window.scrollTo({ top: 0, behavior: "auto" });
     persistenceController.refreshConflictMode();
