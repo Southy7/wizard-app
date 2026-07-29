@@ -186,6 +186,8 @@
       "btn-history-export-damaged", "btn-history-reset-damaged",
       "final-ranking", "final-score-history", "btn-review-last-round",
       "btn-finished-go-home", "round-one-dialog", "btn-confirm-round-one-hint",
+      "game-help-dialog", "game-help-dialog-title", "game-help-intro",
+      "game-help-steps", "btn-close-game-help-dialog",
       "special-cards-dialog", "btn-close-special-cards-dialog",
       "cloud-dialog", "cloud-dialog-kicker",
       "cloud-player-options", "cloud-change-options", "btn-cloud-minus",
@@ -207,6 +209,8 @@
     elements["import-file-input"].addEventListener("change", importGameFromFile);
     elements["btn-setup-home"].addEventListener("click", goHome);
     elements["btn-game-home"].addEventListener("click", goHome);
+    elements["btn-game-help"].addEventListener("click", openGameHelp);
+    elements["btn-close-game-help-dialog"].addEventListener("click", () => closeDialog(elements["game-help-dialog"]));
     elements["btn-game-cards"].addEventListener("click", () => openDialog(elements["special-cards-dialog"]));
     elements["btn-close-special-cards-dialog"].addEventListener("click", () => closeDialog(elements["special-cards-dialog"]));
     elements["btn-history-home"].addEventListener("click", goHome);
@@ -311,6 +315,65 @@
     }
     window.scrollTo({ top: 0, behavior: "auto" });
     persistenceController.refreshConflictMode();
+  }
+
+  function openGameHelp() {
+    const phase = getCurrentRound()?.phase;
+    const help = {
+      bids: {
+        title: "Bids",
+        intro: "Enter how many tricks each player expects to win.",
+        steps: [
+          ["Set each bid", "Use − and + next to each player."],
+          ["Check Total Bids", "The total must not equal the round number. Green is valid; red must be changed."],
+          ["Continue", "Select Confirm Bids when every bid is correct."]
+        ]
+      },
+      play: {
+        title: "Special Cards",
+        intro: "Record only the special-card effects that occurred in this round.",
+        steps: [
+          ["Select cards", "Tap Cloud, Bomb, or Witch to activate it. Tap an active card again to undo it."],
+          ["Complete effects", "For Cloud, choose the affected player and −1 or +1. Witch requires a second Cloud or Bomb."],
+          ["Cloud with Bomb", "If both were played in the same trick, Bomb cancels Cloud. Record only Bomb and do not enter a Cloud change."],
+          ["Continue", "Select Enter Tricks when all played special cards are recorded."]
+        ]
+      },
+      tricks: {
+        title: "Tricks",
+        intro: "Enter how many tricks each player actually won.",
+        steps: [
+          ["Set each result", "Use − and +, or tap Bid to set a player's tricks directly to their current bid."],
+          ["Check Total Tricks", "The assigned total must match the displayed target. Bombs reduce that target."],
+          ["Continue", "Select Complete Round when the total is correct."]
+        ]
+      },
+      result: {
+        title: "Round Result",
+        intro: "Review the completed round before continuing.",
+        steps: [
+          ["Read the result", "Bid and Tricks show the entries; Round shows points earned now; Total shows the overall score. Gold marks the current leader."],
+          ["Correct mistakes", "Select Edit Round and choose the section that needs changing."],
+          ["Continue", "Select Next Round, or Finish Game after the final round."]
+        ]
+      }
+    }[phase];
+
+    if (!help) return;
+
+    elements["game-help-dialog-title"].textContent = help.title;
+    elements["game-help-intro"].textContent = help.intro;
+    const items = help.steps.map(([title, text]) => {
+      const item = document.createElement("li");
+      const strong = document.createElement("strong");
+      const description = document.createElement("span");
+      strong.textContent = title;
+      description.textContent = text;
+      item.append(strong, description);
+      return item;
+    });
+    elements["game-help-steps"].replaceChildren(...items);
+    openDialog(elements["game-help-dialog"]);
   }
 
   // Home screen and local game state

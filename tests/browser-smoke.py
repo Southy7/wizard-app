@@ -195,6 +195,12 @@ def main() -> None:
         assert page.locator("#game-title").text_content() == "Round 1 of 1"
         assert page.locator("#btn-game-help").is_visible()
         assert page.locator("#btn-game-help").text_content().strip() == "?"
+        page.click("#btn-game-help")
+        assert page.locator("#game-help-dialog").is_visible()
+        assert page.locator("#game-help-dialog-title").text_content() == "Bids"
+        assert page.locator("#game-help-steps li").count() == 3
+        assert "must not equal" in page.locator("#game-help-dialog").text_content()
+        page.click("#btn-close-game-help-dialog")
         assert page.locator("#btn-game-home").get_attribute("aria-label") == "Home"
         assert page.locator("#btn-game-home").text_content().strip() == ""
         assert page.get_by_text("Current Total Score").count() == 0
@@ -249,6 +255,11 @@ def main() -> None:
         assert page.get_by_role("button", name="Confirm Bids").is_enabled()
         page.click('button:has-text("Confirm Bids")')
         assert page.locator("#game-round-overview").is_hidden()
+        page.click("#btn-game-help")
+        assert page.locator("#game-help-dialog-title").text_content() == "Special Cards"
+        assert "Witch requires a second Cloud or Bomb" in page.locator("#game-help-dialog").text_content()
+        assert "Bomb cancels Cloud" in page.locator("#game-help-dialog").text_content()
+        page.click("#btn-close-game-help-dialog")
         assert page.get_by_text("Current Bids").count() == 0
         assert page.get_by_text("Only Cloud, Bomb, and Witch affect scoring.").count() == 0
         assert page.locator("#game-content h3").count() == 0
@@ -451,6 +462,10 @@ def main() -> None:
         page.click('button:has-text("Enter Tricks")')
         assert page.locator("#game-round-overview").is_hidden()
         assert page.locator("#game-phase-label").text_content() == "Tricks"
+        page.click("#btn-game-help")
+        assert page.locator("#game-help-dialog-title").text_content() == "Tricks"
+        assert "Bombs reduce that target" in page.locator("#game-help-dialog").text_content()
+        page.click("#btn-close-game-help-dialog")
         assert page.locator("#game-content h3").all_text_contents() == ["Tricks"]
         assert page.get_by_text("Enter only each player's final trick count for this round.").count() == 0
         assert page.locator(".tricks-panel .entry-meta").count() == 0
@@ -487,6 +502,10 @@ def main() -> None:
 
         assert page.locator("#game-phase-label").text_content() == "Round Result"
         assert page.locator("#btn-game-help").is_visible()
+        page.click("#btn-game-help")
+        assert page.locator("#game-help-dialog-title").text_content() == "Round Result"
+        assert "Edit Round" in page.locator("#game-help-dialog").text_content()
+        page.click("#btn-close-game-help-dialog")
         assert page.locator("#game-content h3").all_text_contents() == ["Round Result"]
         assert page.locator(".round-result-panel .leader-crown").count() >= 1
         assert page.locator(".round-result-panel .leader-points").count() == page.locator(

@@ -299,6 +299,21 @@
     </div>
   </dialog>
 
+  <!-- Context-sensitive instructions for the current game phase -->
+  <dialog id="game-help-dialog" class="app-dialog game-help-dialog" aria-labelledby="game-help-dialog-title">
+    <div class="dialog-content game-help-content">
+      <div class="dialog-heading game-help-heading">
+        <div>
+          <p class="eyebrow">How this page works</p>
+          <h2 id="game-help-dialog-title">Help</h2>
+        </div>
+        <button id="btn-close-game-help-dialog" class="button button-secondary button-small" type="button">Done</button>
+      </div>
+      <p id="game-help-intro" class="game-help-intro"></p>
+      <ul id="game-help-steps" class="game-help-steps"></ul>
+    </div>
+  </dialog>
+
   <!-- Compact rules reference for all cards in the anniversary edition -->
   <dialog id="special-cards-dialog" class="app-dialog special-cards-dialog" aria-labelledby="special-cards-dialog-title">
     <div class="dialog-content special-cards-reference-content">
