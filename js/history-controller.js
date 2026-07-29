@@ -337,8 +337,8 @@
       if (Number.isNaN(date.getTime())) return "Completed game";
 
       return new Intl.DateTimeFormat("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short"
+        month: "short",
+        day: "numeric"
       }).format(date);
     }
 

@@ -104,7 +104,7 @@ def main() -> None:
             """
         )
         page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
-        assert page.evaluate("document.activeElement.id") == "home-title"
+        assert page.evaluate("document.activeElement === document.body")
 
         assert page.locator("#storage-warning").is_visible()
         assert "corrupted" in page.locator("#storage-warning").text_content()

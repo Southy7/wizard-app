@@ -156,7 +156,7 @@
     specialCardsController.bindEvents();
     refreshHomeScreen();
     updateStorageWarning();
-    showScreen("home");
+    showScreen("home", { focusHeading: false });
     registerServiceWorker();
     persistenceController.requestPersistentStorage();
   }
@@ -281,7 +281,7 @@
     showScreen("home");
   }
 
-  function showScreen(name) {
+  function showScreen(name, { focusHeading = true } = {}) {
     const screens = {
       home: elements["screen-home"],
       setup: elements["screen-setup"],
@@ -303,7 +303,9 @@
       history: "history-page-title",
       finished: "finished-title"
     };
-    document.getElementById(focusTargetIds[name])?.focus({ preventScroll: true });
+    if (focusHeading) {
+      document.getElementById(focusTargetIds[name])?.focus({ preventScroll: true });
+    }
     window.scrollTo({ top: 0, behavior: "auto" });
     persistenceController.refreshConflictMode();
   }
