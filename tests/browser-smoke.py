@@ -567,6 +567,22 @@ def main() -> None:
         page.locator("#history-game-list .history-game-card").click()
         assert page.locator("#history-detail-view").is_visible()
         assert page.locator("#history-detail-ranking .ranking-position").all_text_contents() == ["🥇", "🥈", "🥉"]
+        assert page.locator(
+            "#history-detail-ranking .ranking-row[data-rank='1'] .ranking-name, "
+            "#history-detail-ranking .ranking-row[data-rank='1'] .ranking-points"
+        ).evaluate_all(
+            "(elements) => elements.every((element) => getComputedStyle(element).color === 'rgb(251, 217, 109)')"
+        )
+        detail_action_boxes = page.locator(".history-detail-actions .button").evaluate_all(
+            "(buttons) => buttons.map((button) => button.getBoundingClientRect().toJSON())"
+        )
+        assert len(detail_action_boxes) == 2
+        assert abs(detail_action_boxes[0]["top"] - detail_action_boxes[1]["top"]) < 2
+        assert page.locator("#btn-history-list-back").bounding_box()["y"] > detail_action_boxes[0]["bottom"]
+        detail_title_box = page.locator("#history-detail-title").bounding_box()
+        first_history_rank_box = page.locator("#history-detail-ranking .ranking-row").first.bounding_box()
+        assert detail_title_box and first_history_rank_box
+        assert first_history_rank_box["y"] - (detail_title_box["y"] + detail_title_box["height"]) >= 15
         assert page.locator("#history-score-content .history-table tbody tr").count() == 1
         assert page.locator("#history-score-content .history-table thead th[data-player-color]").all_text_contents() == (
             page.locator("#history-detail-ranking .ranking-name").all_text_contents()

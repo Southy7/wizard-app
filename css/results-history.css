@@ -42,6 +42,13 @@
   white-space: nowrap;
 }
 
+.history-detail-actions .button {
+  min-width: 0;
+  padding-inline: 10px;
+  font-size: clamp(0.78rem, 3.5vw, 0.95rem);
+  white-space: nowrap;
+}
+
 .history-storage-status {
   min-height: 1.2em;
   margin: 0;
@@ -126,6 +133,10 @@
   margin: 0;
 }
 
+.history-detail-ranking-panel h3 {
+  margin-bottom: 16px;
+}
+
 .final-ranking-panel h2 {
   margin: 0 0 16px;
   font-size: 1.35rem;
@@ -162,7 +173,9 @@
 }
 
 #final-ranking .ranking-row[data-rank="1"] .ranking-name,
-#final-ranking .ranking-row[data-rank="1"] .ranking-points {
+#final-ranking .ranking-row[data-rank="1"] .ranking-points,
+#history-detail-ranking .ranking-row[data-rank="1"] .ranking-name,
+#history-detail-ranking .ranking-row[data-rank="1"] .ranking-points {
   color: var(--gold-light);
 }
 
