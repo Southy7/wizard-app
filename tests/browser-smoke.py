@@ -175,9 +175,16 @@ def main() -> None:
         assert page.locator("#game-content h3").all_text_contents() == ["Bids"]
         assert page.locator("#game-round-overview #game-total-points .points-card").count() == 3
         assert page.locator("#game-total-points > .points-strip").count() == 1
+        seat_names = ["Anna", "Ben", "Chris"]
+        starter_index = seat_names.index(starter)
+        expected_overview_names = seat_names[starter_index:] + seat_names[:starter_index]
+        expected_overview_colors = [
+            str(seat_names.index(name) + 1) for name in expected_overview_names
+        ]
         assert page.locator("#game-total-points .points-card").evaluate_all(
             "(cards) => cards.map((card) => card.dataset.playerColor)"
-        ) == ["1", "2", "3"]
+        ) == expected_overview_colors
+        assert page.locator("#game-total-points .points-card span").all_text_contents() == expected_overview_names
         assert len(set(page.locator("#game-total-points .points-card").evaluate_all(
             "(cards) => cards.map((card) => Math.round(card.getBoundingClientRect().top))"
         ))) == 1
@@ -218,11 +225,17 @@ def main() -> None:
         assert page.get_by_text("select", exact=True).count() == 0
         assert page.get_by_text("click again to remove", exact=True).count() == 0
         assert page.locator(".bid-overview .score-row.header span").all_text_contents() == [
-            "Player", "Bid", "Total"
+            "Player", "Bid", "Points"
         ]
+        assert page.locator(".bid-overview .score-row .number").evaluate_all(
+            "(cells) => cells.every((cell) => getComputedStyle(cell).textAlign === 'center')"
+        )
+        assert page.locator(".bid-overview .score-player-name").all_text_contents() == expected_overview_names
         assert page.locator(".bid-overview .score-row:not(.header)").evaluate_all(
             "(rows) => rows.map((row) => row.dataset.playerColor)"
-        ) == ["1", "2", "3"]
+        ) == expected_overview_colors
+        assert page.locator(".bid-overview .leader-crown").count() == 3
+        assert page.locator(".bid-overview .leader-points").count() == 3
         overview_starter = page.locator(".bid-overview .starter")
         assert overview_starter.count() == 1
         overview_starter_row = overview_starter.locator("xpath=../..")
@@ -249,6 +262,12 @@ def main() -> None:
         assert cloud_heading_box and cloud_players_box
         assert cloud_players_box["y"] - (cloud_heading_box["y"] + cloud_heading_box["height"]) >= 16
         page.locator("#cloud-player-options button").first.click()
+        assert page.locator("#btn-cloud-minus").evaluate(
+            "(button) => getComputedStyle(button).color"
+        ) == "rgb(240, 160, 160)"
+        assert page.locator("#btn-cloud-plus").evaluate(
+            "(button) => getComputedStyle(button).color"
+        ) == "rgb(131, 201, 163)"
         assert page.get_by_text("had the following bid before this Cloud").count() == 0
         page.click("#btn-cloud-plus")
         page.locator(".special-button", has_text="Bomb").click()

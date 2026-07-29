@@ -499,8 +499,11 @@
 
     const actions = document.createElement("div");
     actions.className = "round-actions special-actions";
+    const editBidsButton = createButton("<", "button-secondary special-back-button", () => setRoundPhase("bids"));
+    editBidsButton.setAttribute("aria-label", "Edit Bids");
+    editBidsButton.title = "Edit Bids";
     actions.append(
-      createButton("Edit Bids", "button-secondary", () => setRoundPhase("bids")),
+      editBidsButton,
       createButton("Enter Tricks", "button-primary", () => setRoundPhase("tricks"), errors.length > 0)
     );
     specialPanel.append(actions);
@@ -512,13 +515,15 @@
     const table = document.createElement("div");
     table.className = "score-table bid-overview";
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
+    const leadingTotal = Math.max(...Object.values(totals));
 
     const header = document.createElement("div");
     header.className = "score-row header";
-    header.innerHTML = "<span>Player</span><span class=\"number\">Bid</span><span class=\"number\">Total</span>";
+    header.innerHTML = "<span>Player</span><span class=\"number\">Bid</span><span class=\"number\">Points</span>";
     table.append(header);
 
-    state.players.forEach((player) => {
+    const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
+    order.forEach((player) => {
       const result = round.playerResults[player.id];
       const row = document.createElement("div");
       row.className = "score-row";
@@ -532,6 +537,15 @@
       name.textContent = getPlayerDisplayNameById(player.id);
       nameCell.append(name);
 
+      const isLeader = totals[player.id] === leadingTotal;
+      if (isLeader) {
+        const crown = document.createElement("span");
+        crown.className = "leader-crown";
+        crown.textContent = "👑";
+        crown.setAttribute("aria-label", "Current leader");
+        nameCell.append(crown);
+      }
+
       if (player.id === round.startingPlayerId) {
         nameCell.append(createSeatRoleBadge("Starting Player", "starter"));
       }
@@ -544,7 +558,7 @@
       }
 
       const total = document.createElement("span");
-      total.className = "number total-points";
+      total.className = `number total-points${isLeader ? " leader-points" : ""}`;
       total.textContent = String(totals[player.id]);
       total.setAttribute("aria-label", `${totals[player.id]} total points`);
 
@@ -842,9 +856,12 @@
     message.classList.add("trick-status");
 
     const actions = document.createElement("div");
-    actions.className = "round-actions";
+    actions.className = "round-actions tricks-actions";
+    const backToSpecialsButton = createButton("<", "button-secondary special-back-button", () => setRoundPhase("play"));
+    backToSpecialsButton.setAttribute("aria-label", "Back to Special Cards");
+    backToSpecialsButton.title = "Back to Special Cards";
     actions.append(
-      createButton("Back to Special Cards", "button-secondary", () => setRoundPhase("play")),
+      backToSpecialsButton,
       createButton("Complete Round", "button-primary", completeRound, !validation.valid)
     );
 
@@ -1060,12 +1077,14 @@
 
   function createTotalPointsGrid() {
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
+    const round = getCurrentRound();
+    const order = Logic.getPlayersFromStartingPlayer(state.players, round?.startingPlayerId);
     const overview = document.createElement("div");
     overview.className = "points-strip";
     overview.style.setProperty("--player-count", String(state.players.length));
     overview.setAttribute("aria-label", "Current total scores");
 
-    state.players.forEach((player) => {
+    order.forEach((player) => {
       const card = document.createElement("div");
       card.className = "points-card";
       card.dataset.playerColor = String(getPlayerColorIndex(player.id));

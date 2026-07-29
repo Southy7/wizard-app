@@ -1140,6 +1140,21 @@ select:focus-visible {
   margin-top: 16px;
 }
 
+.special-actions,
+.tricks-actions {
+  display: grid;
+  grid-template-columns: var(--touch-target) minmax(0, 1fr);
+}
+
+.special-actions > .special-back-button,
+.tricks-actions > .special-back-button {
+  width: var(--touch-target);
+  min-width: var(--touch-target);
+  padding-inline: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 /* Round and score tables */
 .score-table-scroll {
   width: 100%;
@@ -1194,6 +1209,10 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.bid-overview .score-row .number {
+  text-align: center;
+}
+
 .score-row .positive {
   color: var(--success);
 }
@@ -1209,6 +1228,10 @@ select:focus-visible {
 .score-row .total-points {
   color: var(--text);
   font-weight: 950;
+}
+
+.bid-overview .leader-points {
+  color: var(--gold-light);
 }
 
 .muted-inline {
@@ -1448,6 +1471,14 @@ select:focus-visible {
 
 #cloud-player-options {
   margin-top: 16px;
+}
+
+#btn-cloud-minus {
+  color: var(--danger);
+}
+
+#btn-cloud-plus {
+  color: var(--success);
 }
 
 .choice-grid {
