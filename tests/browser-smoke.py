@@ -123,6 +123,9 @@ def main() -> None:
         assert page.locator("#btn-round-mode-individual").get_attribute("aria-checked") == "false"
         assert page.locator("#custom-round-controls").is_hidden()
         assert page.locator("#rounds-input").get_attribute("max") == "23"
+        assert page.locator("#player-list .text-input").evaluate_all(
+            "(inputs) => inputs.every((input) => input.getAttribute('aria-invalid') === 'false')"
+        )
         page.click("#btn-round-mode-individual")
         assert page.locator("#custom-round-controls").is_visible()
         assert page.locator("#btn-round-mode-individual").get_attribute("aria-checked") == "true"
@@ -138,6 +141,12 @@ def main() -> None:
         assert page.locator("#screen-setup-summary").is_visible()
         assert page.locator("#summary-player-count").text_content() == "3 Players"
         assert page.locator("#summary-round-count").text_content() == "1 Round"
+        assert page.locator(".summary-list > div").all_text_contents() == [
+            "3 Players", "1 Round", "Random Dealer"
+        ]
+        assert len(set(page.locator(".summary-list > div").evaluate_all(
+            "(items) => items.map((item) => Math.round(item.getBoundingClientRect().top))"
+        ))) == 1
         assert page.locator("#summary-dealer").count() == 0
         assert page.locator("#summary-starter").count() == 0
         seat_rows = page.locator("#summary-seat-order .seat-order-item")

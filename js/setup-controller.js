@@ -15,6 +15,7 @@
     refreshConflictMode
   }) {
     let state = null;
+    let nameValidationActive = false;
 
     function syncState() {
       ensureState();
@@ -37,6 +38,7 @@
 
     function renderSetup() {
       syncState();
+      nameValidationActive = false;
       renderPlayerList();
       renderRoundControls();
       renderSummary();
@@ -66,7 +68,7 @@
         input.placeholder = `Player ${index + 1}`;
         input.setAttribute("aria-label", `Player ${index + 1}`);
         input.value = player.name;
-        input.setAttribute("aria-invalid", String(!player.name.trim()));
+        input.setAttribute("aria-invalid", String(nameValidationActive && !player.name.trim()));
         input.addEventListener("input", (event) => updatePlayerName(player.id, event.target.value));
 
         const duplicateHint = document.createElement("span");
@@ -117,7 +119,9 @@
         const player = state.players.find((entry) => entry.id === playerId);
         const input = row.querySelector(".text-input");
         const hint = row.querySelector(".duplicate-hint");
-        if (input && player) input.setAttribute("aria-invalid", String(!player.name.trim()));
+        if (input && player) {
+          input.setAttribute("aria-invalid", String(nameValidationActive && !player.name.trim()));
+        }
         if (hint) hint.textContent = duplicateIds.has(playerId) ? "This name is used more than once." : "";
       });
     }
@@ -246,6 +250,8 @@
       commitRoundInput();
       const errors = Logic.validateSetup(state);
       if (errors.length > 0) {
+        nameValidationActive = true;
+        updateDuplicateHints();
         showFormErrors(errors);
         focusFirstInvalidField();
         return;
@@ -269,6 +275,8 @@
       const errors = Logic.validateSetup(state);
       if (errors.length > 0) {
         renderSetup();
+        nameValidationActive = true;
+        updateDuplicateHints();
         showFormErrors(errors);
         showScreen("setup");
         focusFirstInvalidField();

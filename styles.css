@@ -667,9 +667,8 @@ select:focus-visible {
 
 .summary-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, max-content));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  justify-content: start;
 }
 
 .status-message {
@@ -695,12 +694,13 @@ select:focus-visible {
 
 .summary-list > div {
   min-width: 0;
-  padding: 8px 11px;
+  padding: 8px 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
   background: var(--surface);
-  font-size: 0.95rem;
+  font-size: clamp(0.68rem, 2.5vw, 0.95rem);
   font-weight: 850;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -1586,7 +1586,7 @@ select:focus-visible {
   }
 
   .summary-list {
-    grid-template-columns: repeat(2, minmax(0, max-content));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .seat-order-item {
