@@ -176,7 +176,7 @@
       "summary-player-count", "summary-round-count",
       "summary-seat-order", "btn-summary-back",
       "btn-summary-start", "form-errors",
-      "btn-game-help", "btn-game-home", "game-phase-label", "game-title",
+      "btn-game-help", "btn-game-cards", "btn-game-home", "game-phase-label", "game-title",
       "game-round-overview", "game-total-points", "game-content", "btn-history-home",
       "history-list-view", "history-game-list", "history-detail-view", "btn-history-list-back",
       "history-detail-ranking", "history-score-content",
@@ -186,6 +186,7 @@
       "btn-history-export-damaged", "btn-history-reset-damaged",
       "final-ranking", "final-score-history", "btn-review-last-round",
       "btn-finished-go-home", "round-one-dialog", "btn-confirm-round-one-hint",
+      "special-cards-dialog", "btn-close-special-cards-dialog",
       "cloud-dialog", "cloud-dialog-kicker",
       "cloud-player-options", "cloud-change-options", "btn-cloud-minus",
       "btn-cloud-plus", "btn-close-cloud-dialog", "edit-round-dialog",
@@ -206,6 +207,8 @@
     elements["import-file-input"].addEventListener("change", importGameFromFile);
     elements["btn-setup-home"].addEventListener("click", goHome);
     elements["btn-game-home"].addEventListener("click", goHome);
+    elements["btn-game-cards"].addEventListener("click", () => openDialog(elements["special-cards-dialog"]));
+    elements["btn-close-special-cards-dialog"].addEventListener("click", () => closeDialog(elements["special-cards-dialog"]));
     elements["btn-history-home"].addEventListener("click", goHome);
     historyController.bindEvents();
     elements["btn-finished-go-home"].addEventListener("click", goHome);

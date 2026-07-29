@@ -277,6 +277,20 @@ def main() -> None:
         overview_badge_box = overview_starter.bounding_box()
         assert overview_name_box and overview_badge_box
         assert overview_badge_box["x"] >= overview_name_box["x"] + overview_name_box["width"]
+
+        page.click("#btn-game-cards")
+        assert page.locator("#special-cards-dialog").is_visible()
+        assert [
+            title.strip()
+            for title in page.locator(".special-card-reference h3").all_text_contents()
+        ] == [
+            "Shapeshifter", "Dragon", "Fairy", "Bomb", "Werewolf",
+            "Juggler", "Cloud", "Witch", "Vampire", "The Dark Eye"
+        ]
+        assert page.locator(".special-card-reference", has_text="Tip").count() == 0
+        page.click("#btn-close-special-cards-dialog")
+        assert page.locator("#special-cards-dialog").is_hidden()
+
         witch = page.locator(".special-button", has_text="Witch")
         assert witch.is_disabled()
         bomb = page.locator(".special-button", has_text="Bomb")

@@ -30,6 +30,131 @@
   text-align: center;
 }
 
+.special-cards-dialog {
+  width: min(calc(100% - 24px), 600px);
+}
+
+.special-cards-reference-content {
+  padding: clamp(16px, 4vw, 24px);
+}
+
+.special-cards-reference-heading {
+  margin-bottom: 10px;
+}
+
+.special-cards-reference-heading h2 {
+  font-size: clamp(1.25rem, 5vw, 1.55rem);
+}
+
+.special-cards-reference-intro {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.special-card-reference-list {
+  display: grid;
+  gap: 12px;
+}
+
+.special-card-reference {
+  --card-accent: var(--gold-primary);
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--card-accent);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
+.special-card-reference.shapeshifter-reference {
+  --card-accent: #a782d4;
+}
+
+.special-card-reference.dragon-reference {
+  --card-accent: #dc8c35;
+}
+
+.special-card-reference.fairy-reference {
+  --card-accent: #e5a3ce;
+}
+
+.special-card-reference.cloud-reference {
+  --card-accent: #56afe0;
+}
+
+.special-card-reference.bomb-reference {
+  --card-accent: #e05a47;
+}
+
+.special-card-reference.werewolf-reference {
+  --card-accent: #8da5ba;
+}
+
+.special-card-reference.juggler-reference {
+  --card-accent: #50b982;
+}
+
+.special-card-reference.witch-reference {
+  --card-accent: #695dcc;
+}
+
+.special-card-reference.vampire-reference {
+  --card-accent: #c43d68;
+}
+
+.special-card-reference.dark-eye-reference {
+  --card-accent: #c7b45e;
+}
+
+.special-card-reference h3 {
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.12rem;
+}
+
+.special-card-reference-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  color: var(--card-accent);
+}
+
+.special-card-reference-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.special-card-reference dl {
+  margin: 0 0 0 33px;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.special-card-reference dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.special-card-reference dt {
+  color: var(--text);
+  font-weight: 750;
+}
+
+.special-card-reference dd {
+  margin: 0;
+}
+
 #cloud-player-options {
   margin-top: 16px;
 }
