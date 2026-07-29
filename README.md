@@ -31,8 +31,14 @@ Then open [http://localhost:8080](http://localhost:8080).
 Create a compact deployment ZIP without Git metadata, tests, or examples:
 
 ```bash
+git status --short
 git archive --format=zip --output wizard-scoreboard.zip HEAD
 ```
+
+Proceed only when `git status --short` produces no output.
+Use an atomic release switch when the hosting platform supports it. When uploading
+an extracted archive manually, publish `service-worker.js` last so the new worker
+installs only after its complete app shell is available.
 
 ## Testing
 
@@ -44,10 +50,10 @@ python -m playwright install chromium
 npm test
 ```
 
-Run the complete suite, including history import and recovery scenarios:
+Run only the faster core suite during development:
 
 ```bash
-npm run test:all
+npm run test:core
 ```
 
 ## Architecture

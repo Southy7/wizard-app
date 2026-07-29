@@ -2,9 +2,8 @@
 
 // Bump this version with each app-shell release so installed clients receive a coherent update.
 const CACHE_PREFIX = "wizard-scoreboard-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.119`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.120`;
 const APP_SHELL = [
-  "./",
   "./index.html",
   "./styles.css",
   "./css/setup.css",
@@ -21,6 +20,7 @@ const APP_SHELL = [
   "./js/result-view.js",
   "./js/persistence-controller.js",
   "./js/setup-controller.js",
+  "./js/history-controller.js",
   "./js/import-controller.js",
   "./js/game-view.js",
   "./js/round-result-view.js",
@@ -34,44 +34,29 @@ const APP_SHELL = [
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png"
 ];
-// History is optional so a feature-asset failure cannot block the core scoreboard from installing.
-const OPTIONAL_APP_SHELL = [
-  "./js/history-controller.js"
-];
 const SCOPE_URL = new URL(self.registration.scope);
 const INDEX_URL = new URL("./index.html", SCOPE_URL).href;
 const APP_ASSET_URLS = new Set(
-  [...APP_SHELL, ...OPTIONAL_APP_SHELL].map((path) => new URL(path, SCOPE_URL).href)
+  APP_SHELL.map((path) => new URL(path, SCOPE_URL).href)
 );
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => cacheOptionalAppShell())
       .then(() => self.skipWaiting())
   );
 });
 
-async function cacheOptionalAppShell() {
-  const cache = await caches.open(CACHE_NAME);
-  await Promise.allSettled(OPTIONAL_APP_SHELL.map(async (path) => {
-    const response = await fetch(new URL(path, SCOPE_URL).href);
-    if (response.ok && response.type !== "opaque") {
-      await cache.put(new URL(path, SCOPE_URL).href, response.clone());
-    }
-  }));
-}
-
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
+    self.clients.claim()
+      .then(() => caches.keys())
       .then((keys) => Promise.all(
         keys
           .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       ))
-      .then(() => self.clients.claim())
   );
 });
 
@@ -85,7 +70,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.mode === "navigate") {
-    event.respondWith(handleNavigationRequest(event.request, requestUrl));
+    event.respondWith(handleNavigationRequest(event.request));
     return;
   }
 
@@ -93,38 +78,28 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(handleStaticAssetRequest(event.request));
 });
 
-async function handleNavigationRequest(request, requestUrl) {
-  // Use network-first navigation for immediate updates and cached HTML as the offline fallback.
+async function handleNavigationRequest(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cachedResponse = await cache.match(INDEX_URL);
+  if (cachedResponse) return cachedResponse;
+
   try {
     const networkResponse = await fetch(request);
-    if (!networkResponse.ok) {
-      return (await caches.match(INDEX_URL)) ?? networkResponse;
-    }
-
-    const isAppEntry = requestUrl.href === SCOPE_URL.href || requestUrl.href === INDEX_URL;
-    const isHtml = networkResponse.headers.get("content-type")?.includes("text/html");
-    if (isAppEntry && isHtml) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(INDEX_URL, networkResponse.clone());
-    }
     return networkResponse;
   } catch {
-    return (await caches.match(INDEX_URL)) ?? Response.error();
+    return Response.error();
   }
 }
 
 async function handleStaticAssetRequest(request) {
-  // Use network-first assets to avoid mixing deployments while retaining offline support.
-  try {
-    const networkResponse = await fetch(request);
-    if (!networkResponse.ok || networkResponse.type === "opaque") {
-      return (await caches.match(request)) ?? networkResponse;
-    }
+  // Keep the installed version immutable; a new worker switches the entire shell at once.
+  const cache = await caches.open(CACHE_NAME);
+  const cachedResponse = await cache.match(request);
+  if (cachedResponse) return cachedResponse;
 
-    const cache = await caches.open(CACHE_NAME);
-    await cache.put(request, networkResponse.clone());
-    return networkResponse;
+  try {
+    return await fetch(request);
   } catch {
-    return (await caches.match(request)) ?? Response.error();
+    return Response.error();
   }
 }

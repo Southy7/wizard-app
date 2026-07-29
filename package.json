@@ -4,7 +4,7 @@
   "private": true,
   "description": "Lightweight Wizard scoreboard – complete version 1.0",
   "scripts": {
-    "test": "npm run test:core",
+    "test": "npm run test:all",
     "test:all": "npm run test:core && npm run test:history-import",
     "test:core": "npm run test:unit && npm run test:browser:core-suite",
     "test:history-import": "npm run test:browser:smoke",

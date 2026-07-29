@@ -42,6 +42,7 @@ assert.equal(simulateControllerChanges({}, 2), 1);
 const listeners = {};
 const deletedCaches = [];
 const cacheWrites = [];
+const networkRequests = [];
 let installedAppShell = [];
 let networkHandler = async () => {
   throw new Error("No network response configured.");
@@ -51,6 +52,9 @@ let cachedResponse = null;
 const cache = {
   async addAll(resources) {
     installedAppShell = [...resources];
+  },
+  async match() {
+    return cachedResponse;
   },
   async put(key, response) {
     await Promise.resolve();
@@ -62,6 +66,7 @@ const context = vm.createContext({
   URL,
   console,
   fetch(request) {
+    networkRequests.push(request);
     return networkHandler(request);
   },
   caches: {
@@ -78,9 +83,6 @@ const context = vm.createContext({
     async delete(key) {
       deletedCaches.push(key);
       return true;
-    },
-    async match() {
-      return cachedResponse;
     }
   },
   Response: {
@@ -147,6 +149,14 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
 
 (async () => {
   await dispatchLifecycle("install");
+  assert.ok(installedAppShell.includes("./index.html"));
+  assert.ok(!installedAppShell.includes("./"));
+  const documentAssets = [...indexHtml.matchAll(
+    /<(?:link|script)\b[^>]*(?:href|src)="([^"]+)"/g
+  )].map((match) => `./${match[1]}`);
+  for (const asset of documentAssets) {
+    assert.ok(installedAppShell.includes(asset), `${asset} is missing from the app shell.`);
+  }
   assert.ok(installedAppShell.includes("./styles.css"));
   assert.ok(installedAppShell.includes("./css/setup.css"));
   assert.ok(installedAppShell.includes("./css/game.css"));
@@ -160,12 +170,12 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(installedAppShell.includes("./js/result-view.js"));
   assert.ok(installedAppShell.includes("./js/persistence-controller.js"));
   assert.ok(installedAppShell.includes("./js/setup-controller.js"));
+  assert.ok(installedAppShell.includes("./js/history-controller.js"));
   assert.ok(installedAppShell.includes("./js/import-controller.js"));
   assert.ok(installedAppShell.includes("./js/game-view.js"));
   assert.ok(installedAppShell.includes("./js/round-result-view.js"));
   assert.ok(installedAppShell.includes("./js/round-controller.js"));
   assert.ok(installedAppShell.includes("./js/special-cards-controller.js"));
-  assert.ok(!installedAppShell.includes("./js/history-controller.js"));
 
   await dispatchLifecycle("activate");
   assert.deepEqual(deletedCaches, [
@@ -191,25 +201,43 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
     url: "https://example.test/wizard/api/future"
   }), undefined);
 
-  const cssResponse = response({ contentType: "text/css" });
-  networkHandler = async () => cssResponse;
+  cachedResponse = { source: "cached-css" };
+  networkHandler = async () => {
+    throw new Error("Cached app-shell assets must not use the network.");
+  };
   const returnedCss = await dispatchFetch({
     method: "GET",
     mode: "cors",
     url: "https://example.test/wizard/styles.css"
   });
-  assert.equal(returnedCss, cssResponse);
-  assert.equal(cacheWrites.length, 1);
-  assert.equal(cacheWrites[0].key.url, "https://example.test/wizard/styles.css");
+  assert.equal(returnedCss, cachedResponse);
+  assert.equal(networkRequests.length, 0);
+  assert.equal(cacheWrites.length, 0);
+
+  cachedResponse = null;
+  const cssResponse = response({ contentType: "text/css" });
+  networkHandler = async () => cssResponse;
+  const missingCssFallback = await dispatchFetch({
+    method: "GET",
+    mode: "cors",
+    url: "https://example.test/wizard/styles.css"
+  });
+  assert.equal(missingCssFallback, cssResponse);
+  assert.equal(networkRequests.length, 1);
+  assert.equal(cacheWrites.length, 0);
 
   cachedResponse = { source: "cached-index" };
-  networkHandler = async () => response({ ok: false, status: 503, contentType: "text/html" });
-  const navigationFallback = await dispatchFetch({
+  networkRequests.length = 0;
+  networkHandler = async () => {
+    throw new Error("Cached navigation must not use the network.");
+  };
+  const cachedNavigation = await dispatchFetch({
     method: "GET",
     mode: "navigate",
     url: "https://example.test/wizard/"
   });
-  assert.equal(navigationFallback, cachedResponse);
+  assert.equal(cachedNavigation, cachedResponse);
+  assert.equal(networkRequests.length, 0);
 
   console.log("All service-worker tests passed.");
 })().catch((error) => {
