@@ -117,10 +117,17 @@ const completedGame = require("../examples/history-game-1.json").gameState;
 
 const validActiveGameValue = localStorage.getItem(Storage.STORAGE_KEY);
 for (const mutate of [
+  (game) => { delete game.gameId; },
+  (game) => { delete game.updatedAt; },
   (game) => { game.players[1].id = game.players[0].id; },
+  (game) => { delete game.players[0].seatPosition; },
   (game) => { game.rounds.push(JSON.parse(JSON.stringify(game.rounds[0]))); },
+  (game) => { delete game.rounds[0].dealerId; },
+  (game) => { delete game.rounds[0].startingPlayerId; },
   (game) => { game.rounds[0].playerResults["example-1-lena"].originalBid = 999; },
+  (game) => { delete game.rounds[0].playerResults["example-1-lena"].roundPoints; },
   (game) => { game.rounds[0].phase = "invalid"; },
+  (game) => { delete game.rounds[0].specialCards; },
   (game) => { game.rounds[0].specialCards = { witch: { active: true, secondEffect: null } }; },
   (game) => { game.rounds[0].playerResults["example-1-lena"].roundPoints += 1; },
   (game) => { game.rounds.pop(); }
@@ -274,6 +281,28 @@ const oversizedHistory = Array.from({ length: 100 }, (_, index) => ({
   gameId: `soft-limit-${index}`
 }));
 assert.equal(Storage.getHistoryStorageStatus(oversizedHistory).softLimitReached, true);
+
+const previouslyAcceptedArchive = JSON.parse(JSON.stringify(completedGame));
+const currentHistoryValueBeforeRecovery = localStorage.getItem(Storage.HISTORY_KEY);
+for (const round of previouslyAcceptedArchive.rounds) {
+  delete round.dealerId;
+  delete round.startingPlayerId;
+  round.specialCards = {
+    witch: { active: false, secondEffect: null }
+  };
+}
+assert.ok(Logic.validateImportedGameState(previouslyAcceptedArchive).length > 0);
+localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify([previouslyAcceptedArchive]));
+const restoredArchive = Storage.loadGameHistory();
+assert.equal(restoredArchive.length, 1);
+assert.deepEqual(Logic.validateImportedGameState(restoredArchive[0]), []);
+assert.equal(restoredArchive[0].rounds[0].dealerId, completedGame.rounds[0].dealerId);
+assert.equal(
+  restoredArchive[0].rounds[0].startingPlayerId,
+  completedGame.rounds[0].startingPlayerId
+);
+assert.deepEqual(restoredArchive[0].rounds[0].specialCards, completedGame.rounds[0].specialCards);
+localStorage.setItem(Storage.HISTORY_KEY, currentHistoryValueBeforeRecovery);
 
 failHistoryWrites = true;
 const quotaConsoleError = console.error;

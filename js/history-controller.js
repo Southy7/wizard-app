@@ -229,7 +229,9 @@
       const gameIds = new Set();
       for (const candidate of parsed.games) {
         const validationErrors = Logic.validateImportedGameState(candidate);
-        if (validationErrors.length > 0) throw new Error(validationErrors[0]);
+        if (validationErrors.length > 0) {
+          throw new Error(`Import failed: ${validationErrors[0]}`);
+        }
         if (gameIds.has(candidate.gameId)) {
           throw new Error("The history archive contains the same game more than once.");
         }

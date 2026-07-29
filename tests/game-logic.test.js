@@ -328,6 +328,59 @@ function assertInvalidImport(mutator) {
   assert.ok(invalidImport(mutator).length > 0);
 }
 
+for (const [field, expectedMessage] of [
+  ["gameId", "game ID"],
+  ["updatedAt", "last-updated date"],
+  ["totalCards", "70 cards"],
+  ["setupDealerRandomized", "dealer-selection status"],
+  ["roundOneHintConfirmed", "first-round confirmation status"]
+]) {
+  assert.ok(invalidImport((candidate) => {
+    delete candidate[field];
+  }).some((error) => error.includes(expectedMessage)));
+}
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.players[0].seatPosition;
+}).some((error) => error.includes("seating order")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].dealerId;
+}).some((error) => error.includes("dealer in round 1")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].startingPlayerId;
+}).some((error) => error.includes("starting player in round 1")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].completedAt;
+}).some((error) => error.includes("completion date field")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].specialCards;
+}).some((error) => error.includes("special-card data for round 1 is missing")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].specialCards.secondBomb;
+}).some((error) => error.includes("special-card data for round 1 is incomplete")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].specialCards.cloud.change;
+}).some((error) => error.includes("cloud special card in round 1 is invalid")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].specialCards.witch.secondEffect;
+}).some((error) => error.includes("Witch in round 1 is invalid")));
+
+assert.ok(invalidImport((candidate) => {
+  delete candidate.rounds[0].playerResults["example-1-lena"].roundPoints;
+}).some((error) => error.includes("player data for round 1 is incomplete")));
+
+const missingRequiredPersistableField = Logic.createInitialGameState();
+delete missingRequiredPersistableField.gameId;
+assert.ok(Logic.validatePersistableGameState(missingRequiredPersistableField)
+  .some((error) => error.includes("game ID")));
+
 assertInvalidImport((candidate) => {
   candidate.players[1].id = candidate.players[0].id;
 });

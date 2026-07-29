@@ -376,7 +376,9 @@
       const validationErrors = isRecoveryExport
         ? Logic.validatePersistableGameState(candidate)
         : Logic.validateImportedGameState(candidate);
-      if (validationErrors.length > 0) throw new Error(validationErrors[0]);
+      if (validationErrors.length > 0) {
+        throw new Error(`Import failed: ${validationErrors[0]}`);
+      }
 
       const savedBeforeImport = Storage.loadGame();
       const hasStoredGameData = Storage.hasStoredData();

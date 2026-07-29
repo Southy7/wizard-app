@@ -33,6 +33,8 @@
     "rounds": [
       {
         "number": 1,
+        "dealerId": "example-1-lena",
+        "startingPlayerId": "example-1-max",
         "phase": "result",
         "playerResults": {
           "example-1-lena": {
@@ -54,11 +56,20 @@
             "roundPoints": 20
           }
         },
+        "specialCards": {
+          "cloud": { "active": false, "playerId": null, "change": 0 },
+          "bomb": { "active": false },
+          "witch": { "active": false, "secondEffect": null },
+          "secondCloud": { "active": false, "playerId": null, "change": 0 },
+          "secondBomb": { "active": false }
+        },
         "completed": true,
         "completedAt": "2026-07-20T18:35:00.000Z"
       },
       {
         "number": 2,
+        "dealerId": "example-1-max",
+        "startingPlayerId": "example-1-tom",
         "phase": "result",
         "playerResults": {
           "example-1-lena": {
@@ -79,6 +90,13 @@
             "tricks": 1,
             "roundPoints": -10
           }
+        },
+        "specialCards": {
+          "cloud": { "active": false, "playerId": null, "change": 0 },
+          "bomb": { "active": false },
+          "witch": { "active": false, "secondEffect": null },
+          "secondCloud": { "active": false, "playerId": null, "change": 0 },
+          "secondBomb": { "active": false }
         },
         "completed": true,
         "completedAt": "2026-07-20T18:45:00.000Z"

@@ -167,6 +167,21 @@
     return validateGameState(candidate, { allowIncompleteWitchSelection: true });
   }
 
+  function hasOwn(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
+  }
+
+  function isValidStateId(value) {
+    return typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(value);
+  }
+
+  function isValidDateString(value) {
+    if (typeof value !== "string") return false;
+
+    const date = new Date(value);
+    return !Number.isNaN(date.getTime()) && date.toISOString() === value;
+  }
+
   function validateGameState(candidate, options) {
     const errors = [];
     const allowedStatuses = new Set(["setup", "running", "completed"]);
@@ -184,6 +199,14 @@
       errors.push("The game state does not use the current schema version 4.");
     }
 
+    if (!isValidStateId(candidate.gameId)) {
+      errors.push("The game ID is missing or invalid.");
+    }
+
+    if (!isValidDateString(candidate.updatedAt)) {
+      errors.push("The game does not have a valid last-updated date.");
+    }
+
     const players = Array.isArray(candidate.players) ? candidate.players : [];
     if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
       errors.push(`The game state must contain between ${MIN_PLAYERS} and ${MAX_PLAYERS} players.`);
@@ -193,7 +216,7 @@
     const playerIds = [];
     players.forEach((player, index) => {
       const id = player?.id;
-      if (typeof id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(id)) {
+      if (!isValidStateId(id)) {
         errors.push(`Player ${index + 1} does not have a valid ID.`);
       } else {
         playerIds.push(id);
@@ -205,7 +228,7 @@
         errors.push(`Player ${index + 1} does not have a valid name.`);
       }
 
-      if (player?.seatPosition !== undefined && player.seatPosition !== index) {
+      if (!Number.isInteger(player?.seatPosition) || player.seatPosition !== index) {
         errors.push("The players' seating order is ambiguous.");
       }
     });
@@ -246,12 +269,20 @@
       errors.push("The current round is invalid.");
     }
 
-    if (candidate.totalCards !== undefined && candidate.totalCards !== TOTAL_CARDS) {
+    if (candidate.totalCards !== TOTAL_CARDS) {
       errors.push(`The game state must be based on ${TOTAL_CARDS} cards.`);
+    }
+
+    if (typeof candidate.setupDealerRandomized !== "boolean") {
+      errors.push("The dealer-selection status is missing or invalid.");
     }
 
     if (candidate.status !== "setup" && candidate.setupDealerRandomized !== true) {
       errors.push("A dealer must be set for a started game.");
+    }
+
+    if (typeof candidate.roundOneHintConfirmed !== "boolean") {
+      errors.push("The first-round confirmation status is missing or invalid.");
     }
 
     const rounds = Array.isArray(candidate.rounds) ? candidate.rounds : null;
@@ -286,13 +317,16 @@
       if (typeof rawRound.completed !== "boolean") {
         errors.push(`Round ${roundNumber} does not have an unambiguous completion status.`);
       }
+      if (!hasOwn(rawRound, "completedAt")) {
+        errors.push(`Round ${roundNumber} does not contain its completion date field.`);
+      }
 
       const expectedDealer = getDealerForRound(players, candidate.firstDealerId, roundNumber);
       const expectedStarter = getStartingPlayerForRound(players, candidate.firstDealerId, roundNumber);
-      if (rawRound.dealerId != null && rawRound.dealerId !== expectedDealer?.id) {
+      if (rawRound.dealerId !== expectedDealer?.id) {
         errors.push(`The dealer in round ${roundNumber} is invalid.`);
       }
-      if (rawRound.startingPlayerId != null && rawRound.startingPlayerId !== expectedStarter?.id) {
+      if (rawRound.startingPlayerId !== expectedStarter?.id) {
         errors.push(`The starting player in round ${roundNumber} is invalid.`);
       }
 
@@ -335,7 +369,7 @@
         if (rawRound.phase !== "result") {
           errors.push(`Completed round ${roundNumber} must be in the result phase.`);
         }
-        if (typeof rawRound.completedAt !== "string" || Number.isNaN(Date.parse(rawRound.completedAt))) {
+        if (!isValidDateString(rawRound.completedAt)) {
           errors.push(`Round ${roundNumber} does not have a valid completion date.`);
         }
         if (!validateTrickSum(normalizedRound).valid) {
@@ -385,6 +419,12 @@
         return null;
       }
 
+      const requiredResultFields = ["originalBid", "currentBid", "tricks", "roundPoints"];
+      if (requiredResultFields.some((field) => !hasOwn(rawResult, field))) {
+        errors.push(`${player.name}'s player data for round ${roundNumber} is incomplete.`);
+        return null;
+      }
+
       if (!Number.isInteger(rawResult.originalBid)
         || rawResult.originalBid < 0
         || rawResult.originalBid > roundNumber
@@ -424,18 +464,26 @@
   }
 
   function validateImportedSpecialCards(rawCards, players, roundNumber, errors) {
-    if (rawCards !== undefined && (!rawCards || typeof rawCards !== "object" || Array.isArray(rawCards))) {
-      errors.push(`The special cards in round ${roundNumber} are invalid.`);
+    if (!rawCards || typeof rawCards !== "object" || Array.isArray(rawCards)) {
+      errors.push(`The special-card data for round ${roundNumber} is missing or invalid.`);
       return null;
     }
 
-    const cards = rawCards ?? {};
+    const cards = rawCards;
+    const requiredCardFields = ["cloud", "bomb", "witch", "secondCloud", "secondBomb"];
+    if (requiredCardFields.some((field) => !hasOwn(cards, field))) {
+      errors.push(`The special-card data for round ${roundNumber} is incomplete.`);
+      return null;
+    }
+
     const normalized = createRound(players, players[0].id, roundNumber).specialCards;
 
     for (const key of ["cloud", "secondCloud"]) {
       const rawCloud = cards[key];
-      if (rawCloud === undefined) continue;
       if (!rawCloud || typeof rawCloud !== "object" || Array.isArray(rawCloud)
+        || !hasOwn(rawCloud, "active")
+        || !hasOwn(rawCloud, "playerId")
+        || !hasOwn(rawCloud, "change")
         || typeof rawCloud.active !== "boolean") {
         errors.push(`The ${key} special card in round ${roundNumber} is invalid.`);
         return null;
@@ -443,8 +491,8 @@
 
       normalized[key] = {
         active: rawCloud.active,
-        playerId: rawCloud.playerId ?? null,
-        change: rawCloud.change ?? 0
+        playerId: rawCloud.playerId,
+        change: rawCloud.change
       };
 
       if ((rawCloud.active && (!players.some((player) => player.id === normalized[key].playerId)
@@ -457,8 +505,8 @@
 
     for (const key of ["bomb", "secondBomb"]) {
       const rawBomb = cards[key];
-      if (rawBomb === undefined) continue;
       if (!rawBomb || typeof rawBomb !== "object" || Array.isArray(rawBomb)
+        || !hasOwn(rawBomb, "active")
         || typeof rawBomb.active !== "boolean") {
         errors.push(`The ${key} special card in round ${roundNumber} is invalid.`);
         return null;
@@ -466,18 +514,18 @@
       normalized[key].active = rawBomb.active;
     }
 
-    if (cards.witch !== undefined) {
-      if (!cards.witch || typeof cards.witch !== "object" || Array.isArray(cards.witch)
-        || typeof cards.witch.active !== "boolean"
-        || ![null, "cloud", "bomb"].includes(cards.witch.secondEffect ?? null)) {
-        errors.push(`The Witch in round ${roundNumber} is invalid.`);
-        return null;
-      }
-      normalized.witch = {
-        active: cards.witch.active,
-        secondEffect: cards.witch.secondEffect ?? null
-      };
+    if (!cards.witch || typeof cards.witch !== "object" || Array.isArray(cards.witch)
+      || !hasOwn(cards.witch, "active")
+      || !hasOwn(cards.witch, "secondEffect")
+      || typeof cards.witch.active !== "boolean"
+      || ![null, "cloud", "bomb"].includes(cards.witch.secondEffect)) {
+      errors.push(`The Witch in round ${roundNumber} is invalid.`);
+      return null;
     }
+    normalized.witch = {
+      active: cards.witch.active,
+      secondEffect: cards.witch.secondEffect
+    };
 
     return normalized;
   }

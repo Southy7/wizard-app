@@ -215,16 +215,62 @@
         throw new Error("Unknown archive format.");
       }
 
-      if (parsed.some((game) => !isCompletedGameConsistent(game))) {
+      const restoredHistory = parsed.map(restoreStoredHistoryEntry);
+      if (restoredHistory.some((game) => !isCompletedGameConsistent(game))) {
         throw new Error("The archive contains an incomplete or inconsistent game.");
       }
 
       clearError("historyError");
-      return parsed;
+      return restoredHistory;
     } catch (error) {
       setError("historyError", "The saved game archive is corrupted or unreadable.", error);
       return [];
     }
+  }
+
+  function restoreStoredHistoryEntry(candidate) {
+    const Logic = root.WizardGameLogic;
+    if (!candidate
+      || typeof candidate !== "object"
+      || !Array.isArray(candidate.players)
+      || !Array.isArray(candidate.rounds)
+      || typeof Logic?.createRound !== "function") {
+      return candidate;
+    }
+
+    const restored = JSON.parse(JSON.stringify(candidate));
+    for (const round of restored.rounds) {
+      if (!round || typeof round !== "object" || !Number.isInteger(round.number)) continue;
+
+      const defaults = Logic.createRound(restored.players, restored.firstDealerId, round.number);
+      if (round.dealerId == null) round.dealerId = defaults.dealerId;
+      if (round.startingPlayerId == null) round.startingPlayerId = defaults.startingPlayerId;
+
+      if (round.specialCards === undefined) {
+        round.specialCards = defaults.specialCards;
+        continue;
+      }
+      if (!round.specialCards
+        || typeof round.specialCards !== "object"
+        || Array.isArray(round.specialCards)) {
+        continue;
+      }
+
+      for (const [cardName, defaultCard] of Object.entries(defaults.specialCards)) {
+        if (round.specialCards[cardName] === undefined) {
+          round.specialCards[cardName] = defaultCard;
+          continue;
+        }
+
+        const storedCard = round.specialCards[cardName];
+        if (!storedCard || typeof storedCard !== "object" || Array.isArray(storedCard)) continue;
+        for (const [field, defaultValue] of Object.entries(defaultCard)) {
+          if (storedCard[field] === undefined) storedCard[field] = defaultValue;
+        }
+      }
+    }
+
+    return restored;
   }
 
   function saveCompletedGame(state) {

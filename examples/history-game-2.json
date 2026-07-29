@@ -38,6 +38,8 @@
     "rounds": [
       {
         "number": 1,
+        "dealerId": "example-2-paul",
+        "startingPlayerId": "example-2-sofia",
         "phase": "result",
         "playerResults": {
           "example-2-nora": {
@@ -64,12 +66,21 @@
             "tricks": 0,
             "roundPoints": 20
           }
+        },
+        "specialCards": {
+          "cloud": { "active": false, "playerId": null, "change": 0 },
+          "bomb": { "active": false },
+          "witch": { "active": false, "secondEffect": null },
+          "secondCloud": { "active": false, "playerId": null, "change": 0 },
+          "secondBomb": { "active": false }
         },
         "completed": true,
         "completedAt": "2026-07-21T20:10:00.000Z"
       },
       {
         "number": 2,
+        "dealerId": "example-2-sofia",
+        "startingPlayerId": "example-2-yusuf",
         "phase": "result",
         "playerResults": {
           "example-2-nora": {
@@ -97,11 +108,20 @@
             "roundPoints": -10
           }
         },
+        "specialCards": {
+          "cloud": { "active": false, "playerId": null, "change": 0 },
+          "bomb": { "active": false },
+          "witch": { "active": false, "secondEffect": null },
+          "secondCloud": { "active": false, "playerId": null, "change": 0 },
+          "secondBomb": { "active": false }
+        },
         "completed": true,
         "completedAt": "2026-07-21T20:20:00.000Z"
       },
       {
         "number": 3,
+        "dealerId": "example-2-yusuf",
+        "startingPlayerId": "example-2-nora",
         "phase": "result",
         "playerResults": {
           "example-2-nora": {
@@ -128,6 +148,13 @@
             "tricks": 0,
             "roundPoints": 20
           }
+        },
+        "specialCards": {
+          "cloud": { "active": false, "playerId": null, "change": 0 },
+          "bomb": { "active": false },
+          "witch": { "active": false, "secondEffect": null },
+          "secondCloud": { "active": false, "playerId": null, "change": 0 },
+          "secondBomb": { "active": false }
         },
         "completed": true,
         "completedAt": "2026-07-21T20:30:00.000Z"
