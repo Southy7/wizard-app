@@ -2,6 +2,8 @@
   "use strict";
 
   const TOAST_DURATION_MS = 3_200;
+  const UNARCHIVED_GAME_REPLACEMENT_MESSAGE =
+    "The completed game is not safely stored in History. Open it with Continue and export it before starting a new game.";
   const GAME_HELP_CONTENT = createGameHelpContent({
     bids: {
       title: "Bids",
@@ -252,7 +254,8 @@
       "history-recovery-view", "history-recovery-message",
       "btn-history-export-damaged", "btn-history-reset-damaged",
       "final-ranking", "final-score-history", "btn-review-last-round",
-      "btn-finished-go-home", "round-one-dialog", "btn-confirm-round-one-hint",
+      "btn-finished-export-game", "btn-finished-go-home",
+      "round-one-dialog", "btn-confirm-round-one-hint",
       "game-help-dialog", "game-help-dialog-title", "game-help-intro",
       "game-help-steps", "btn-close-game-help-dialog",
       "special-cards-dialog", "btn-close-special-cards-dialog",
@@ -280,6 +283,7 @@
     elements["btn-close-special-cards-dialog"].addEventListener("click", () => closeDialog(elements["special-cards-dialog"]));
     elements["btn-history-home"].addEventListener("click", goHome);
     historyController.bindEvents();
+    elements["btn-finished-export-game"].addEventListener("click", exportCompletedGame);
     elements["btn-finished-go-home"].addEventListener("click", goHome);
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
     elements["btn-confirm-round-one-hint"].addEventListener("click", confirmRoundOneHint);
@@ -296,6 +300,13 @@
         "A game already exists. Starting a new game will replace it. Continue?"
       );
       if (!shouldReplace) return;
+    }
+
+    const gameToReplace = hasUnsavedMemoryGame ? state : savedGame;
+    if (!ensureCompletedGameArchived(gameToReplace)) {
+      updateStorageWarning(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
+      showToast(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
+      return;
     }
 
     if (!savedGame && hasStoredGameData && !Storage.deleteGame()) {
@@ -330,6 +341,7 @@
     }
 
     if (state.status === "completed") {
+      ensureCompletedGameArchived(state);
       renderFinished();
       showScreen("finished");
       return;
@@ -348,6 +360,7 @@
 
   function goHome() {
     persistState();
+    ensureCompletedGameArchived(state);
     refreshHomeScreen();
     showScreen("home");
   }
@@ -579,6 +592,35 @@
       updateStorageWarning();
     }
     return archived;
+  }
+
+  function ensureCompletedGameArchived(gameState) {
+    if (gameState?.status !== "completed") return true;
+
+    const candidate = serializeComparableCompletedGame(gameState);
+    const matchingEntryExists = Storage.loadGameHistory().some(
+      (archivedGame) => serializeComparableCompletedGame(archivedGame) === candidate
+    );
+    return matchingEntryExists || archiveCompletedGame(gameState);
+  }
+
+  function serializeComparableCompletedGame(gameState) {
+    const canonicalState = Logic.createCanonicalGameState(gameState);
+    canonicalState.updatedAt = null;
+    return JSON.stringify(canonicalState);
+  }
+
+  function exportCompletedGame() {
+    if (state?.status !== "completed") return;
+
+    const exportedAt = new Date();
+    FileUtils.downloadJson({
+      exportFormat: "wizard-scoreboard-game",
+      exportVersion: 1,
+      exportedAt: exportedAt.toISOString(),
+      gameState: JSON.parse(JSON.stringify(state))
+    }, `wizard-game-${FileUtils.formatFileTimestamp(exportedAt)}.json`);
+    showToast("The completed game was exported.");
   }
 
   function showToast(message) {

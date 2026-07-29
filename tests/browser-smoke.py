@@ -562,7 +562,15 @@ def main() -> None:
         )
         assert page.locator("#btn-finished-home").count() == 0
         assert page.locator(".final-ranking-panel > #finished-title").text_content().strip() == "Final Result"
+        assert page.locator("#btn-finished-export-game").text_content().strip() == "Export Game"
         assert page.locator("#btn-finished-go-home").text_content().strip() == "Home"
+        with page.expect_download() as completed_download_info:
+            page.click("#btn-finished-export-game")
+        completed_export = json.loads(
+            Path(completed_download_info.value.path()).read_text(encoding="utf-8")
+        )
+        assert completed_export["exportFormat"] == "wizard-scoreboard-game"
+        assert completed_export["gameState"]["status"] == "completed"
         assert page.locator(".history-table tbody tr").count() == 1
         assert page.locator("#final-score-history .history-table thead th[data-player-color]").all_text_contents() == (
             page.locator("#final-ranking .ranking-name").all_text_contents()
@@ -775,6 +783,73 @@ def main() -> None:
             "localStorage.getItem(WizardStorage.HISTORY_KEY)"
         ) is None
         recovery_page.close()
+
+        # A completed active game must survive an archive failure and be archived on retry.
+        archive_retry_page = browser.new_page(viewport={"width": 390, "height": 844})
+        archive_retry_page.set_content(html)
+        archive_retry_page.evaluate(LOCAL_STORAGE_MOCK)
+        for script in scripts:
+            archive_retry_page.add_script_tag(content=script)
+        completed_game = json.loads(
+            (ROOT / "examples/history-game-1.json").read_text(encoding="utf-8")
+        )["gameState"]
+        archive_retry_page.evaluate(
+            """
+            (completedGame) => {
+              const originalSetItem = localStorage.setItem.bind(localStorage);
+              originalSetItem(
+                WizardStorage.STORAGE_KEY,
+                JSON.stringify(completedGame)
+              );
+              window.__failHistoryWrites = true;
+              localStorage.setItem = (key, value) => {
+                if (window.__failHistoryWrites && key === WizardStorage.HISTORY_KEY) {
+                  throw new DOMException("Quota exceeded", "QuotaExceededError");
+                }
+                originalSetItem(key, value);
+              };
+            }
+            """,
+            completed_game,
+        )
+        archive_retry_page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+        archive_retry_page.click("#btn-continue-game")
+        assert archive_retry_page.locator("#screen-finished").is_visible()
+        assert archive_retry_page.locator("#storage-warning").is_visible()
+        assert archive_retry_page.evaluate(
+            "localStorage.getItem(WizardStorage.HISTORY_KEY)"
+        ) is None
+
+        with archive_retry_page.expect_download() as retry_download_info:
+            archive_retry_page.click("#btn-finished-export-game")
+        retry_export = json.loads(
+            Path(retry_download_info.value.path()).read_text(encoding="utf-8")
+        )
+        assert retry_export["gameState"]["gameId"] == completed_game["gameId"]
+
+        archive_retry_page.click("#btn-finished-go-home")
+        archive_retry_page.once("dialog", lambda dialog: dialog.accept())
+        archive_retry_page.click("#btn-new-game")
+        assert archive_retry_page.locator("#screen-home").is_visible()
+        assert archive_retry_page.evaluate(
+            "JSON.parse(localStorage.getItem(WizardStorage.STORAGE_KEY)).gameId"
+        ) == completed_game["gameId"]
+
+        archive_retry_page.evaluate("window.__failHistoryWrites = false")
+        archive_retry_page.click("#btn-continue-game")
+        assert archive_retry_page.locator("#screen-finished").is_visible()
+        assert archive_retry_page.evaluate(
+            "WizardStorage.loadGameHistory().length"
+        ) == 1
+        archive_retry_page.evaluate("window.__failHistoryWrites = true")
+        archive_retry_page.click("#btn-finished-go-home")
+        archive_retry_page.once("dialog", lambda dialog: dialog.accept())
+        archive_retry_page.click("#btn-new-game")
+        assert archive_retry_page.locator("#screen-setup").is_visible()
+        assert archive_retry_page.evaluate(
+            "WizardStorage.loadGameHistory()[0].gameId"
+        ) == completed_game["gameId"]
+        archive_retry_page.close()
 
         browser.close()
 
