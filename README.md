@@ -1,210 +1,63 @@
-# Wizard Scoreboard – Version 1.0
+# Wizard Scoreboard
 
-A lightweight, responsive web app for a 70-card Wizard variant. It runs without a build step, user accounts, or server-side logic. Game data is stored locally in the browser.
+A responsive, installable scoreboard for the 70-card Wizard anniversary edition.
+It runs entirely in the browser, works offline, and keeps game data on the device.
 
-## Features
+## Highlights
 
-### Game setup
+- Complete flow for 3-6 players, from seating order and bids to the final ranking
+- Automatic dealer rotation, starting-player order, trick validation, and scoring
+- Integrated handling for Cloud, Bomb, and Witch effects
+- Compact in-app reference for all ten anniversary-edition special cards
+- Local game history with JSON import, export, and damaged-archive recovery
+- Offline-ready PWA with responsive layouts for phones, tablets, and desktops
+- Protection against invalid imports, storage failures, and conflicting browser tabs
 
-- Focused home screen with New Game, Continue Game, History, and Import
-- Three to six players
-- Editable player names and seating order
-- Random dealer selection on the summary screen
-- Automatic starting-player selection based on the dealer
-- Standard Wizard round count selected by default
-- Custom round count up to the 70-card maximum
-- Separate summary screen with Back and Start Game actions
+## Getting started
 
-### Complete game flow
-
-- Dealer and starting player for every round
-- One-time forehead-card reminder in round 1
-- Bids entered in starting-player order
-- Combined dealer, starting-player, and total-score overview during bidding
-- Current bids and total scores shown during the special-card phase
-- Validation when the bid total equals the round number
-- Cloud adjustments of −1 or +1
-- Bomb with an adjusted expected trick total
-- Cloud, Bomb, and Witch cards can be toggled directly
-- Witch becomes available after a Cloud or Bomb and permits exactly one matching second effect
-- Trick entry remains locked until an active Witch has a second card selected
-- Final trick entry for every player
-- Correct shortcut that copies the current bid to the trick count
-- Automatic trick-total validation and score calculation
-- Round result with separate round-score and total-score columns
-- Editing of the most recently completed round
-- Automatic preparation of the next round
-
-### Final result
-
-- Winner or tie handling
-- Complete ranking and every player's score
-- Score history across all rounds
-- Total row at the end of the score table
-
-### Data safety
-
-- Confirmation before replacing an existing game
-- Clear warnings when browser storage is unavailable or corrupted
-- Strict validation before a local game is loaded or displayed
-- No automatic repair of ambiguous player IDs or round numbers
-- Separate error states for the active game and history
-- Conflict protection and visible warnings for changes made in another browser tab
-- Recovery export for in-memory changes when local storage is full, blocked, or unavailable
-- Data and schema versions in every game state
-- JSON import and export
-- Import size and format validation
-- Automatic saving after relevant changes
-- Persistent-storage request in supported browsers
-
-### Technology
-
-- Framework-free HTML, CSS, and JavaScript
-- No external runtime libraries or build process
-- Separate modules for game logic, state management, storage, history, and result rendering
-- Dedicated controllers for game setup and persistence conflicts
-- Optional history module; the core app still starts when history is unavailable
-- Responsive phone and tablet layouts with large touch targets
-- Portrait and landscape support
-- Automatic light and dark themes
-- PWA manifest and offline cache
-- Offline caching restricted to the app's own scope and fixed app shell
-
-## Run locally
-
-Installation and offline support require a local web server or HTTPS.
-
-From the project directory, run:
+No build step or backend is required. Serve the repository through any local HTTP
+server:
 
 ```bash
 python -m http.server 8080
 ```
 
-On Windows, you can alternatively run:
+Then open [http://localhost:8080](http://localhost:8080).
 
-```bash
-py -m http.server 8080
-```
+> A local server or HTTPS is required for installation and offline support.
 
-Then open:
+## Testing
 
-```text
-http://localhost:8080
-```
-
-## Tests
-
-The app itself does not require Node.js. The tests use Node.js 24 and Python 3.13. Install the Python dependencies and Chromium once:
+The test suite requires Node.js, Python, and Playwright:
 
 ```bash
 python -m pip install -r requirements-test.txt
 python -m playwright install chromium
-```
-
-On Linux, Playwright can install the required system libraries as well:
-
-```bash
-python -m playwright install --with-deps chromium
-```
-
-Run the core unit and browser test suite:
-
-```bash
 npm test
 ```
 
-Run the complete suite, including history and import recovery:
+Run the complete suite, including history import and recovery scenarios:
 
 ```bash
 npm run test:all
 ```
 
-Run individual groups:
+## Architecture
 
-```bash
-npm run test:core
-npm run test:history-import
-npm run test:unit
-npm run test:browser
-npm run test:browser:core
-npm run test:browser:persistence
-npm run test:browser:rounds
-npm run test:browser:multitab
-npm run test:browser:offline
-```
+| Area | Responsibility |
+| --- | --- |
+| `js/game-logic.js` | Game rules, validation, rotation, and scoring |
+| `js/storage.js` | Local persistence, history, imports, and conflict-safe writes |
+| `js/*-controller.js` | Setup, rounds, special cards, history, and recovery flows |
+| `js/*-view.js` | Scoreboards, round results, rankings, and score history |
+| `styles.css` and `css/` | Shared design system and responsive feature styles |
+| `service-worker.js` | App-shell updates and offline availability |
 
-The focused browser scenarios start a real local HTTP server. Reload, multi-tab, and offline tests therefore use native `localStorage` and an installed service worker. Playwright is pinned in `requirements-test.txt`. GitHub Actions runs the core and history/import suites as separate steps for every push and pull request.
+The application uses framework-free HTML, CSS, and JavaScript. It has no runtime
+dependencies, backend, accounts, analytics, or automatic transfer of game data.
 
-## History and import
+## Data and privacy
 
-The home screen provides direct access to the game archive and import:
-
-- **History** lists every locally archived completed game. Selecting a game opens its final ranking and score history.
-- Individual games and the entire archive can be exported as JSON.
-- Archive files can be imported again. Games are merged by `gameId`; an older import never overwrites a newer stored version.
-- Individual games or the complete history can be deleted after confirmation.
-- **Import** accepts individual game states and complete history archives.
-
-Exported JSON contains only game information such as names, rounds, bids, special cards, tricks, and points. It is never sent to a server automatically.
-
-## Storage
-
-The active game and the separate completed-game archive are stored in `localStorage`. They normally remain after the browser is closed, but data can still be lost through:
-
-- Manual deletion of browser data
-- Private browsing modes
-- Restrictive browser or device settings
-- Switching to another browser or device
-
-Export longer games and create a backup before changing devices.
-
-The app displays a warning at 100 archived games or about 3 MB of archive data. Games are never deleted automatically. If the browser quota is exhausted, the active game remains intact and the app asks the user to export or delete older archived games.
-
-## Project structure
-
-```text
-wizard-app/
-├── index.html
-├── styles.css
-├── css/
-│   ├── dialogs.css
-│   ├── game.css
-│   ├── responsive.css
-│   ├── results-history.css
-│   └── setup.css
-├── manifest.webmanifest
-├── service-worker.js
-├── package.json
-├── README.md
-├── js/
-│   ├── app.js
-│   ├── game-logic.js
-│   ├── game-view.js
-│   ├── history-controller.js
-│   ├── persistence-controller.js
-│   ├── result-view.js
-│   ├── round-controller.js
-│   ├── round-result-view.js
-│   ├── setup-controller.js
-│   ├── special-cards-controller.js
-│   ├── state-manager.js
-│   ├── storage.js
-│   └── ui-components.js
-├── tests/
-│   ├── browser_helpers.py
-│   ├── browser-smoke.py
-│   ├── browser-core-without-history.py
-│   ├── browser-persistence.py
-│   ├── browser-round-flow.py
-│   ├── browser-multitab.py
-│   ├── browser-offline.py
-│   ├── game-logic.test.js
-│   ├── service-worker.test.js
-│   ├── state-manager.test.js
-│   └── storage.test.js
-└── assets/
-    └── icons/
-        ├── icon-192.png
-        ├── icon-512.png
-        └── icon-maskable-512.png
-```
+Active games and completed-game history are stored in `localStorage`. Data remains
+on the current browser and device unless it is explicitly exported as JSON.
+Export important games before clearing browser data or switching devices.
