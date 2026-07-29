@@ -257,13 +257,12 @@ historyReadInterference = {
   remainingReads: 2,
   interfere(raw) {
     const stored = JSON.parse(raw);
-    const games = Array.isArray(stored) ? stored : stored.games;
     values.set(Storage.HISTORY_KEY, JSON.stringify({
       format: "wizard-scoreboard-history-storage",
       version: 1,
       revision: "external-tab-revision",
       updatedAt: new Date().toISOString(),
-      games: [...games, concurrentlyArchivedGame]
+      games: [...stored.games, concurrentlyArchivedGame]
     }));
   }
 };
@@ -329,27 +328,36 @@ const oversizedHistory = Array.from({ length: 100 }, (_, index) => ({
 }));
 assert.equal(Storage.getHistoryStorageStatus(oversizedHistory).softLimitReached, true);
 
-const previouslyAcceptedArchive = JSON.parse(JSON.stringify(completedGame));
-const currentHistoryValueBeforeRecovery = localStorage.getItem(Storage.HISTORY_KEY);
-for (const round of previouslyAcceptedArchive.rounds) {
+const currentHistoryValueBeforeStrictValidation = localStorage.getItem(Storage.HISTORY_KEY);
+const archiveConsoleError = console.error;
+console.error = () => {};
+
+const legacyHistoryValue = JSON.stringify([completedGame]);
+localStorage.setItem(Storage.HISTORY_KEY, legacyHistoryValue);
+assert.deepEqual(Storage.loadGameHistory(), []);
+assert.match(Storage.getStorageErrors().historyError, /archive|unreadable/i);
+assert.equal(localStorage.getItem(Storage.HISTORY_KEY), legacyHistoryValue);
+
+const incompleteArchivedGame = JSON.parse(JSON.stringify(completedGame));
+for (const round of incompleteArchivedGame.rounds) {
   delete round.dealerId;
   delete round.startingPlayerId;
   round.specialCards = {
     witch: { active: false, secondEffect: null }
   };
 }
-assert.ok(Logic.validateImportedGameState(previouslyAcceptedArchive).length > 0);
-localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify([previouslyAcceptedArchive]));
-const restoredArchive = Storage.loadGameHistory();
-assert.equal(restoredArchive.length, 1);
-assert.deepEqual(Logic.validateImportedGameState(restoredArchive[0]), []);
-assert.equal(restoredArchive[0].rounds[0].dealerId, completedGame.rounds[0].dealerId);
-assert.equal(
-  restoredArchive[0].rounds[0].startingPlayerId,
-  completedGame.rounds[0].startingPlayerId
-);
-assert.deepEqual(restoredArchive[0].rounds[0].specialCards, completedGame.rounds[0].specialCards);
-localStorage.setItem(Storage.HISTORY_KEY, currentHistoryValueBeforeRecovery);
+assert.ok(Logic.validateImportedGameState(incompleteArchivedGame).length > 0);
+const incompleteHistoryEnvelope = JSON.parse(currentHistoryValueBeforeStrictValidation);
+incompleteHistoryEnvelope.games = [incompleteArchivedGame];
+const incompleteHistoryValue = JSON.stringify(incompleteHistoryEnvelope);
+localStorage.setItem(Storage.HISTORY_KEY, incompleteHistoryValue);
+assert.deepEqual(Storage.loadGameHistory(), []);
+assert.match(Storage.getStorageErrors().historyError, /archive|unreadable/i);
+assert.equal(localStorage.getItem(Storage.HISTORY_KEY), incompleteHistoryValue);
+
+localStorage.setItem(Storage.HISTORY_KEY, currentHistoryValueBeforeStrictValidation);
+assert.equal(Storage.loadGameHistory().length, 1);
+console.error = archiveConsoleError;
 
 failHistoryWrites = true;
 const quotaConsoleError = console.error;
@@ -376,12 +384,14 @@ for (const mutate of [
 const validHistoryValue = localStorage.getItem(Storage.HISTORY_KEY);
 const inconsistentArchive = JSON.parse(JSON.stringify(completedGame));
 inconsistentArchive.rounds.pop();
-localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify([inconsistentArchive]));
-const archiveConsoleError = console.error;
+const inconsistentHistoryEnvelope = JSON.parse(validHistoryValue);
+inconsistentHistoryEnvelope.games = [inconsistentArchive];
+localStorage.setItem(Storage.HISTORY_KEY, JSON.stringify(inconsistentHistoryEnvelope));
+const inconsistentArchiveConsoleError = console.error;
 console.error = () => {};
 assert.deepEqual(Storage.loadGameHistory(), []);
 assert.match(Storage.getStorageErrors().historyError, /inconsistent|unreadable/i);
-console.error = archiveConsoleError;
+console.error = inconsistentArchiveConsoleError;
 localStorage.setItem(Storage.HISTORY_KEY, validHistoryValue);
 assert.equal(Storage.loadGameHistory().length, 1);
 
