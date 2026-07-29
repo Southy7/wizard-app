@@ -41,9 +41,6 @@
 
 .game-round-title {
   margin: 0;
-}
-
-.game-round-title {
   color: #fff;
   font-size: clamp(1.1rem, 4.5vw, 1.35rem);
   font-weight: 900;
@@ -107,7 +104,6 @@
 }
 
 .text-input,
-.select-input,
 .stepper-input {
   width: 100%;
   min-height: var(--touch-target);
@@ -117,8 +113,7 @@
   color: var(--text);
 }
 
-.text-input,
-.select-input {
+.text-input {
   padding: 10px 12px;
 }
 
@@ -161,26 +156,6 @@
 .icon-button:disabled {
   cursor: not-allowed;
   opacity: 0.38;
-}
-
-.field-label {
-  display: block;
-  margin: 16px 0 7px;
-  font-weight: 750;
-}
-
-.info-row {
-  margin-top: 14px;
-  padding: 13px 14px;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  border-radius: var(--radius-small);
-  background: var(--surface-soft);
-}
-
-.info-row span {
-  color: var(--muted);
 }
 
 .round-mode-toggle {
@@ -298,6 +273,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  margin: 12px 0;
 }
 
 .status-message {
@@ -315,10 +291,6 @@
 .summary-panel h2 {
   margin: 0;
   font-size: 1.35rem;
-}
-
-.summary-list {
-  margin: 12px 0;
 }
 
 .summary-list > div {

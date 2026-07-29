@@ -146,7 +146,7 @@
       createBidOverview: (round) => gameView.createBidOverview(round),
       getPlayerDisplayNameById,
       getPlayerColorIndex,
-      deepClone,
+      cloneState,
       showToast
     });
     bindEvents();
@@ -199,7 +199,7 @@
   }
 
   function bindEvents() {
-    elements["btn-new-game"].addEventListener("click", () => startNewGame(false));
+    elements["btn-new-game"].addEventListener("click", startNewGame);
     elements["btn-continue-game"].addEventListener("click", continueGame);
     elements["btn-history"].addEventListener("click", openHistory);
     elements["btn-import-game"].addEventListener("click", () => elements["import-file-input"].click());
@@ -215,11 +215,11 @@
 
   }
 
-  function startNewGame(forceReplace) {
+  function startNewGame() {
     const savedGame = Storage.loadGame();
     const hasStoredGameData = Storage.hasStoredData();
     const hasUnsavedMemoryGame = persistenceController.canContinueFromMemory();
-    if (!forceReplace && (hasStoredGameData || hasUnsavedMemoryGame)) {
+    if (hasStoredGameData || hasUnsavedMemoryGame) {
       const shouldReplace = window.confirm(
         "A game already exists. Starting a new game will replace it. Continue?"
       );
@@ -445,7 +445,6 @@
       result: "Round Result"
     };
     elements["game-phase-label"].textContent = labels[round.phase] ?? "Active Game";
-    elements["btn-game-help"].hidden = false;
     gameView.renderRoundOverview(round.phase);
 
     if (round.phase === "bids") roundController.renderBids(round);
@@ -552,10 +551,6 @@
   }
 
   // State, storage, and browser helpers
-  function deepClone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
-
   function ensureState() {
     if (!state) state = Logic.createInitialGameState();
   }

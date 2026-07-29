@@ -318,8 +318,7 @@
 
     return Object.freeze({
       bindEvents,
-      renderSetup,
-      renderSummary
+      renderSetup
     });
   }
 

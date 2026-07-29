@@ -8,7 +8,7 @@
     return badge;
   }
 
-  function createPanel(title, description = "") {
+  function createPanel(title) {
     const panel = document.createElement("section");
     panel.className = "panel";
 
@@ -16,12 +16,6 @@
       const heading = document.createElement("h3");
       heading.textContent = title;
       panel.append(heading);
-    }
-
-    if (description) {
-      const text = document.createElement("p");
-      text.textContent = description;
-      panel.append(text);
     }
 
     return panel;

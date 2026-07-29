@@ -57,11 +57,6 @@
         const tricks = numberCell(result.tricks, "tricks-value");
         const points = numberCell(formatSigned(result.roundPoints), `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`);
         const total = numberCell(totals[player.id], `total-points${isLeader ? " leader-points" : ""}`);
-        bid.dataset.label = "Bid";
-        tricks.dataset.label = "Tricks";
-        points.dataset.label = "Round";
-        total.dataset.label = "Total";
-
         row.append(name, bid, tricks, points, total);
         table.append(row);
       });

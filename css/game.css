@@ -436,9 +436,3 @@
 .round-result-panel .leader-points {
   color: var(--gold-light);
 }
-
-.muted-inline {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-}

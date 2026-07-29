@@ -429,7 +429,5 @@ assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 assert.equal(Storage.resetDamagedGameHistory(damagedHistoryValue), true);
 assert.deepEqual(Storage.loadGameHistory(), []);
 assert.equal(Storage.hasStoredHistoryData(), false);
-Storage.clearLastError();
-assert.equal(Storage.getLastError(), "");
 
 console.log("All storage tests passed.");

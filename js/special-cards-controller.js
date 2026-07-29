@@ -19,7 +19,7 @@
     createBidOverview,
     getPlayerDisplayNameById,
     getPlayerColorIndex,
-    deepClone,
+    cloneState,
     showToast
   }) {
     let cloudDialogContext = null;
@@ -227,7 +227,7 @@
       const round = getCurrentRound();
       const key = cloudDialogContext.key;
       const cloud = round.specialCards[key];
-      const previousRound = deepClone(round);
+      const previousRound = cloneState(round);
       Object.assign(cloud, { active: true, playerId: cloudDialogContext.playerId, change });
       if (key === "secondCloud") {
         round.specialCards.witch.secondEffect = "cloud";

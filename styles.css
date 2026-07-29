@@ -12,7 +12,6 @@
   --gold-light: #fbd96d;
   --gold-highlight: #efba4e;
   --gold-dark: #a86c1c;
-  --gold-muted: #c28529;
   --gold-border: rgba(218, 158, 55, 0.45);
   --primary: var(--gold-primary);
   --primary-hover: var(--gold-highlight);
@@ -28,7 +27,6 @@
   --warning: #dfbd79;
   --warning-soft: #2c2517;
   --warning-border: #6f5b31;
-  --focus: var(--gold-primary);
   --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
   --radius: 16px;
   --radius-small: 10px;
@@ -150,8 +148,7 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.count-badge,
-.phase-badge {
+.count-badge {
   flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -177,14 +174,11 @@ select:focus-visible {
 
 .panel {
   min-width: 0;
+  padding: clamp(16px, 4vw, 24px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
-}
-
-.panel {
-  padding: clamp(16px, 4vw, 24px);
 }
 
 .compact-panel {
@@ -201,14 +195,11 @@ select:focus-visible {
 }
 
 .panel-heading p,
-.panel > p,
-.field-help,
-.dialog-help {
+.panel > p {
   color: var(--muted);
 }
 
-.panel-heading p,
-.field-help {
+.panel-heading p {
   margin: 5px 0 0;
   font-size: 0.9rem;
   line-height: 1.45;
@@ -222,11 +213,6 @@ select:focus-visible {
   gap: 12px;
 }
 
-.section-actions {
-  margin-top: 20px;
-}
-
-.inline-actions,
 .round-actions {
   display: flex;
   flex-wrap: wrap;

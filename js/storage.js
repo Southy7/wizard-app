@@ -25,15 +25,6 @@
     errors[scope] = "";
   }
 
-  function clearLastError(scope) {
-    if (Object.prototype.hasOwnProperty.call(errors, scope)) {
-      clearError(scope);
-      return;
-    }
-
-    Object.keys(errors).forEach(clearError);
-  }
-
   function getStorageErrors() {
     return { ...errors };
   }
@@ -197,10 +188,6 @@
       setError("gameError", "Local storage could not be checked.", error);
       return false;
     }
-  }
-
-  function hasSavedGame() {
-    return loadGame() !== null;
   }
 
   function hasStoredHistoryData() {
@@ -585,7 +572,6 @@
     loadGame,
     deleteGame,
     hasStoredData,
-    hasSavedGame,
     hasStoredHistoryData,
     getRawGameHistoryData,
     loadGameHistory,
@@ -598,7 +584,6 @@
     hasGameHistory,
     getLastError,
     wasLastGameSaveConflict,
-    getStorageErrors,
-    clearLastError
+    getStorageErrors
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);
