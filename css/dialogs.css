@@ -1,0 +1,89 @@
+/* Dialogs, global messages, and footer */
+.app-dialog {
+  width: min(calc(100% - 30px), 560px);
+  max-height: min(86vh, 720px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  padding: 0;
+  overflow: auto;
+}
+
+.app-dialog::backdrop {
+  background: rgba(5, 12, 10, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.dialog-content {
+  padding: clamp(20px, 5vw, 28px);
+}
+
+.dialog-content > p {
+  line-height: 1.5;
+}
+
+.dialog-icon {
+  margin: 0 0 10px;
+  font-size: 2.5rem;
+  text-align: center;
+}
+
+.dialog-help {
+  margin: 12px 0;
+}
+
+#cloud-player-options {
+  margin-top: 16px;
+}
+
+#btn-cloud-minus {
+  color: var(--danger);
+}
+
+#btn-cloud-plus {
+  color: var(--success);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.choice-grid.two-columns {
+  margin-top: 14px;
+}
+
+.choice-button.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.toast {
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(calc(100% - 32px), 540px);
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 12px 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.noscript-message {
+  margin: 18px;
+  border-radius: var(--radius-small);
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 14px;
+  text-align: center;
+}

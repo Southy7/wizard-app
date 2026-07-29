@@ -166,6 +166,12 @@ The app displays a warning at 100 archived games or about 3 MB of archive data. 
 wizard-app/
 ├── index.html
 ├── styles.css
+├── css/
+│   ├── dialogs.css
+│   ├── game.css
+│   ├── responsive.css
+│   ├── results-history.css
+│   └── setup.css
 ├── manifest.webmanifest
 ├── service-worker.js
 ├── package.json

@@ -1,0 +1,215 @@
+/* Final result and score history */
+.history-game-list,
+.history-detail-view {
+  display: grid;
+  gap: 12px;
+}
+
+.history-game-list {
+  margin-top: 14px;
+}
+
+.history-toolbar,
+.history-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.history-storage-status {
+  min-height: 1.2em;
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.history-empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+#btn-history-clear {
+  margin-top: 12px;
+}
+
+.history-game-card {
+  width: 100%;
+  min-height: var(--touch-target);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-game-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.history-game-card-main {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.history-game-card-main strong,
+.history-game-card-main span {
+  overflow-wrap: anywhere;
+}
+
+.history-game-card-main span,
+.history-game-card-rounds {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.history-game-card-rounds {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ranking-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.final-ranking-panel h2 {
+  margin: 0 0 16px;
+  font-size: 1.35rem;
+}
+
+.ranking-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.ranking-position {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.65rem;
+  font-weight: 900;
+}
+
+.ranking-name {
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.ranking-points {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+#final-ranking .ranking-row[data-rank="1"] .ranking-name,
+#final-ranking .ranking-row[data-rank="1"] .ranking-points {
+  color: var(--gold-light);
+}
+
+.history-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 14px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.history-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-table th,
+.history-table td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.history-table th:first-child,
+.history-table td:first-child {
+  width: 1%;
+  border-left: 1px solid var(--border);
+  padding-inline: 8px;
+  text-align: center;
+}
+
+.history-table thead th {
+  border-top: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+
+.history-table th[data-player-color] {
+  position: relative;
+}
+
+.history-table th[data-player-color]::before {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  left: 4px;
+  height: 4px;
+  border-radius: 0 0 2px 2px;
+  background: var(--player-color);
+  content: "";
+}
+
+.history-table thead th:first-child {
+  border-top-left-radius: 10px;
+}
+
+.history-table thead th:last-child {
+  border-top-right-radius: 10px;
+}
+
+.history-table tfoot th,
+.history-table tfoot td {
+  background: var(--surface-soft);
+  font-weight: 950;
+}
+
+.history-table tfoot .leader-total {
+  color: var(--gold-light);
+}
+
+.history-table tfoot th:first-child {
+  border-bottom-left-radius: 10px;
+}
+
+.history-table tfoot td:last-child {
+  border-bottom-right-radius: 10px;
+}
+
+.history-table .positive {
+  color: var(--success);
+  font-weight: 800;
+}
+
+.history-table .negative {
+  color: var(--danger);
+  font-weight: 800;
+}

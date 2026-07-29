@@ -116,6 +116,12 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
 
 (async () => {
   await dispatchLifecycle("install");
+  assert.ok(installedAppShell.includes("./styles.css"));
+  assert.ok(installedAppShell.includes("./css/setup.css"));
+  assert.ok(installedAppShell.includes("./css/game.css"));
+  assert.ok(installedAppShell.includes("./css/results-history.css"));
+  assert.ok(installedAppShell.includes("./css/dialogs.css"));
+  assert.ok(installedAppShell.includes("./css/responsive.css"));
   assert.ok(installedAppShell.includes("./js/state-manager.js"));
   assert.ok(installedAppShell.includes("./js/ui-components.js"));
   assert.ok(installedAppShell.includes("./js/result-view.js"));

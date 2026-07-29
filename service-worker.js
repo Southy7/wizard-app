@@ -2,11 +2,16 @@
 
 // Increment after app-shell changes so installed apps receive the latest files.
 const CACHE_PREFIX = "wizard-scoreboard-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.93`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.94`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
+  "./css/setup.css",
+  "./css/game.css",
+  "./css/results-history.css",
+  "./css/dialogs.css",
+  "./css/responsive.css",
   "./js/game-logic.js",
   "./js/state-manager.js",
   "./js/storage.js",

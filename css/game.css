@@ -1,0 +1,444 @@
+/* Active game: inputs and phase status */
+.points-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--player-count), minmax(0, 1fr));
+  gap: clamp(3px, 1vw, 6px);
+  align-items: stretch;
+}
+
+.points-strip .points-card {
+  min-width: 0;
+  padding: 6px 2px 5px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--player-color);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.16);
+  text-align: center;
+}
+
+.points-card span,
+.points-card strong {
+  display: block;
+}
+
+.points-card span {
+  color: var(--text);
+  overflow: hidden;
+  font-size: clamp(0.6rem, 2.2vw, 0.78rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.points-card strong {
+  margin-top: 3px;
+  color: #fff;
+  font-size: clamp(0.9rem, 3.2vw, 1.15rem);
+  font-weight: 950;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-total-points {
+  margin: 0;
+}
+
+.entry-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.entry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.entry-player-info {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.entry-name {
+  min-width: 0;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.entry-meta {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.entry-role-badges {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.value-stepper {
+  display: grid;
+  grid-template-columns: 35px minmax(34px, 44px) 35px;
+  gap: 5px;
+  align-items: center;
+}
+
+.entry-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.correct-button {
+  min-width: 78px;
+}
+
+.correct-button:not(:disabled) {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.correct-button.correct:disabled {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+  opacity: 1;
+}
+
+.value-display {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.value-button {
+  width: 35px;
+  height: 35px;
+  min-height: 35px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.value-button:disabled {
+  border-color: #3a3b3f;
+  background: #3a3b3f;
+  color: #a6a7aa;
+  opacity: 1;
+}
+
+.phase-summary {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.bid-confirm-button {
+  margin-top: 16px;
+}
+
+.trick-status {
+  margin: 16px 0;
+}
+
+.result-actions {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.status-card {
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+  line-height: 1.45;
+}
+
+.status-card strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.status-card strong:only-child {
+  margin-bottom: 0;
+}
+
+.bid-total-card,
+.trick-total-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.bid-total-card strong,
+.trick-total-card strong {
+  margin: 0;
+}
+
+.bid-total-values,
+.trick-total-values {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.bid-total-values.valid,
+.trick-total-values.valid {
+  color: var(--success);
+}
+
+.bid-total-values.invalid,
+.trick-total-values.invalid {
+  color: var(--danger);
+}
+
+.status-card.success {
+  border-color: var(--success-border);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.status-card.error {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.status-card.warning {
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+/* Active game: special cards */
+.special-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.special-panel .special-card-grid {
+  margin-top: 0;
+}
+
+.special-button {
+  min-height: 70px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+  color: var(--text);
+  padding: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.special-button.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.special-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.43;
+}
+
+.second-effect-wrap {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.second-effect-label {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.second-effect-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.bid-overview-panel .score-table {
+  margin-top: 0;
+}
+
+.score-player-with-badge {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.score-player {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.leader-crown {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.2em;
+  height: 1.2em;
+  font-size: 1rem;
+  line-height: 1;
+  place-items: center;
+  transform: translateY(-1px);
+}
+
+.score-player-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bid-overview .score-player-name {
+  font-weight: 850;
+}
+
+.score-player-with-badge .seat-role-badge {
+  flex: 0 0 auto;
+}
+
+.special-actions {
+  margin-top: 16px;
+}
+
+.special-actions,
+.tricks-actions {
+  display: grid;
+  grid-template-columns: var(--touch-target) minmax(0, 1fr);
+}
+
+.special-actions > .special-back-button,
+.tricks-actions > .special-back-button {
+  width: var(--touch-target);
+  min-width: var(--touch-target);
+  padding-inline: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+/* Round and score tables */
+.score-table-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.score-table {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.score-table.five-columns {
+  min-width: 560px;
+}
+
+.score-table.five-columns .score-row {
+  grid-template-columns: minmax(120px, 1.45fr) repeat(4, minmax(72px, 0.65fr));
+}
+
+.score-table.bid-overview .score-row {
+  grid-template-columns: minmax(110px, 1.5fr) repeat(2, minmax(72px, 0.7fr));
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.5fr) repeat(3, minmax(62px, 0.7fr));
+  gap: 8px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.score-row.header {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.score-row .number {
+  text-align: right;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.bid-overview .score-row .number {
+  text-align: center;
+}
+
+.round-result-panel .score-table.five-columns .number {
+  text-align: center;
+}
+
+.score-row .positive {
+  color: var(--success);
+}
+
+.score-row .negative {
+  color: var(--danger);
+}
+
+.score-row .changed-bid {
+  color: var(--primary);
+}
+
+.score-row .total-points {
+  color: var(--text);
+  font-weight: 950;
+}
+
+.bid-overview .leader-points,
+.round-result-panel .leader-points {
+  color: var(--gold-light);
+}
+
+.muted-inline {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}

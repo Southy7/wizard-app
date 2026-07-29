@@ -31,8 +31,18 @@ LOCAL_STORAGE_MOCK = """
 
 def build_inline_document() -> str:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
-    css = (ROOT / "styles.css").read_text(encoding="utf-8")
-    html = html.replace('<link rel="stylesheet" href="styles.css">', f"<style>{css}</style>")
+    stylesheets = (
+        "styles.css",
+        "css/setup.css",
+        "css/game.css",
+        "css/results-history.css",
+        "css/dialogs.css",
+        "css/responsive.css",
+    )
+    css = "\n".join((ROOT / path).read_text(encoding="utf-8") for path in stylesheets)
+    for path in stylesheets:
+        html = html.replace(f'<link rel="stylesheet" href="{path}">', "")
+    html = html.replace("</head>", f"<style>{css}</style>\n</head>")
     for script in (
         '<script defer src="js/game-logic.js"></script>',
         '<script defer src="js/state-manager.js"></script>',
