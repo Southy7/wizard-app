@@ -2,9 +2,7 @@
   "use strict";
 
   function renderRanking(container, gameState, totals) {
-    const ranking = [...gameState.players]
-      .map((player) => ({ player, points: totals[player.id] }))
-      .sort((a, b) => b.points - a.points);
+    const ranking = getRankedPlayers(gameState, totals);
 
     container.replaceChildren();
     let displayedPosition = 0;
@@ -43,6 +41,7 @@
 
   function renderScoreHistory(container, completedRounds, totals, gameState) {
     container.replaceChildren();
+    const rankedPlayers = getRankedPlayers(gameState, totals);
 
     const table = document.createElement("table");
     table.className = "history-table";
@@ -54,11 +53,11 @@
     roundHead.textContent = "Round";
     headRow.append(roundHead);
 
-    gameState.players.forEach((player, index) => {
+    rankedPlayers.forEach(({ player, originalIndex }) => {
       const th = document.createElement("th");
       th.scope = "col";
-      th.dataset.playerColor = String(index + 1);
-      th.textContent = getPlayerDisplayName(gameState, player.id, index);
+      th.dataset.playerColor = String(originalIndex + 1);
+      th.textContent = getPlayerDisplayName(gameState, player.id, originalIndex);
       headRow.append(th);
     });
     head.append(headRow);
@@ -71,10 +70,10 @@
       roundCell.textContent = String(round.number);
       row.append(roundCell);
 
-      gameState.players.forEach((player, index) => {
+      rankedPlayers.forEach(({ player, originalIndex }) => {
         const points = Number(round.playerResults?.[player.id]?.roundPoints) || 0;
         const cell = document.createElement("td");
-        cell.dataset.playerColor = String(index + 1);
+        cell.dataset.playerColor = String(originalIndex + 1);
         cell.textContent = formatSigned(points);
         cell.className = points >= 0 ? "positive" : "negative";
         row.append(cell);
@@ -88,16 +87,28 @@
     totalLabel.scope = "row";
     totalLabel.textContent = "Total";
     totalRow.append(totalLabel);
-    gameState.players.forEach((player, index) => {
+    const leadingTotal = rankedPlayers[0]?.points ?? 0;
+    rankedPlayers.forEach(({ originalIndex, points }) => {
       const cell = document.createElement("td");
-      cell.dataset.playerColor = String(index + 1);
-      cell.textContent = String(totals[player.id]);
+      cell.dataset.playerColor = String(originalIndex + 1);
+      cell.textContent = String(points);
+      if (points === leadingTotal) cell.classList.add("leader-total");
       totalRow.append(cell);
     });
     foot.append(totalRow);
 
     table.append(head, body, foot);
     container.append(table);
+  }
+
+  function getRankedPlayers(gameState, totals) {
+    return gameState.players
+      .map((player, originalIndex) => ({
+        player,
+        originalIndex,
+        points: Number(totals[player.id]) || 0
+      }))
+      .sort((a, b) => (b.points - a.points) || (a.originalIndex - b.originalIndex));
   }
 
   function getPlayerDisplayName(gameState, playerId, fallbackIndex = 0) {

@@ -231,11 +231,14 @@ def main() -> None:
             "(cells) => cells.every((cell) => getComputedStyle(cell).textAlign === 'center')"
         )
         assert page.locator(".bid-overview .score-player-name").all_text_contents() == expected_overview_names
+        assert page.locator(".bid-overview .score-player-name").evaluate_all(
+            "(names) => names.every((name) => Number(getComputedStyle(name).fontWeight) >= 800)"
+        )
         assert page.locator(".bid-overview .score-row:not(.header)").evaluate_all(
             "(rows) => rows.map((row) => row.dataset.playerColor)"
         ) == expected_overview_colors
-        assert page.locator(".bid-overview .leader-crown").count() == 3
-        assert page.locator(".bid-overview .leader-points").count() == 3
+        assert page.locator(".bid-overview .leader-crown").count() == 0
+        assert page.locator(".bid-overview .leader-points").count() == 0
         overview_starter = page.locator(".bid-overview .starter")
         assert overview_starter.count() == 1
         overview_starter_row = overview_starter.locator("xpath=../..")
@@ -445,6 +448,14 @@ def main() -> None:
         assert page.locator(".round-result-panel .leader-points").count() == page.locator(
             ".round-result-panel .leader-crown"
         ).count()
+        leader_player = page.locator(".round-result-panel .leader-crown").first.locator("xpath=..")
+        leader_name_box = leader_player.locator("strong").bounding_box()
+        leader_crown_box = leader_player.locator(".leader-crown").bounding_box()
+        assert leader_name_box and leader_crown_box
+        assert abs(
+            (leader_name_box["y"] + leader_name_box["height"] / 2)
+            - (leader_crown_box["y"] + leader_crown_box["height"] / 2)
+        ) <= 2
         assert page.locator(".round-result-panel .score-row .number").evaluate_all(
             "(cells) => cells.every((cell) => getComputedStyle(cell).textAlign === 'center')"
         )
@@ -458,9 +469,10 @@ def main() -> None:
         assert page.locator(".score-table .score-row:not(.header)").first.locator(
             ":scope > span:visible"
         ).count() == 3
+        assert page.locator(".round-result-panel .score-player strong").all_text_contents() == expected_overview_names
         assert page.locator(".score-table .score-row:not(.header)").evaluate_all(
             "(rows) => rows.map((row) => row.dataset.playerColor)"
-        ) == ["1", "2", "3"]
+        ) == expected_overview_colors
         result_table_box = page.locator(".round-result-panel .score-table-scroll").bounding_box()
         result_actions_box = page.locator(".round-result-panel .result-actions").bounding_box()
         result_action_buttons = page.locator(".round-result-panel .result-actions > .button")
@@ -481,12 +493,43 @@ def main() -> None:
         assert page.locator("#final-ranking .ranking-row").evaluate_all(
             "(rows) => rows.every((row) => Number(row.dataset.rank) <= 3)"
         )
-        assert page.locator("#btn-finished-home").get_attribute("aria-label") == "Home"
-        assert page.locator("#btn-finished-home").text_content().strip() == ""
+        assert page.locator(
+            "#final-ranking .ranking-row[data-rank='1'] .ranking-name, "
+            "#final-ranking .ranking-row[data-rank='1'] .ranking-points"
+        ).evaluate_all(
+            "(elements) => elements.every((element) => getComputedStyle(element).color === 'rgb(251, 217, 109)')"
+        )
+        assert page.locator("#btn-finished-home").count() == 0
+        assert page.locator(".final-ranking-panel > #finished-title").text_content().strip() == "Final Result"
+        assert page.locator("#btn-finished-go-home").text_content().strip() == "Home"
         assert page.locator(".history-table tbody tr").count() == 1
+        assert page.locator("#final-score-history .history-table thead th[data-player-color]").all_text_contents() == (
+            page.locator("#final-ranking .ranking-name").all_text_contents()
+        )
+        assert page.locator("#final-score-history .history-table thead th[data-player-color]").evaluate_all(
+            """(headers) => headers.every((header) => {
+              const bar = getComputedStyle(header, "::before");
+              return bar.left === "4px" && bar.right === "4px" && bar.height === "4px";
+            })"""
+        )
+        assert page.locator("#final-score-history .history-table tbody td[data-player-color]").evaluate_all(
+            "(cells) => cells.every((cell) => getComputedStyle(cell).backgroundColor === 'rgba(0, 0, 0, 0)')"
+        )
+        history_headers = page.locator("#final-score-history .history-table thead th")
+        round_header_box = history_headers.first.bounding_box()
+        first_player_header_box = history_headers.nth(1).bounding_box()
+        assert round_header_box and first_player_header_box
+        assert round_header_box["width"] < first_player_header_box["width"]
+        assert page.locator("#final-score-history .history-table th, #final-score-history .history-table td").evaluate_all(
+            "(cells) => cells.every((cell) => getComputedStyle(cell).textAlign === 'center')"
+        )
+        assert page.locator("#final-score-history .history-table tfoot .leader-total").count() == page.locator(
+            "#final-ranking .ranking-row[data-rank='1']"
+        ).count()
 
         # The new Home button opens the same saved score history.
-        page.click("#btn-finished-home")
+        page.click("#btn-finished-go-home")
+        assert page.locator("#screen-home").is_visible()
         assert page.locator("#btn-history").is_enabled()
         page.click("#btn-history")
         assert page.locator("#history-game-list .history-game-card").count() == 1
@@ -496,6 +539,9 @@ def main() -> None:
         assert page.locator("#history-detail-view").is_visible()
         assert page.locator("#history-detail-ranking .ranking-position").all_text_contents() == ["🥇", "🥈", "🥉"]
         assert page.locator("#history-score-content .history-table tbody tr").count() == 1
+        assert page.locator("#history-score-content .history-table thead th[data-player-color]").all_text_contents() == (
+            page.locator("#history-detail-ranking .ranking-name").all_text_contents()
+        )
 
         with page.expect_download() as single_download_info:
             page.click("#btn-history-export-game")

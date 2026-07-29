@@ -107,9 +107,8 @@
       "history-detail-ranking", "history-score-content",
       "btn-history-export-all", "btn-history-import", "history-storage-status",
       "btn-history-clear", "btn-history-export-game", "btn-history-delete-game",
-      "btn-finished-home",
       "final-ranking", "final-score-history", "btn-review-last-round",
-      "btn-finished-new-game", "round-one-dialog", "btn-confirm-round-one-hint",
+      "btn-finished-go-home", "round-one-dialog", "btn-confirm-round-one-hint",
       "cloud-dialog", "cloud-dialog-kicker",
       "cloud-player-options", "cloud-change-options", "btn-cloud-minus",
       "btn-cloud-plus", "btn-close-cloud-dialog", "edit-round-dialog",
@@ -132,8 +131,7 @@
     elements["btn-game-home"].addEventListener("click", goHome);
     elements["btn-history-home"].addEventListener("click", goHome);
     historyController.bindEvents();
-    elements["btn-finished-home"].addEventListener("click", goHome);
-    elements["btn-finished-new-game"].addEventListener("click", () => startNewGame(false));
+    elements["btn-finished-go-home"].addEventListener("click", goHome);
     elements["btn-review-last-round"].addEventListener("click", reviewLastRound);
     elements["btn-confirm-round-one-hint"].addEventListener("click", confirmRoundOneHint);
     elements["round-one-dialog"].addEventListener("cancel", (event) => event.preventDefault());
@@ -516,6 +514,7 @@
     table.className = "score-table bid-overview";
     const totals = Logic.calculateTotalPoints(state.rounds, state.players);
     const leadingTotal = Math.max(...Object.values(totals));
+    const showLeaders = round.number > 1;
 
     const header = document.createElement("div");
     header.className = "score-row header";
@@ -537,7 +536,7 @@
       name.textContent = getPlayerDisplayNameById(player.id);
       nameCell.append(name);
 
-      const isLeader = totals[player.id] === leadingTotal;
+      const isLeader = showLeaders && totals[player.id] === leadingTotal;
       if (isLeader) {
         const crown = document.createElement("span");
         crown.className = "leader-crown";
@@ -930,7 +929,8 @@
     header.innerHTML = '<span>Player</span><span class="number bid-column">Bid</span><span class="number tricks-column">Tricks</span><span class="number round-column">Round</span><span class="number total-column">Total</span>';
     table.append(header);
 
-    state.players.forEach((player) => {
+    const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
+    order.forEach((player) => {
       const result = round.playerResults[player.id];
       const row = document.createElement("div");
       row.className = "score-row";

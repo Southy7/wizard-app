@@ -18,7 +18,7 @@
       "btn-setup-home",
       "btn-summary-back",
       "btn-game-home",
-      "btn-finished-home",
+      "btn-finished-go-home",
       "btn-close-cloud-dialog",
       "btn-close-edit-dialog",
       "btn-confirm-round-one-hint"
