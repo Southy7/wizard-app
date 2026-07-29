@@ -560,6 +560,8 @@ def main() -> None:
         assert page.locator("#btn-history").is_enabled()
         page.click("#btn-history")
         assert page.locator("#history-game-list .history-game-card").count() == 1
+        assert page.locator("#history-game-list .history-game-card-winner").count() == 1
+        assert "Points" in page.locator("#history-game-list .history-game-card-winner").text_content()
         assert page.locator("#history-list-view").is_visible()
         assert page.locator("#history-detail-view").is_hidden()
         page.locator("#history-game-list .history-game-card").click()

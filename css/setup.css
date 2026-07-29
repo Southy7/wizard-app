@@ -7,7 +7,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
-  color: var(--primary);
+  color: #fff;
   cursor: pointer;
   place-items: center;
 }
@@ -55,11 +55,24 @@
   justify-self: end;
 }
 
-.game-help-button {
+.game-utility-actions {
+  display: flex;
   justify-self: start;
+  gap: 8px;
+}
+
+.game-help-button {
   padding: 0;
   font-size: 1.35rem;
   font-weight: 950;
+}
+
+.game-card-button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .player-list {

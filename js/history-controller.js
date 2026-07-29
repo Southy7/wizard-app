@@ -70,12 +70,29 @@
           .join(", ");
         main.append(title, players);
 
+        const totals = Logic.calculateTotalPoints(completedRounds, gameState.players);
+        const leadingTotal = Math.max(...Object.values(totals));
+        const winnerNames = gameState.players
+          .map((player, index) => ({
+            name: player.name.trim() || `Player ${index + 1}`,
+            points: totals[player.id]
+          }))
+          .filter((player) => player.points === leadingTotal)
+          .map((player) => player.name);
+
+        const summary = document.createElement("span");
+        summary.className = "history-game-card-summary";
+        const winner = document.createElement("strong");
+        winner.className = "history-game-card-winner";
+        winner.textContent = `${winnerNames.join(" & ")} · ${leadingTotal} Points`;
+
         const rounds = document.createElement("span");
         rounds.className = "history-game-card-rounds";
         rounds.textContent = `${completedRounds.length} ${completedRounds.length === 1 ? "Round" : "Rounds"}`;
+        summary.append(winner, rounds);
 
-        button.append(main, rounds);
-        button.setAttribute("aria-label", `Open ${title.textContent}`);
+        button.append(main, summary);
+        button.setAttribute("aria-label", `Open ${title.textContent}, winner ${winner.textContent}`);
         button.addEventListener("click", () => showArchivedGame(gameState));
         container.append(button);
       });
