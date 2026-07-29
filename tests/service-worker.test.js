@@ -121,6 +121,10 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(installedAppShell.includes("./js/result-view.js"));
   assert.ok(installedAppShell.includes("./js/persistence-controller.js"));
   assert.ok(installedAppShell.includes("./js/setup-controller.js"));
+  assert.ok(installedAppShell.includes("./js/game-view.js"));
+  assert.ok(installedAppShell.includes("./js/round-result-view.js"));
+  assert.ok(installedAppShell.includes("./js/round-controller.js"));
+  assert.ok(installedAppShell.includes("./js/special-cards-controller.js"));
   assert.ok(!installedAppShell.includes("./js/history-controller.js"));
 
   await dispatchLifecycle("activate");

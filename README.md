@@ -173,10 +173,14 @@ wizard-app/
 ├── js/
 │   ├── app.js
 │   ├── game-logic.js
+│   ├── game-view.js
 │   ├── history-controller.js
 │   ├── persistence-controller.js
 │   ├── result-view.js
+│   ├── round-controller.js
+│   ├── round-result-view.js
 │   ├── setup-controller.js
+│   ├── special-cards-controller.js
 │   ├── state-manager.js
 │   ├── storage.js
 │   └── ui-components.js

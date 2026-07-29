@@ -42,6 +42,10 @@ def build_inline_document() -> str:
         '<script defer src="js/persistence-controller.js"></script>',
         '<script defer src="js/setup-controller.js"></script>',
         '<script defer src="js/history-controller.js"></script>',
+        '<script defer src="js/game-view.js"></script>',
+        '<script defer src="js/round-result-view.js"></script>',
+        '<script defer src="js/round-controller.js"></script>',
+        '<script defer src="js/special-cards-controller.js"></script>',
         '<script defer src="js/app.js"></script>',
     ):
         html = html.replace(script, "")
@@ -59,6 +63,10 @@ def main() -> None:
         (ROOT / "js/persistence-controller.js").read_text(encoding="utf-8"),
         (ROOT / "js/setup-controller.js").read_text(encoding="utf-8"),
         (ROOT / "js/history-controller.js").read_text(encoding="utf-8"),
+        (ROOT / "js/game-view.js").read_text(encoding="utf-8"),
+        (ROOT / "js/round-result-view.js").read_text(encoding="utf-8"),
+        (ROOT / "js/round-controller.js").read_text(encoding="utf-8"),
+        (ROOT / "js/special-cards-controller.js").read_text(encoding="utf-8"),
         (ROOT / "js/app.js").read_text(encoding="utf-8"),
     ]
 
