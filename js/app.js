@@ -4,6 +4,8 @@
   const Logic = window.WizardGameLogic;
   const StateManager = window.WizardStateManager;
   const Storage = window.WizardStorage;
+  const FileUtils = window.WizardFileUtils;
+  const Formatters = window.WizardFormatters;
   const ResultView = window.WizardResultView;
   const HistoryControllerModule = window.WizardHistoryController;
   const ImportControllerModule = window.WizardImportController;
@@ -16,6 +18,8 @@
   const Ui = window.WizardUiComponents;
   const cloneState = StateManager?.cloneState;
   const normalizeSpecialDependencies = StateManager?.normalizeSpecialDependencies;
+  const formatNumber = Formatters?.formatNumber;
+  const formatSigned = Formatters?.formatSigned;
   const {
     createSeatRoleBadge,
     createPanel,
@@ -28,7 +32,7 @@
     closeDialog
   } = Ui ?? {};
 
-  if (!Logic || !StateManager || !Storage || !ResultView
+  if (!Logic || !StateManager || !Storage || !FileUtils || !Formatters || !ResultView
     || !ImportControllerModule || !PersistenceControllerModule || !SetupControllerModule || !GameViewModule
     || !RoundResultViewModule || !RoundControllerModule || !SpecialCardsControllerModule || !Ui) {
     console.error("Application dependencies could not be loaded.");
@@ -55,6 +59,7 @@
     cacheElements();
     persistenceController = PersistenceControllerModule.createPersistenceController({
       Storage,
+      FileUtils,
       elements,
       getState: () => state,
       showToast,
@@ -67,6 +72,8 @@
         Logic,
         StateManager,
         ResultView,
+        FileUtils,
+        Formatters,
         elements,
         showScreen,
         showToast,
@@ -108,7 +115,8 @@
       getState: () => state,
       getCurrentRound,
       getPlayerColorIndex,
-      getPlayerDisplayNameById
+      getPlayerDisplayNameById,
+      formatNumber
     });
     roundResultView = RoundResultViewModule.createRoundResultView({
       Logic,
@@ -119,6 +127,7 @@
       getState: () => state,
       getPlayerColorIndex,
       getPlayerDisplayNameById,
+      formatNumber,
       formatSigned,
       onEditRound: () => roundController.openEditRoundDialog(),
       onNextRound: () => roundController.goToNextRound(),
@@ -544,25 +553,7 @@
   }
 
   function getPlayerDisplayNameById(playerId) {
-    return getPlayerDisplayNameFromState(state, playerId);
-  }
-
-  function getPlayerDisplayNameFromState(gameState, playerId) {
-    const index = gameState.players.findIndex((player) => player.id === playerId);
-    if (index === -1) return "\u2013";
-    return getPlayerDisplayName(gameState.players[index], index);
-  }
-
-  function getPlayerDisplayName(player, index) {
-    const trimmed = player?.name?.trim();
-    return trimmed || `Player ${index + 1}`;
-  }
-
-  function formatSigned(value) {
-    const number = Number(value) || 0;
-    if (number > 0) return `+${number}`;
-    if (number < 0) return `\u2212${Math.abs(number)}`;
-    return "0";
+    return Formatters.getPlayerDisplayName(state, playerId);
   }
 
   function ensureState() {

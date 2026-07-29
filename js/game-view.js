@@ -8,7 +8,8 @@
     getState,
     getCurrentRound,
     getPlayerColorIndex,
-    getPlayerDisplayNameById
+    getPlayerDisplayNameById,
+    formatNumber
   }) {
     function renderRoundOverview(phase) {
       const overviewPanel = elements["game-round-overview"];
@@ -40,7 +41,7 @@
         name.title = name.textContent;
 
         const points = document.createElement("strong");
-        points.textContent = String(totals[player.id]);
+        points.textContent = formatNumber(totals[player.id]);
         points.setAttribute("aria-label", `${totals[player.id]} total points`);
 
         card.append(name, points);
@@ -101,7 +102,7 @@
 
         const total = document.createElement("span");
         total.className = `number total-points${isLeader ? " leader-points" : ""}`;
-        total.textContent = String(totals[player.id]);
+        total.textContent = formatNumber(totals[player.id]);
         total.setAttribute("aria-label", `${totals[player.id]} total points`);
 
         row.append(nameCell, bid, total);

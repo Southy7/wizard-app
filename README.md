@@ -48,6 +48,7 @@ npm run test:all
 | --- | --- |
 | `js/game-logic.js` | Game rules, validation, rotation, and scoring |
 | `js/storage.js` | Local persistence, history, imports, and conflict-safe writes |
+| `js/file-utils.js` and `js/formatters.js` | Shared downloads and display formatting |
 | `js/*-controller.js` | Setup, rounds, special cards, history, and recovery flows |
 | `js/*-view.js` | Scoreboards, round results, rankings, and score history |
 | `styles.css` and `css/` | Shared design system and responsive feature styles |

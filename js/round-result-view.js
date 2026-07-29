@@ -10,6 +10,7 @@
     getState,
     getPlayerColorIndex,
     getPlayerDisplayNameById,
+    formatNumber,
     formatSigned,
     onEditRound,
     onNextRound,
@@ -56,7 +57,10 @@
         const bid = numberCell(result.currentBid, `bid-value${result.currentBid !== result.originalBid ? " changed-bid" : ""}`);
         const tricks = numberCell(result.tricks, "tricks-value");
         const points = numberCell(formatSigned(result.roundPoints), `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`);
-        const total = numberCell(totals[player.id], `total-points${isLeader ? " leader-points" : ""}`);
+        const total = numberCell(
+          formatNumber(totals[player.id]),
+          `total-points${isLeader ? " leader-points" : ""}`
+        );
         row.append(name, bid, tricks, points, total);
         table.append(row);
       });

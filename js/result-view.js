@@ -1,6 +1,8 @@
 (function attachResultView(root) {
   "use strict";
 
+  const Formatters = root.WizardFormatters;
+
   function renderRanking(container, gameState, totals) {
     const ranking = getRankedPlayers(gameState, totals);
 
@@ -29,11 +31,11 @@
 
       const name = document.createElement("span");
       name.className = "ranking-name";
-      name.textContent = getPlayerDisplayName(gameState, entry.player.id);
+      name.textContent = Formatters.getPlayerDisplayName(gameState, entry.player.id);
 
       const points = document.createElement("span");
       points.className = "ranking-points";
-      points.textContent = `${entry.points} Points`;
+      points.textContent = `${Formatters.formatNumber(entry.points)} Points`;
 
       row.append(position, name, points);
       container.append(row);
@@ -58,7 +60,7 @@
       const th = document.createElement("th");
       th.scope = "col";
       th.dataset.playerColor = String(originalIndex + 1);
-      th.textContent = getPlayerDisplayName(gameState, player.id, originalIndex);
+      th.textContent = Formatters.getPlayerDisplayName(gameState, player.id, originalIndex);
       headRow.append(th);
     });
     head.append(headRow);
@@ -75,7 +77,7 @@
         const points = Number(round.playerResults?.[player.id]?.roundPoints) || 0;
         const cell = document.createElement("td");
         cell.dataset.playerColor = String(originalIndex + 1);
-        cell.textContent = formatSigned(points);
+        cell.textContent = Formatters.formatSigned(points);
         cell.className = points >= 0 ? "positive" : "negative";
         row.append(cell);
       });
@@ -92,7 +94,7 @@
     rankedPlayers.forEach(({ originalIndex, points }) => {
       const cell = document.createElement("td");
       cell.dataset.playerColor = String(originalIndex + 1);
-      cell.textContent = String(points);
+      cell.textContent = Formatters.formatNumber(points);
       if (points === leadingTotal) cell.classList.add("leader-total");
       totalRow.append(cell);
     });
@@ -111,17 +113,6 @@
         points: Number(totals[player.id]) || 0
       }))
       .sort((a, b) => (b.points - a.points) || (a.originalIndex - b.originalIndex));
-  }
-
-  function getPlayerDisplayName(gameState, playerId, fallbackIndex = 0) {
-    const index = gameState.players.findIndex((player) => player.id === playerId);
-    const player = gameState.players[index];
-    return player?.name?.trim() || `Player ${(index >= 0 ? index : fallbackIndex) + 1}`;
-  }
-
-  function formatSigned(value) {
-    const number = Number(value) || 0;
-    return number > 0 ? `+${number}` : String(number);
   }
 
   root.WizardResultView = Object.freeze({

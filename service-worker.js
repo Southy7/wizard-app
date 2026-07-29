@@ -2,7 +2,7 @@
 
 // Bump this version with each app-shell release so installed clients receive a coherent update.
 const CACHE_PREFIX = "wizard-scoreboard-";
-const CACHE_NAME = `${CACHE_PREFIX}v1.0.112`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.0.113`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -16,6 +16,8 @@ const APP_SHELL = [
   "./js/state-manager.js",
   "./js/storage.js",
   "./js/ui-components.js",
+  "./js/file-utils.js",
+  "./js/formatters.js",
   "./js/result-view.js",
   "./js/persistence-controller.js",
   "./js/setup-controller.js",

@@ -7,6 +7,8 @@
       Logic,
       StateManager,
       ResultView,
+      FileUtils,
+      Formatters,
       elements,
       showScreen,
       showToast,
@@ -73,7 +75,7 @@
         title.textContent = formatArchivedGameDate(archivedGame);
         const players = document.createElement("span");
         players.textContent = gameState.players
-          .map((player, index) => player.name.trim() || `Player ${index + 1}`)
+          .map(Formatters.formatPlayerName)
           .join(", ");
         main.append(title, players);
 
@@ -81,7 +83,7 @@
         const leadingTotal = Math.max(...Object.values(totals));
         const winnerNames = gameState.players
           .map((player, index) => ({
-            name: player.name.trim() || `Player ${index + 1}`,
+            name: Formatters.formatPlayerName(player, index),
             points: totals[player.id]
           }))
           .filter((player) => player.points === leadingTotal)
@@ -91,7 +93,7 @@
         summary.className = "history-game-card-summary";
         const winner = document.createElement("strong");
         winner.className = "history-game-card-winner";
-        winner.textContent = `${winnerNames.join(" & ")} · ${leadingTotal} Points`;
+        winner.textContent = `${winnerNames.join(" & ")} · ${Formatters.formatNumber(leadingTotal)} Points`;
 
         const rounds = document.createElement("span");
         rounds.className = "history-game-card-rounds";
@@ -179,24 +181,24 @@
         return;
       }
 
-      downloadJson({
+      FileUtils.downloadJson({
         exportFormat: "wizard-scoreboard-history",
         exportVersion: 1,
         exportedAt: new Date().toISOString(),
         games
-      }, `wizard-history-${formatFileTimestamp(new Date())}.json`);
+      }, `wizard-history-${FileUtils.formatFileTimestamp(new Date())}.json`);
       showToast("The complete history was exported.");
     }
 
     function exportSelected() {
       if (!selectedArchivedGame) return;
 
-      downloadJson({
+      FileUtils.downloadJson({
         exportFormat: "wizard-scoreboard-game",
         exportVersion: 1,
         exportedAt: new Date().toISOString(),
         gameState: selectedArchivedGame
-      }, `wizard-game-${formatFileTimestamp(new Date())}.json`);
+      }, `wizard-game-${FileUtils.formatFileTimestamp(new Date())}.json`);
       showToast("The game was exported.");
     }
 
@@ -244,7 +246,10 @@
         return;
       }
 
-      downloadText(raw, `wizard-damaged-history-${formatFileTimestamp(new Date())}.json`);
+      FileUtils.downloadText(
+        raw,
+        `wizard-damaged-history-${FileUtils.formatFileTimestamp(new Date())}.json`
+      );
       showToast("The damaged history data was exported.");
     }
 
@@ -347,31 +352,6 @@
       if (bytes < 1_000) return `${bytes} B`;
       if (bytes < 1_000_000) return `${(bytes / 1_000).toFixed(1)} KB`;
       return `${(bytes / 1_000_000).toFixed(1)} MB`;
-    }
-
-    function downloadJson(payload, filename) {
-      downloadText(JSON.stringify(payload, null, 2), filename);
-    }
-
-    function downloadText(text, filename) {
-      const blob = new Blob([text], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    }
-
-    function formatFileTimestamp(date) {
-      const pad = (value) => String(value).padStart(2, "0");
-      return [
-        date.getFullYear(),
-        pad(date.getMonth() + 1),
-        pad(date.getDate())
-      ].join("-") + `-${pad(date.getHours())}${pad(date.getMinutes())}`;
     }
 
     return Object.freeze({

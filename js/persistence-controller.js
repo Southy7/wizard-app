@@ -3,6 +3,7 @@
 
   function createPersistenceController({
     Storage,
+    FileUtils,
     elements,
     getState,
     showToast,
@@ -199,38 +200,13 @@
 
       const exportedAt = new Date();
       const recoveryReason = storageConflict ? "storage-conflict" : "unsaved-changes";
-      downloadJson({
+      FileUtils.downloadJson({
         exportFormat: "wizard-scoreboard-game",
         exportVersion: 1,
         exportedAt: exportedAt.toISOString(),
         recoveryReason,
         gameState: JSON.parse(JSON.stringify(state))
-      }, `wizard-recovery-${formatFileTimestamp(exportedAt)}.json`);
-    }
-
-    function downloadJson(payload, filename) {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    }
-
-    function formatFileTimestamp(date) {
-      const pad = (value) => String(value).padStart(2, "0");
-      return [
-        date.getFullYear(),
-        pad(date.getMonth() + 1),
-        pad(date.getDate()),
-        "-",
-        pad(date.getHours()),
-        pad(date.getMinutes()),
-        pad(date.getSeconds())
-      ].join("");
+      }, `wizard-recovery-${FileUtils.formatFileTimestamp(exportedAt)}.json`);
     }
 
     async function requestPersistentStorage() {

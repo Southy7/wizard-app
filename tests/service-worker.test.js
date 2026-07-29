@@ -124,6 +124,8 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(installedAppShell.includes("./css/responsive.css"));
   assert.ok(installedAppShell.includes("./js/state-manager.js"));
   assert.ok(installedAppShell.includes("./js/ui-components.js"));
+  assert.ok(installedAppShell.includes("./js/file-utils.js"));
+  assert.ok(installedAppShell.includes("./js/formatters.js"));
   assert.ok(installedAppShell.includes("./js/result-view.js"));
   assert.ok(installedAppShell.includes("./js/persistence-controller.js"));
   assert.ok(installedAppShell.includes("./js/setup-controller.js"));
