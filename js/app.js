@@ -6,6 +6,7 @@
   const Storage = window.WizardStorage;
   const ResultView = window.WizardResultView;
   const HistoryControllerModule = window.WizardHistoryController;
+  const ImportControllerModule = window.WizardImportController;
   const PersistenceControllerModule = window.WizardPersistenceController;
   const SetupControllerModule = window.WizardSetupController;
   const GameViewModule = window.WizardGameView;
@@ -28,7 +29,7 @@
   } = Ui ?? {};
 
   if (!Logic || !StateManager || !Storage || !ResultView
-    || !PersistenceControllerModule || !SetupControllerModule || !GameViewModule
+    || !ImportControllerModule || !PersistenceControllerModule || !SetupControllerModule || !GameViewModule
     || !RoundResultViewModule || !RoundControllerModule || !SpecialCardsControllerModule || !Ui) {
     console.error("Application dependencies could not be loaded.");
     return;
@@ -36,6 +37,7 @@
 
   const elements = {};
   let historyController = null;
+  let importController = null;
   let persistenceController = null;
   let setupController = null;
   let gameView = null;
@@ -72,6 +74,20 @@
         updateStorageWarning
       })
       : createUnavailableHistoryController();
+    importController = ImportControllerModule.createImportController({
+      Storage,
+      Logic,
+      elements,
+      cloneState,
+      historyController,
+      persistenceController,
+      setState: (nextState) => {
+        state = nextState;
+      },
+      archiveCompletedGame,
+      refreshHomeScreen,
+      showToast
+    });
     setupController = SetupControllerModule.createSetupController({
       Logic,
       elements,
@@ -150,6 +166,7 @@
       showToast
     });
     bindEvents();
+    importController.bindEvents();
     persistenceController.bindEvents();
     setupController.bindEvents();
     roundController.bindEvents();
@@ -206,8 +223,6 @@
     elements["btn-new-game"].addEventListener("click", startNewGame);
     elements["btn-continue-game"].addEventListener("click", continueGame);
     elements["btn-history"].addEventListener("click", openHistory);
-    elements["btn-import-game"].addEventListener("click", () => elements["import-file-input"].click());
-    elements["import-file-input"].addEventListener("change", importGameFromFile);
     elements["btn-setup-home"].addEventListener("click", goHome);
     elements["btn-game-home"].addEventListener("click", goHome);
     elements["btn-game-help"].addEventListener("click", openGameHelp);
@@ -429,71 +444,6 @@
         throw new Error("History is not available in this installation.");
       }
     });
-  }
-
-  async function importGameFromFile(event) {
-    const input = event.target;
-    const file = input.files?.[0];
-    input.value = "";
-    if (!file) return;
-
-    if (file.size > 10_000_000) {
-      showToast("The import file is unusually large and was rejected.");
-      return;
-    }
-
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      if (parsed?.exportFormat === "wizard-scoreboard-history") {
-        historyController.importArchive(parsed);
-        return;
-      }
-
-      if (file.size > 2_000_000) {
-        throw new Error("The individual game state is unusually large and was rejected.");
-      }
-
-      const candidate = parsed?.exportFormat === "wizard-scoreboard-game" ? parsed.gameState : parsed;
-      const isRecoveryExport = parsed?.exportFormat === "wizard-scoreboard-game"
-        && ["storage-conflict", "unsaved-changes"].includes(parsed?.recoveryReason);
-      const validationErrors = isRecoveryExport
-        ? Logic.validatePersistableGameState(candidate)
-        : Logic.validateImportedGameState(candidate);
-      if (validationErrors.length > 0) {
-        throw new Error(`Import failed: ${validationErrors[0]}`);
-      }
-
-      const savedBeforeImport = Storage.loadGame();
-      const hasStoredGameData = Storage.hasStoredData();
-      const shouldReplace = !hasStoredGameData || window.confirm(
-        "The existing save will be replaced by the imported save. Continue?"
-      );
-      if (!shouldReplace) return;
-
-      if (!savedBeforeImport && hasStoredGameData && !Storage.deleteGame()) {
-        throw new Error("The corrupted game could not be replaced.");
-      }
-
-      const importedState = cloneState(candidate);
-      if (!Storage.saveGame(importedState, {
-        expectedUpdatedAt: savedBeforeImport?.updatedAt ?? null,
-        expectedGameId: savedBeforeImport?.gameId ?? null
-      })) {
-        throw new Error("The imported game could not be saved locally.");
-      }
-      if (importedState.status === "completed") {
-        archiveCompletedGame(importedState);
-      }
-
-      state = importedState;
-      persistenceController.markStateImported();
-      refreshHomeScreen();
-      showToast("Game imported successfully.");
-    } catch (error) {
-      console.error("Import fehlgeschlagen:", error);
-      showToast(error instanceof Error ? error.message : "The import file could not be read.");
-    }
   }
 
   function renderGame() {
