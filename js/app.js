@@ -516,7 +516,7 @@
 
   function getPlayerDisplayNameFromState(gameState, playerId) {
     const index = gameState.players.findIndex((player) => player.id === playerId);
-    if (index === -1) return "â€“";
+    if (index === -1) return "\u2013";
     return getPlayerDisplayName(gameState.players[index], index);
   }
 
@@ -528,7 +528,7 @@
   function formatSigned(value) {
     const number = Number(value) || 0;
     if (number > 0) return `+${number}`;
-    if (number < 0) return `âˆ’${Math.abs(number)}`;
+    if (number < 0) return `\u2212${Math.abs(number)}`;
     return "0";
   }
 
