@@ -124,7 +124,10 @@ function response({ ok = true, status = 200, type = "basic", contentType = "text
   assert.ok(!installedAppShell.includes("./js/history-controller.js"));
 
   await dispatchLifecycle("activate");
-  assert.deepEqual(deletedCaches, ["wizard-scoreboard-v1.0.51"]);
+  assert.deepEqual(deletedCaches, [
+    "wizard-scoreboard-v1.0.51",
+    "wizard-scoreboard-v1.0.52"
+  ]);
 
   assert.equal(dispatchFetch({
     method: "GET",

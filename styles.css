@@ -376,6 +376,10 @@ select:focus-visible {
   display: none;
 }
 
+.storage-conflict-actions.recovery-only {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 430px) {
   .storage-conflict-actions {
     grid-template-columns: 1fr;

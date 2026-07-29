@@ -34,5 +34,8 @@ jobs:
       - name: Install Chromium
         run: python -m playwright install --with-deps chromium
 
-      - name: Run complete test suite
+      - name: Run core test suite
         run: npm test
+
+      - name: Run history and import tests
+        run: npm run test:history-import

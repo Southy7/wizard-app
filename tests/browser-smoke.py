@@ -656,6 +656,7 @@ def main() -> None:
             "#import-file-input",
             conflict_download_info.value.path(),
         )
+        conflict_page.locator("#storage-conflict-actions").wait_for(state="hidden")
         assert conflict_page.locator("#storage-conflict-actions").is_hidden()
         assert conflict_page.locator("#btn-continue-game").is_enabled()
         conflict_page.click("#btn-continue-game")

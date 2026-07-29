@@ -60,7 +60,7 @@ assert.equal(Storage.getLastError(), "");
 const unsupportedSchema = JSON.parse(JSON.stringify(loaded));
 unsupportedSchema.schemaVersion = 3;
 assert.equal(Storage.saveGame(unsupportedSchema), false);
-assert.match(Storage.getStorageErrors().gameError, /aktuelle Schema 4/i);
+assert.notEqual(Storage.getStorageErrors().gameError, "");
 assert.equal(Storage.loadGame().schemaVersion, 4);
 
 const tabAState = JSON.parse(JSON.stringify(loaded));

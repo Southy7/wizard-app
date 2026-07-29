@@ -1,5 +1,8 @@
 """Native multi-tab, blocked-storage, and quota scenarios."""
 
+import json
+from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 from browser_helpers import launch_browser, open_clean_page, serve_app
 
@@ -26,6 +29,20 @@ def main():
     with serve_app() as url, sync_playwright() as playwright:
         browser = launch_browser(playwright)
 
+        idle_context = browser.new_context()
+        idle = open_clean_page(idle_context, url)
+        active = idle_context.new_page()
+        active.goto(url)
+        active.click("#btn-new-game")
+        idle.locator("#btn-continue-game:not([disabled])").wait_for(state="attached")
+        assert idle.locator("#screen-home").is_visible()
+        assert idle.locator("#storage-conflict-actions").is_hidden()
+        assert idle.locator("#storage-warning").is_hidden()
+        assert idle.locator("#btn-continue-game").is_enabled()
+        idle.click("#btn-continue-game")
+        assert idle.locator("#screen-setup").is_visible()
+        idle_context.close()
+
         context = browser.new_context()
         first = open_clean_page(context, url)
         first.click("#btn-new-game")
@@ -38,6 +55,7 @@ def main():
         assert second.locator("#storage-conflict-actions").is_visible()
         assert second.locator("#player-list .text-input").first.is_disabled()
         assert second.locator("#btn-export-conflict-state").is_enabled()
+        assert second.locator("#btn-reload-after-conflict").is_visible()
         context.close()
 
         quota_context = browser.new_context()
@@ -47,6 +65,16 @@ def main():
         quota.click("#btn-new-game")
         assert quota.locator("#storage-warning").is_visible()
         assert quota.evaluate("localStorage.getItem(WizardStorage.STORAGE_KEY)") is None
+        assert quota.locator("#storage-conflict-actions").is_visible()
+        assert quota.locator("#btn-export-conflict-state").is_enabled()
+        assert quota.locator("#btn-reload-after-conflict").is_hidden()
+        with quota.expect_download() as quota_download_info:
+            quota.click("#btn-export-conflict-state")
+        quota_export = json.loads(
+            Path(quota_download_info.value.path()).read_text(encoding="utf-8")
+        )
+        assert quota_export["recoveryReason"] == "unsaved-changes"
+        assert quota_export["gameState"]["gameId"]
 
         # A later retry remains an explicit initial write and must not be
         # mistaken for a stale tab recreating a deleted game.
@@ -65,6 +93,9 @@ def main():
         blocked.goto(url)
         blocked.click("#btn-new-game")
         assert blocked.locator("#storage-warning").is_visible()
+        assert blocked.locator("#storage-conflict-actions").is_visible()
+        assert blocked.locator("#btn-export-conflict-state").is_enabled()
+        assert blocked.locator("#btn-reload-after-conflict").is_hidden()
         blocked.locator("#player-list .text-input").first.fill("Keep me")
         blocked.click("#btn-setup-home")
         assert blocked.locator("#btn-continue-game").is_enabled()

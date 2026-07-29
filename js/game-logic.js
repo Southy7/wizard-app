@@ -316,6 +316,11 @@
         specialCards
       };
 
+      if (["play", "tricks", "result"].includes(rawRound.phase)
+        && !isBidSumValid(normalizedRound)) {
+        errors.push(`The bid total in round ${roundNumber} is invalid.`);
+      }
+
       getSpecialCardErrors(normalizedRound, players, options)
         .forEach((error) => errors.push(`Round ${roundNumber}: ${error}`));
 

@@ -6,6 +6,7 @@
     elements,
     getState,
     showToast,
+    refreshHomeScreen = () => {},
     getHistoryCapacityWarning = () => ""
   }) {
     let hasUnsavedChanges = false;
@@ -28,7 +29,7 @@
       ["click", "input", "change", "submit"].forEach((eventName) => {
         document.addEventListener(eventName, blockInteractionDuringConflict, true);
       });
-      elements["btn-export-conflict-state"].addEventListener("click", exportConflictState);
+      elements["btn-export-conflict-state"].addEventListener("click", exportRecoveryState);
       elements["btn-reload-after-conflict"].addEventListener("click", () => window.location.reload());
       window.addEventListener("storage", handleExternalStorageChange);
     }
@@ -125,6 +126,13 @@
       }
 
       if (event.key === Storage.STORAGE_KEY) {
+        if (!getState()) {
+          storageConflict = false;
+          externalGameWarning = "";
+          refreshConflictMode();
+          refreshHomeScreen();
+          return;
+        }
         storageConflict = true;
         externalGameWarning = "The game was changed in another tab. Reload this page before continuing.";
       } else {
@@ -139,8 +147,11 @@
       const actions = elements["storage-conflict-actions"];
       if (!actions) return;
 
-      actions.hidden = !storageConflict;
-      elements["btn-export-conflict-state"].disabled = !getState();
+      const recoveryAvailable = Boolean(getState() && (storageConflict || hasUnsavedChanges));
+      actions.hidden = !recoveryAvailable;
+      actions.classList.toggle("recovery-only", hasUnsavedChanges && !storageConflict);
+      elements["btn-export-conflict-state"].disabled = !recoveryAvailable;
+      elements["btn-reload-after-conflict"].hidden = !storageConflict;
       document.body.classList.toggle("game-storage-conflict", storageConflict);
 
       const stateUi = document.querySelectorAll(
@@ -182,18 +193,19 @@
       showToast("This game is locked because of a storage conflict. Reload the page or export the unsaved state.");
     }
 
-    function exportConflictState() {
+    function exportRecoveryState() {
       const state = getState();
-      if (!state || !storageConflict) return;
+      if (!state || (!storageConflict && !hasUnsavedChanges)) return;
 
       const exportedAt = new Date();
+      const recoveryReason = storageConflict ? "storage-conflict" : "unsaved-changes";
       downloadJson({
         exportFormat: "wizard-scoreboard-game",
         exportVersion: 1,
         exportedAt: exportedAt.toISOString(),
-        recoveryReason: "storage-conflict",
+        recoveryReason,
         gameState: JSON.parse(JSON.stringify(state))
-      }, `wizard-konflikt-${formatFileTimestamp(exportedAt)}.json`);
+      }, `wizard-recovery-${formatFileTimestamp(exportedAt)}.json`);
     }
 
     function downloadJson(payload, filename) {

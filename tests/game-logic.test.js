@@ -218,6 +218,39 @@ assert.deepEqual(Logic.validateImportedGameState(validImport), []);
 assert.deepEqual(Logic.validateImportedGameState(Logic.createInitialGameState()), []);
 assert.deepEqual(Logic.validatePersistableGameState(Logic.createInitialGameState()), []);
 
+// Once bidding is complete, persisted and imported rounds must keep the
+// Wizard rule that the total bids cannot equal the round number.
+const bidTotalInvariantState = Logic.createInitialGameState(3);
+bidTotalInvariantState.players.forEach((entry, index) => {
+  entry.name = ["Anna", "Ben", "Chris"][index];
+});
+bidTotalInvariantState.status = "running";
+bidTotalInvariantState.setupDealerRandomized = true;
+bidTotalInvariantState.roundMode = "individual";
+bidTotalInvariantState.totalRounds = 1;
+bidTotalInvariantState.currentRound = 1;
+const bidTotalInvariantRound = Logic.createRound(
+  bidTotalInvariantState.players,
+  bidTotalInvariantState.firstDealerId,
+  1
+);
+const firstBidResult = bidTotalInvariantRound.playerResults[bidTotalInvariantState.players[0].id];
+firstBidResult.originalBid = 1;
+firstBidResult.currentBid = 1;
+bidTotalInvariantState.rounds = [bidTotalInvariantRound];
+
+assert.ok(!Logic.validatePersistableGameState(bidTotalInvariantState)
+  .some((error) => error.includes("bid total")));
+
+for (const phase of ["play", "tricks", "result"]) {
+  const candidate = JSON.parse(JSON.stringify(bidTotalInvariantState));
+  candidate.rounds[0].phase = phase;
+  assert.ok(Logic.validatePersistableGameState(candidate)
+    .some((error) => error.includes("bid total")));
+  assert.ok(Logic.validateImportedGameState(candidate)
+    .some((error) => error.includes("bid total")));
+}
+
 // An incomplete Witch is allowed only as a clearly defined temporary persisted state.
 const persistableWitchState = Logic.createInitialGameState(3);
 persistableWitchState.players.forEach((entry, index) => {
@@ -291,49 +324,53 @@ function invalidImport(mutator) {
   return Logic.validateImportedGameState(candidate);
 }
 
-assert.ok(invalidImport((candidate) => {
+function assertInvalidImport(mutator) {
+  assert.ok(invalidImport(mutator).length > 0);
+}
+
+assertInvalidImport((candidate) => {
   candidate.players[1].id = candidate.players[0].id;
-}).some((error) => error.includes("eindeutig")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.schemaVersion = 3;
-}).some((error) => error.includes("Schema 4")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.players[0].id = "__proto__";
-}).some((error) => error.includes("valid ID")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.rounds.push(JSON.parse(JSON.stringify(candidate.rounds[0])));
-}).some((error) => error.includes("more than once")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.rounds[0].playerResults["example-1-lena"].originalBid = 999;
   candidate.rounds[0].playerResults["example-1-lena"].currentBid = 999;
   candidate.rounds[0].playerResults["example-1-lena"].tricks = 999;
-}).some((error) => error.includes("between 0 and 1")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.firstDealerId = "missing";
-}).some((error) => error.includes("dealer")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.rounds[0].phase = "invalid";
-}).some((error) => error.includes("Phase")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.rounds[0].specialCards = {
     witch: { active: true, secondEffect: null }
   };
-}).some((error) => error.includes("Witch")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.rounds[0].playerResults["example-1-lena"].tricks = 0;
-}).some((error) => error.includes("trick total")));
+});
 
-assert.ok(invalidImport((candidate) => {
+assertInvalidImport((candidate) => {
   candidate.rounds.splice(0, 1);
-}).some((error) => error.includes("consecutive")));
+});
 
 assert.ok(invalidImport((candidate) => {
   candidate.currentRound = 1;

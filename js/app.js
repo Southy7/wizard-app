@@ -48,6 +48,7 @@
       elements,
       getState: () => state,
       showToast,
+      refreshHomeScreen,
       getHistoryCapacityWarning: () => historyController?.getCapacityWarning() ?? ""
     });
     historyController = historyAvailable
@@ -304,9 +305,9 @@
       }
 
       const candidate = parsed?.exportFormat === "wizard-scoreboard-game" ? parsed.gameState : parsed;
-      const isConflictRecovery = parsed?.exportFormat === "wizard-scoreboard-game"
-        && parsed?.recoveryReason === "storage-conflict";
-      const validationErrors = isConflictRecovery
+      const isRecoveryExport = parsed?.exportFormat === "wizard-scoreboard-game"
+        && ["storage-conflict", "unsaved-changes"].includes(parsed?.recoveryReason);
+      const validationErrors = isRecoveryExport
         ? Logic.validatePersistableGameState(candidate)
         : Logic.validateImportedGameState(candidate);
       if (validationErrors.length > 0) throw new Error(validationErrors[0]);

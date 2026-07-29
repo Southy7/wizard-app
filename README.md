@@ -50,6 +50,7 @@ A lightweight, responsive web app for a 70-card Wizard variant. It runs without 
 - No automatic repair of ambiguous player IDs or round numbers
 - Separate error states for the active game and history
 - Conflict protection and visible warnings for changes made in another browser tab
+- Recovery export for in-memory changes when local storage is full, blocked, or unavailable
 - Data and schema versions in every game state
 - JSON import and export
 - Import size and format validation
@@ -106,15 +107,23 @@ On Linux, Playwright can install the required system libraries as well:
 python -m playwright install --with-deps chromium
 ```
 
-Run the complete unit and browser test suite:
+Run the core unit and browser test suite:
 
 ```bash
 npm test
 ```
 
+Run the complete suite, including history and import recovery:
+
+```bash
+npm run test:all
+```
+
 Run individual groups:
 
 ```bash
+npm run test:core
+npm run test:history-import
 npm run test:unit
 npm run test:browser
 npm run test:browser:core
@@ -124,7 +133,7 @@ npm run test:browser:multitab
 npm run test:browser:offline
 ```
 
-The focused browser scenarios start a real local HTTP server. Reload, multi-tab, and offline tests therefore use native `localStorage` and an installed service worker. Playwright is pinned in `requirements-test.txt`. GitHub Actions also runs `npm test` for every push and pull request in a reproducible environment.
+The focused browser scenarios start a real local HTTP server. Reload, multi-tab, and offline tests therefore use native `localStorage` and an installed service worker. Playwright is pinned in `requirements-test.txt`. GitHub Actions runs the core and history/import suites as separate steps for every push and pull request.
 
 ## History and import
 
