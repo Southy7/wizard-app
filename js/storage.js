@@ -3,6 +3,9 @@
 
   const STORAGE_KEY = "wizard-scoreboard:game-state:v1";
   const HISTORY_KEY = "wizard-scoreboard:game-history:v1";
+  const HISTORY_STORAGE_FORMAT = "wizard-scoreboard-history-storage";
+  const HISTORY_STORAGE_VERSION = 1;
+  const HISTORY_WRITE_ATTEMPTS = 3;
   const HISTORY_SOFT_LIMIT_COUNT = 100;
   const HISTORY_SOFT_LIMIT_BYTES = 3_000_000;
   const errors = {
@@ -228,30 +231,50 @@
   }
 
   function loadGameHistory() {
-    if (!isStorageAvailable()) return [];
+    return readGameHistorySnapshot()?.games ?? [];
+  }
+
+  function readGameHistorySnapshot() {
+    if (!isStorageAvailable()) return null;
 
     try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (!raw) {
         clearError("historyError");
-        return [];
+        return { raw: null, revision: null, games: [] };
       }
 
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
+      const isLegacyArray = Array.isArray(parsed);
+      const validEnvelope = parsed
+        && typeof parsed === "object"
+        && !Array.isArray(parsed)
+        && parsed.format === HISTORY_STORAGE_FORMAT
+        && parsed.version === HISTORY_STORAGE_VERSION
+        && typeof parsed.revision === "string"
+        && parsed.revision
+        && typeof parsed.updatedAt === "string"
+        && !Number.isNaN(Date.parse(parsed.updatedAt))
+        && Array.isArray(parsed.games);
+      if (!isLegacyArray && !validEnvelope) {
         throw new Error("Unknown archive format.");
       }
 
-      const restoredHistory = parsed.map(restoreStoredHistoryEntry);
+      const storedGames = isLegacyArray ? parsed : parsed.games;
+      const restoredHistory = storedGames.map(restoreStoredHistoryEntry);
       if (restoredHistory.some((game) => !isCompletedGameConsistent(game))) {
         throw new Error("The archive contains an incomplete or inconsistent game.");
       }
 
       clearError("historyError");
-      return restoredHistory;
+      return {
+        raw,
+        revision: isLegacyArray ? null : parsed.revision,
+        games: restoredHistory
+      };
     } catch (error) {
       setError("historyError", "The saved game archive is corrupted or unreadable.", error);
-      return [];
+      return null;
     }
   }
 
@@ -303,21 +326,13 @@
   function saveCompletedGame(state) {
     if (!isCompletedGameConsistent(state)) return false;
 
-    if (!isStorageAvailable()) return false;
-
-    try {
-      const history = loadGameHistory();
-      if (errors.historyError) return false;
-
+    return updateGameHistory((history) => {
       const now = new Date().toISOString();
-      const gameId = typeof state.gameId === "string" && state.gameId
-        ? state.gameId
-        : `game-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const gameId = state.gameId;
       const existingIndex = history.findIndex((game) => game.gameId === gameId);
       const archivedAt = existingIndex >= 0 ? history[existingIndex].archivedAt : now;
       const archivedGame = {
         ...JSON.parse(JSON.stringify(state)),
-        gameId,
         archivedAt,
         updatedAt: now
       };
@@ -326,33 +341,61 @@
       else history.push(archivedGame);
 
       history.sort((a, b) => String(b.archivedAt ?? "").localeCompare(String(a.archivedAt ?? "")));
-      return writeGameHistory(history);
-    } catch (error) {
-      setHistoryWriteError(error);
-      return false;
-    }
+      return { games: history };
+    }).success;
   }
 
   function deleteCompletedGame(gameId) {
     if (typeof gameId !== "string" || !gameId || !isStorageAvailable()) return false;
 
-    const history = loadGameHistory();
-    if (errors.historyError) return false;
-
-    const nextHistory = history.filter((game) => game.gameId !== gameId);
-    if (nextHistory.length === history.length) return false;
-    return writeGameHistory(nextHistory, "The game could not be deleted from history.");
+    return updateGameHistory((history) => {
+      const nextHistory = history.filter((game) => game.gameId !== gameId);
+      return nextHistory.length === history.length ? null : { games: nextHistory };
+    }, "The game could not be deleted from history.").success;
   }
 
   function clearGameHistory() {
     if (!isStorageAvailable()) return false;
 
     try {
+      for (let attempt = 0; attempt < HISTORY_WRITE_ATTEMPTS; attempt += 1) {
+        const snapshot = readGameHistorySnapshot();
+        if (!snapshot) return false;
+        if (localStorage.getItem(HISTORY_KEY) !== snapshot.raw) continue;
+
+        localStorage.removeItem(HISTORY_KEY);
+        if (localStorage.getItem(HISTORY_KEY) === null) {
+          clearError("historyError");
+          return true;
+        }
+      }
+      setHistoryConflictError();
+      return false;
+    } catch (error) {
+      setHistoryWriteError(error, "History could not be cleared.");
+      return false;
+    }
+  }
+
+  function resetDamagedGameHistory(expectedRaw) {
+    if (typeof expectedRaw !== "string" || !isStorageAvailable()) return false;
+
+    try {
+      if (localStorage.getItem(HISTORY_KEY) !== expectedRaw) {
+        setHistoryConflictError();
+        return false;
+      }
+
       localStorage.removeItem(HISTORY_KEY);
+      if (localStorage.getItem(HISTORY_KEY) !== null) {
+        setHistoryConflictError();
+        return false;
+      }
+
       clearError("historyError");
       return true;
     } catch (error) {
-      setHistoryWriteError(error, "History could not be cleared.");
+      setHistoryWriteError(error, "The damaged history could not be reset.");
       return false;
     }
   }
@@ -364,40 +407,36 @@
       || importedGames.some((game) => !isCompletedGameConsistent(game))) {
       return { success: false, added: 0, updated: 0, skipped: 0 };
     }
-    if (!isStorageAvailable()) {
-      return { success: false, added: 0, updated: 0, skipped: 0 };
-    }
+    const mutation = updateGameHistory((history) => {
+      const merged = new Map(history.map((game) => [game.gameId, game]));
+      let added = 0;
+      let updated = 0;
+      let skipped = 0;
 
-    const history = loadGameHistory();
-    if (errors.historyError) {
-      return { success: false, added: 0, updated: 0, skipped: 0 };
-    }
-
-    const merged = new Map(history.map((game) => [game.gameId, game]));
-    let added = 0;
-    let updated = 0;
-    let skipped = 0;
-
-    for (const importedGame of importedGames) {
-      const existing = merged.get(importedGame.gameId);
-      const normalized = JSON.parse(JSON.stringify(importedGame));
-      if (!existing) {
-        merged.set(normalized.gameId, normalized);
-        added += 1;
-      } else if (isNewerGame(normalized, existing)) {
-        normalized.archivedAt = existing.archivedAt ?? normalized.archivedAt;
-        merged.set(normalized.gameId, normalized);
-        updated += 1;
-      } else {
-        skipped += 1;
+      for (const importedGame of importedGames) {
+        const existing = merged.get(importedGame.gameId);
+        const normalized = JSON.parse(JSON.stringify(importedGame));
+        if (!existing) {
+          merged.set(normalized.gameId, normalized);
+          added += 1;
+        } else if (isNewerGame(normalized, existing)) {
+          normalized.archivedAt = existing.archivedAt ?? normalized.archivedAt;
+          merged.set(normalized.gameId, normalized);
+          updated += 1;
+        } else {
+          skipped += 1;
+        }
       }
-    }
 
-    const nextHistory = [...merged.values()]
-      .sort((a, b) => String(b.archivedAt ?? b.updatedAt ?? "")
-        .localeCompare(String(a.archivedAt ?? a.updatedAt ?? "")));
-    const success = writeGameHistory(nextHistory, "The imported archive could not be saved locally.");
-    return { success, added: success ? added : 0, updated: success ? updated : 0, skipped: success ? skipped : 0 };
+      return {
+        games: [...merged.values()]
+          .sort((a, b) => String(b.archivedAt ?? b.updatedAt ?? "")
+            .localeCompare(String(a.archivedAt ?? a.updatedAt ?? ""))),
+        value: { added, updated, skipped }
+      };
+    }, "The imported archive could not be saved locally.");
+    const counts = mutation.value ?? { added: 0, updated: 0, skipped: 0 };
+    return { success: mutation.success, ...counts };
   }
 
   function isNewerGame(candidate, existing) {
@@ -407,15 +446,62 @@
     return !Number.isNaN(candidateTime) && candidateTime > existingTime;
   }
 
-  function writeGameHistory(history, fallbackMessage = "The completed game could not be saved to the archive.") {
+  function updateGameHistory(
+    transform,
+    fallbackMessage = "The completed game could not be saved to the archive."
+  ) {
+    if (!isStorageAvailable()) return { success: false, value: null };
+
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      clearError("historyError");
-      return true;
+      for (let attempt = 0; attempt < HISTORY_WRITE_ATTEMPTS; attempt += 1) {
+        const snapshot = readGameHistorySnapshot();
+        if (!snapshot) return { success: false, value: null };
+
+        const mutation = transform(JSON.parse(JSON.stringify(snapshot.games)));
+        if (!mutation) return { success: false, value: null };
+        if (!Array.isArray(mutation.games)
+          || mutation.games.some((game) => !isCompletedGameConsistent(game))) {
+          setError("historyError", "The updated game archive would be inconsistent.");
+          return { success: false, value: null };
+        }
+
+        if (localStorage.getItem(HISTORY_KEY) !== snapshot.raw) continue;
+
+        const payload = {
+          format: HISTORY_STORAGE_FORMAT,
+          version: HISTORY_STORAGE_VERSION,
+          revision: createHistoryRevision(),
+          updatedAt: new Date().toISOString(),
+          games: mutation.games
+        };
+        const serialized = JSON.stringify(payload);
+        localStorage.setItem(HISTORY_KEY, serialized);
+        if (localStorage.getItem(HISTORY_KEY) !== serialized) continue;
+
+        clearError("historyError");
+        return { success: true, value: mutation.value ?? null };
+      }
+
+      setHistoryConflictError();
+      return { success: false, value: null };
     } catch (error) {
       setHistoryWriteError(error, fallbackMessage);
-      return false;
+      return { success: false, value: null };
     }
+  }
+
+  function createHistoryRevision() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function setHistoryConflictError() {
+    setError(
+      "historyError",
+      "History changed in another tab while it was being saved. Please try the action again."
+    );
   }
 
   function setHistoryWriteError(error, fallbackMessage = "The completed game could not be saved to the archive.") {
@@ -506,6 +592,7 @@
     saveCompletedGame,
     deleteCompletedGame,
     clearGameHistory,
+    resetDamagedGameHistory,
     mergeGameHistory,
     getHistoryStorageStatus,
     hasGameHistory,

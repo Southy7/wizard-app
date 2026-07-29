@@ -104,6 +104,7 @@ def main() -> None:
             """
         )
         page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
+        assert page.evaluate("document.activeElement.id") == "home-title"
 
         assert page.locator("#storage-warning").is_visible()
         assert "corrupted" in page.locator("#storage-warning").text_content()
@@ -129,6 +130,7 @@ def main() -> None:
             """
         )
         assert page.locator("#screen-setup").is_visible()
+        assert page.evaluate("document.activeElement.id") == "players-title"
         assert page.locator("#screen-setup h2").count() == 0
         assert page.locator("#rounds-title").text_content() == "Game Length"
         assert page.get_by_text("The order matches the seating order at the table.").count() == 0
@@ -157,6 +159,7 @@ def main() -> None:
         page.dispatch_event("#rounds-input", "change")
         page.click("#setup-form button[type=submit]")
         assert page.locator("#screen-setup-summary").is_visible()
+        assert page.evaluate("document.activeElement.id") == "summary-title"
         assert page.locator("#summary-player-count").text_content() == "3 Players"
         assert page.locator("#summary-round-count").text_content() == "1 Round"
         assert page.locator(".summary-list > div").all_text_contents() == [
@@ -557,8 +560,10 @@ def main() -> None:
         # The new Home button opens the same saved score history.
         page.click("#btn-finished-go-home")
         assert page.locator("#screen-home").is_visible()
+        assert page.evaluate("document.activeElement.id") == "home-title"
         assert page.locator("#btn-history").is_enabled()
         page.click("#btn-history")
+        assert page.evaluate("document.activeElement.id") == "history-page-title"
         assert page.locator("#history-game-list .history-game-card").count() == 1
         assert page.locator("#history-game-list .history-game-card-winner").count() == 1
         assert "Points" in page.locator("#history-game-list .history-game-card-winner").text_content()

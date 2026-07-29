@@ -295,6 +295,15 @@
       screenElement.hidden = screenName !== name;
     });
 
+    const focusTargetIds = {
+      home: "home-title",
+      setup: "players-title",
+      "setup-summary": "summary-title",
+      game: "game-phase-label",
+      history: "history-page-title",
+      finished: "finished-title"
+    };
+    document.getElementById(focusTargetIds[name])?.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "auto" });
     persistenceController.refreshConflictMode();
   }

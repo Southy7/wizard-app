@@ -76,7 +76,7 @@
       <!-- ==================== HOME ==================== -->
       <section id="screen-home" class="screen screen-home" data-screen="home" aria-labelledby="home-title">
         <header class="home-header">
-          <h1 id="home-title">Wizard</h1>
+          <h1 id="home-title" tabindex="-1">Wizard</h1>
           <p class="home-subtitle">Scoreboard</p>
         </header>
 
@@ -103,7 +103,7 @@
           <!-- 1. Enter players and define their seating order -->
           <section class="panel" aria-labelledby="players-title">
             <div class="panel-heading">
-              <h3 id="players-title">Players and Seating Order</h3>
+              <h3 id="players-title" tabindex="-1">Players and Seating Order</h3>
               <span id="player-count-badge" class="count-badge">3 / 6</span>
             </div>
 
@@ -151,7 +151,7 @@
       <!-- ================= SETUP SUMMARY ================= -->
       <section id="screen-setup-summary" class="screen screen-setup-summary" data-screen="setup-summary" aria-labelledby="summary-title" hidden>
         <section class="panel summary-panel">
-          <h2 id="summary-title">Summary</h2>
+          <h2 id="summary-title" tabindex="-1">Summary</h2>
           <div class="summary-list" aria-label="Game details">
             <div id="summary-player-count">3 Players</div>
             <div id="summary-round-count">20 Rounds</div>
@@ -190,7 +190,7 @@
             </svg>
           </button>
         </div>
-        <h2 id="game-phase-label" class="visually-hidden">Bids</h2>
+        <h2 id="game-phase-label" class="visually-hidden" tabindex="-1">Bids</h2>
 
         <!-- Total scores are displayed only during the bidding phase. -->
         <div id="game-round-overview" class="panel compact-panel" aria-label="Total scores" hidden>
@@ -205,7 +205,7 @@
       <!-- ==================== HISTORY ==================== -->
       <section id="screen-history" class="screen screen-history" data-screen="history" aria-labelledby="history-page-title" hidden>
         <div class="screen-heading history-heading">
-          <h2 id="history-page-title">History</h2>
+          <h2 id="history-page-title" tabindex="-1">History</h2>
           <p id="history-storage-status" class="history-storage-status" aria-live="polite"></p>
           <button id="btn-history-home" class="setup-home-button history-home-button" type="button" aria-label="Home" title="Home">
             <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -267,7 +267,7 @@
       <!-- ================== FINAL RESULT ================== -->
       <section id="screen-finished" class="screen screen-finished" data-screen="finished" aria-labelledby="finished-title" hidden>
         <section class="panel final-ranking-panel" aria-labelledby="finished-title">
-          <h2 id="finished-title">Final Result</h2>
+          <h2 id="finished-title" tabindex="-1">Final Result</h2>
           <div id="final-ranking" class="ranking-list" aria-label="Final standings"></div>
         </section>
 

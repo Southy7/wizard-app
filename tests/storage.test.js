@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const values = new Map();
 let failHistoryWrites = false;
 let failGameWrites = false;
+let historyReadInterference = null;
 global.localStorage = {
   setItem(key, value) {
     if (failGameWrites && String(key) === "wizard-scoreboard:game-state:v1") {
@@ -19,7 +20,18 @@ global.localStorage = {
     }
     values.set(String(key), String(value));
   },
-  getItem(key) { return values.has(String(key)) ? values.get(String(key)) : null; },
+  getItem(key) {
+    const normalizedKey = String(key);
+    if (normalizedKey === "wizard-scoreboard:game-history:v1" && historyReadInterference) {
+      historyReadInterference.remainingReads -= 1;
+      if (historyReadInterference.remainingReads === 0) {
+        const interfere = historyReadInterference.interfere;
+        historyReadInterference = null;
+        interfere(values.get(normalizedKey) ?? null);
+      }
+    }
+    return values.has(normalizedKey) ? values.get(normalizedKey) : null;
+  },
   removeItem(key) { values.delete(String(key)); },
   clear() { values.clear(); }
 };
@@ -243,6 +255,37 @@ assert.equal(Storage.loadGameHistory()[0].players[0].name, "Lena updated");
 assert.equal(Storage.saveCompletedGame(state), false);
 
 const secondCompletedGame = require("../examples/history-game-2.json").gameState;
+const historyBeforeConcurrentSave = localStorage.getItem(Storage.HISTORY_KEY);
+const concurrentlyArchivedGame = JSON.parse(JSON.stringify(secondCompletedGame));
+concurrentlyArchivedGame.gameId = "concurrently-archived-game";
+historyReadInterference = {
+  remainingReads: 2,
+  interfere(raw) {
+    const stored = JSON.parse(raw);
+    const games = Array.isArray(stored) ? stored : stored.games;
+    values.set(Storage.HISTORY_KEY, JSON.stringify({
+      format: "wizard-scoreboard-history-storage",
+      version: 1,
+      revision: "external-tab-revision",
+      updatedAt: new Date().toISOString(),
+      games: [...games, concurrentlyArchivedGame]
+    }));
+  }
+};
+assert.equal(Storage.saveCompletedGame(secondCompletedGame), true);
+assert.deepEqual(
+  new Set(Storage.loadGameHistory().map((game) => game.gameId)),
+  new Set([
+    completedGame.gameId,
+    concurrentlyArchivedGame.gameId,
+    secondCompletedGame.gameId
+  ])
+);
+const rebasedHistoryPayload = JSON.parse(localStorage.getItem(Storage.HISTORY_KEY));
+assert.equal(rebasedHistoryPayload.format, "wizard-scoreboard-history-storage");
+assert.notEqual(rebasedHistoryPayload.revision, "external-tab-revision");
+localStorage.setItem(Storage.HISTORY_KEY, historyBeforeConcurrentSave);
+
 assert.deepEqual(Storage.mergeGameHistory([secondCompletedGame]), {
   success: true,
   added: 1,
@@ -383,7 +426,7 @@ assert.equal(localStorage.getItem(Storage.STORAGE_KEY), null);
 assert.equal(Storage.getStorageErrors().gameError, "");
 assert.equal(Storage.getStorageErrors().historyError, damagedHistoryError);
 
-assert.equal(Storage.clearGameHistory(), true);
+assert.equal(Storage.resetDamagedGameHistory(damagedHistoryValue), true);
 assert.deepEqual(Storage.loadGameHistory(), []);
 assert.equal(Storage.hasStoredHistoryData(), false);
 Storage.clearLastError();

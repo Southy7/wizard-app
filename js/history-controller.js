@@ -251,12 +251,18 @@
     function resetDamagedHistory() {
       if (!needsRecovery()) return;
 
+      const damagedRaw = Storage.getRawGameHistoryData?.();
+      if (typeof damagedRaw !== "string") {
+        showStorageError("The damaged history could not be reset.");
+        return;
+      }
+
       const confirmed = window.confirm(
         "Do you really want to permanently delete the damaged history? Export the damaged data first if you may need it later."
       );
       if (!confirmed) return;
 
-      if (!Storage.clearGameHistory()) {
+      if (!Storage.resetDamagedGameHistory?.(damagedRaw)) {
         showStorageError("The damaged history could not be reset.");
         return;
       }
