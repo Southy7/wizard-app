@@ -442,6 +442,12 @@ def main() -> None:
         assert page.locator("#btn-game-help").is_visible()
         assert page.locator("#game-content h3").all_text_contents() == ["Round Result"]
         assert page.locator(".round-result-panel .leader-crown").count() >= 1
+        assert page.locator(".round-result-panel .leader-points").count() == page.locator(
+            ".round-result-panel .leader-crown"
+        ).count()
+        assert page.locator(".round-result-panel .score-row .number").evaluate_all(
+            "(cells) => cells.every((cell) => getComputedStyle(cell).textAlign === 'center')"
+        )
         assert page.get_by_text("Round points and current total score after this round.").count() == 0
         assert page.locator(".score-row.header span").all_text_contents() == [
             "Player", "Bid", "Tricks", "Round", "Total"
@@ -457,7 +463,11 @@ def main() -> None:
         ) == ["1", "2", "3"]
         result_table_box = page.locator(".round-result-panel .score-table-scroll").bounding_box()
         result_actions_box = page.locator(".round-result-panel .result-actions").bounding_box()
+        result_action_buttons = page.locator(".round-result-panel .result-actions > .button")
         assert result_table_box and result_actions_box
+        assert len(set(result_action_buttons.evaluate_all(
+            "(buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().top))"
+        ))) == 1
         assert result_table_box["x"] >= 0
         assert result_table_box["x"] + result_table_box["width"] <= 390
         assert page.evaluate("document.documentElement.scrollWidth") == 390

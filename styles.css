@@ -991,6 +991,8 @@ select:focus-visible {
 
 .result-actions {
   margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .status-card {
@@ -1224,6 +1226,10 @@ select:focus-visible {
   text-align: center;
 }
 
+.round-result-panel .score-table.five-columns .number {
+  text-align: center;
+}
+
 .score-row .positive {
   color: var(--success);
 }
@@ -1241,7 +1247,8 @@ select:focus-visible {
   font-weight: 950;
 }
 
-.bid-overview .leader-points {
+.bid-overview .leader-points,
+.round-result-panel .leader-points {
   color: var(--gold-light);
 }
 

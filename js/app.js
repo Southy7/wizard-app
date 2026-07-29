@@ -941,7 +941,8 @@
       const nameStrong = document.createElement("strong");
       nameStrong.textContent = getPlayerDisplayNameById(player.id);
       name.append(nameStrong);
-      if (totals[player.id] === leadingTotal) {
+      const isLeader = totals[player.id] === leadingTotal;
+      if (isLeader) {
         const crown = document.createElement("span");
         crown.className = "leader-crown";
         crown.textContent = "👑";
@@ -952,7 +953,7 @@
       const bid = numberCell(result.currentBid, `bid-value${result.currentBid !== result.originalBid ? " changed-bid" : ""}`);
       const tricks = numberCell(result.tricks, "tricks-value");
       const points = numberCell(formatSigned(result.roundPoints), `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`);
-      const total = numberCell(totals[player.id], "total-points");
+      const total = numberCell(totals[player.id], `total-points${isLeader ? " leader-points" : ""}`);
       bid.dataset.label = "Bid";
       tricks.dataset.label = "Tricks";
       points.dataset.label = "Round";
