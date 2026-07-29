@@ -932,6 +932,12 @@ select:focus-visible {
   min-width: 78px;
 }
 
+.correct-button:not(:disabled) {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 .correct-button.correct:disabled {
   border-color: var(--success);
   background: var(--success-soft);
@@ -1004,7 +1010,8 @@ select:focus-visible {
   margin-bottom: 0;
 }
 
-.bid-total-card {
+.bid-total-card,
+.trick-total-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1013,22 +1020,26 @@ select:focus-visible {
   font-size: 0.88rem;
 }
 
-.bid-total-card strong {
+.bid-total-card strong,
+.trick-total-card strong {
   margin: 0;
 }
 
-.bid-total-values {
+.bid-total-values,
+.trick-total-values {
   flex: 0 0 auto;
   font-size: 0.95rem;
   font-weight: 950;
   font-variant-numeric: tabular-nums;
 }
 
-.bid-total-values.valid {
+.bid-total-values.valid,
+.trick-total-values.valid {
   color: var(--success);
 }
 
-.bid-total-values.invalid {
+.bid-total-values.invalid,
+.trick-total-values.invalid {
   color: var(--danger);
 }
 
@@ -1619,20 +1630,6 @@ select:focus-visible {
     min-height: 33px;
   }
 
-  .entry-row.has-quick-action .entry-controls {
-    display: grid;
-    grid-template-columns: 1fr;
-    justify-items: stretch;
-  }
-
-  .entry-row.has-quick-action .value-stepper {
-    grid-row: 1;
-  }
-
-  .entry-row.has-quick-action .correct-button {
-    grid-row: 2;
-  }
-
   .choice-grid {
     grid-template-columns: 1fr;
   }
@@ -1650,6 +1647,14 @@ select:focus-visible {
     font-size: 0.65rem;
   }
 
+}
+
+@media (max-width: 480px) {
+  .score-table.bid-overview .score-row {
+    grid-template-columns: minmax(0, 1fr) 42px 50px;
+    column-gap: 3px;
+    padding-right: 4px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

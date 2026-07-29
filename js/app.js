@@ -819,7 +819,8 @@
     list.className = "entry-list";
     const maximumTricks = Logic.getExpectedTrickCount(round);
 
-    state.players.forEach((player) => {
+    const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
+    order.forEach((player) => {
       const result = round.playerResults[player.id];
       const predictionIsCorrect = result.tricks === result.currentBid;
 
@@ -831,7 +832,7 @@
         colorIndex: getPlayerColorIndex(player.id),
         onChange: (next) => updateTricks(round.number, player.id, next),
         quickAction: {
-          label: "Correct",
+          label: `Bid ${result.currentBid}`,
           onClick: () => updateTricks(round.number, player.id, result.currentBid),
           disabled: predictionIsCorrect || result.currentBid > maximumTricks,
           completed: predictionIsCorrect,
@@ -843,17 +844,21 @@
     });
 
     const validation = Logic.validateTrickSum(round);
-    let message;
-    if (validation.valid) {
-      message = createStatusCard("success", "All tricks have been assigned.", "");
-    } else if (validation.difference < 0) {
-      const missing = Math.abs(validation.difference);
-      message = createStatusCard("error", `${missing} ${missing === 1 ? "trick is" : "tricks are"} missing.`, "");
-    } else {
-      const excess = validation.difference;
-      message = createStatusCard("error", `${excess} ${excess === 1 ? "trick is" : "tricks are"} over the limit.`, "");
-    }
-    message.classList.add("trick-status");
+    const trickTotal = document.createElement("div");
+    trickTotal.className = "status-card trick-total-card trick-status";
+
+    const trickTotalLabel = document.createElement("strong");
+    trickTotalLabel.textContent = "Total Tricks:";
+
+    const trickTotalValues = document.createElement("span");
+    trickTotalValues.className = `trick-total-values ${validation.valid ? "valid" : "invalid"}`;
+    trickTotalValues.textContent = `${validation.actual} / ${validation.expected}`;
+    trickTotalValues.setAttribute(
+      "aria-label",
+      `${validation.actual} total tricks; ${validation.expected} tricks must be assigned`
+    );
+
+    trickTotal.append(trickTotalLabel, trickTotalValues);
 
     const actions = document.createElement("div");
     actions.className = "round-actions tricks-actions";
@@ -865,7 +870,7 @@
       createButton("Complete Round", "button-primary", completeRound, !validation.valid)
     );
 
-    panel.append(list, message, actions);
+    panel.append(list, trickTotal, actions);
     elements["game-content"].replaceChildren(panel);
   }
 

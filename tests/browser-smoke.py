@@ -407,9 +407,15 @@ def main() -> None:
         assert page.locator("#game-content h3").all_text_contents() == ["Tricks"]
         assert page.get_by_text("Enter only each player's final trick count for this round.").count() == 0
         assert page.locator(".tricks-panel .entry-meta").count() == 0
+        assert page.locator(".tricks-panel .entry-name").all_text_contents() == expected_overview_names
+        assert page.locator(".tricks-panel .entry-row").evaluate_all(
+            "(rows) => rows.map((row) => row.dataset.playerColor)"
+        ) == expected_overview_colors
         trick_status = page.locator(".trick-status")
-        assert trick_status.text_content().strip() == "1 trick is missing."
-        assert trick_status.locator(":scope > *").count() == 1
+        assert trick_status.locator("strong").text_content().strip() == "Total Tricks:"
+        assert trick_status.locator(".trick-total-values").text_content().strip() == "0 / 1"
+        assert "invalid" in trick_status.locator(".trick-total-values").get_attribute("class")
+        assert trick_status.locator(":scope > *").count() == 2
         trick_list_box = page.locator(".tricks-panel .entry-list").bounding_box()
         trick_status_box = trick_status.bounding_box()
         trick_actions_box = page.locator(".tricks-panel .round-actions").bounding_box()
@@ -417,6 +423,10 @@ def main() -> None:
         assert trick_status_box["y"] - (trick_list_box["y"] + trick_list_box["height"]) >= 16
         assert trick_actions_box["y"] - (trick_status_box["y"] + trick_status_box["height"]) >= 16
         correct_button = page.locator(".correct-button:not(:disabled)").first
+        assert correct_button.text_content().strip().startswith("Bid ")
+        assert correct_button.evaluate(
+            "(button) => getComputedStyle(button).color"
+        ) == "rgb(240, 160, 160)"
         correct_button_box = correct_button.bounding_box()
         correct_stepper_box = correct_button.locator("xpath=..").locator(".value-stepper").bounding_box()
         assert correct_button_box and correct_stepper_box
@@ -424,8 +434,8 @@ def main() -> None:
         correct_button.click()
         assert "1" in page.locator(".value-display").all_text_contents()
         assert page.locator(".correct-button.correct:disabled").count() >= 1
-        assert trick_status.text_content().strip() == "All tricks have been assigned."
-        assert trick_status.locator(":scope > *").count() == 1
+        assert trick_status.locator(".trick-total-values").text_content().strip() == "1 / 1"
+        assert "valid" in trick_status.locator(".trick-total-values").get_attribute("class")
         page.click('button:has-text("Complete Round")')
 
         assert page.locator("#game-phase-label").text_content() == "Round Result"
