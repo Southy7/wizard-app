@@ -116,6 +116,7 @@ def main() -> None:
 
         assert page.locator("#storage-warning").is_visible()
         assert "corrupted" in page.locator("#storage-warning").text_content()
+        assert page.locator(".home-footer").text_content().strip() == "Saved locally · Version 1.1.0"
 
         new_game_box = page.locator("#btn-new-game").bounding_box()
         secondary_row_box = page.locator(".home-secondary-actions").bounding_box()
@@ -311,17 +312,21 @@ def main() -> None:
         fool_text = " ".join(page.locator(".fool-reference").text_content().split())
         assert "a suit card played later does not create a follow-suit requirement" in wizard_text
         assert "the first suit card played afterwards determines the suit" in fool_text
+        assert page.locator(".dark-eye-reference", has_text="Leading a trick").count() == 0
         for card_class in [
             "dragon-reference",
             "fairy-reference",
             "bomb-reference",
             "witch-reference",
             "vampire-reference",
-            "dark-eye-reference",
         ]:
-            assert page.locator(f".{card_class}", has_text="Leading a trick").count() == 0
+            assert page.locator(f".{card_class}", has_text="Leading a trick").count() == 1
         assert page.locator(".juggler-reference", has_text="Leading a trick").count() == 1
         assert page.locator(".cloud-reference", has_text="Leading a trick").count() == 1
+        assert "rules as for a Wizard" in page.locator(".dragon-reference").text_content()
+        for card_class in ["fairy-reference", "bomb-reference", "witch-reference"]:
+            assert "rules as for a Fool" in page.locator(f".{card_class}").text_content()
+        assert "rules of the copied card" in page.locator(".vampire-reference").text_content()
         vampire_reference_text = " ".join(page.locator(".vampire-reference").text_content().split())
         assert "becomes the new trump card" in vampire_reference_text
         page.click("#btn-close-special-cards-dialog")
