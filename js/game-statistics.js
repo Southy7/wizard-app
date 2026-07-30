@@ -11,7 +11,7 @@
 
   function calculate(completedRounds, players) {
     const rounds = [...completedRounds].sort((a, b) => a.number - b.number);
-    const playerStats = players.map((player, originalIndex) => ({
+    const workingStats = players.map((player, originalIndex) => ({
       player,
       originalIndex,
       totalPoints: 0,
@@ -33,7 +33,7 @@
       specialCards.clouds += Number(Boolean(round.specialCards?.cloud?.active));
       specialCards.clouds += Number(Boolean(round.specialCards?.secondCloud?.active));
 
-      playerStats.forEach((stats) => {
+      workingStats.forEach((stats) => {
         const result = round.playerResults?.[stats.player.id] ?? {};
         const currentBid = Number(result.currentBid) || 0;
         const tricks = Number(result.tricks) || 0;
@@ -60,53 +60,70 @@
         }
       });
 
-      const ranks = calculateRanks(playerStats);
-      const leadingTotal = Math.max(...playerStats.map(({ totalPoints }) => totalPoints));
-      playerStats.forEach((stats) => {
+      const ranks = calculateRanks(workingStats);
+      const leadingTotal = Math.max(...workingStats.map(({ totalPoints }) => totalPoints));
+      workingStats.forEach((stats) => {
         const rank = ranks.get(stats.player.id);
-        stats.standings.push({ roundNumber: round.number, rank, totalPoints: stats.totalPoints });
+        stats.standings.push({ rank, totalPoints: stats.totalPoints });
         if (stats.totalPoints === leadingTotal) stats.roundsLed += 1;
       });
     });
 
-    const finalRanks = calculateRanks(playerStats);
-    playerStats.forEach((stats) => {
-      const roundCount = rounds.length;
-      stats.accuracy = roundCount === 0 ? 0 : (stats.hitCount / roundCount) * 100;
-      stats.averagePoints = roundCount === 0 ? 0 : stats.totalPoints / roundCount;
-      stats.zeroBidAccuracy = stats.zeroBidCount === 0 ? 0 : (stats.successfulZeroBidCount / stats.zeroBidCount) * 100;
-      stats.finalRank = finalRanks.get(stats.player.id);
-      stats.worstRank = Math.max(stats.finalRank, ...stats.standings.map(({ rank }) => rank));
-      stats.comebackPlaces = Math.max(0, stats.worstRank - stats.finalRank);
-      stats.comebackPointsGained = Math.max(
+    const roundCount = rounds.length;
+    const finalRanks = calculateRanks(workingStats);
+    const finalizedPlayers = workingStats.map((stats) => {
+      const accuracy = roundCount === 0 ? 0 : (stats.hitCount / roundCount) * 100;
+      const averagePoints = roundCount === 0 ? 0 : stats.totalPoints / roundCount;
+      const zeroBidAccuracy = stats.zeroBidCount === 0 ? 0 : (stats.successfulZeroBidCount / stats.zeroBidCount) * 100;
+      const finalRank = finalRanks.get(stats.player.id);
+      const worstRank = Math.max(finalRank, ...stats.standings.map(({ rank }) => rank));
+      const comebackPlaces = Math.max(0, worstRank - finalRank);
+      const comebackPointsGained = Math.max(
         0,
         ...stats.standings
-          .filter(({ rank }) => rank === stats.worstRank)
+          .filter(({ rank }) => rank === worstRank)
           .map(({ totalPoints }) => stats.totalPoints - totalPoints)
       );
-      delete stats.currentStreak;
-      delete stats.standings;
+      return {
+        player: stats.player,
+        originalIndex: stats.originalIndex,
+        totalPoints: stats.totalPoints,
+        hitCount: stats.hitCount,
+        bestStreak: stats.bestStreak,
+        zeroBidCount: stats.zeroBidCount,
+        successfulZeroBidCount: stats.successfulZeroBidCount,
+        roundsLed: stats.roundsLed,
+        bestRound: stats.bestRound,
+        worstRound: stats.worstRound,
+        accuracy,
+        averagePoints,
+        zeroBidAccuracy,
+        finalRank,
+        worstRank,
+        comebackPlaces,
+        comebackPointsGained
+      };
     });
 
     return {
-      roundCount: rounds.length,
-      players: playerStats,
+      roundCount,
+      players: finalizedPlayers,
       highlights: {
-        bestAccuracy: selectBest(playerStats, (left, right) => right.accuracy - left.accuracy),
+        bestAccuracy: selectBest(finalizedPlayers, (left, right) => right.accuracy - left.accuracy),
         bestRound: selectBest(
-          playerStats,
+          finalizedPlayers,
           (left, right) =>
             right.bestRound.points - left.bestRound.points || left.bestRound.roundNumber - right.bestRound.roundNumber
         ),
         biggestComeback: selectBest(
-          playerStats,
+          finalizedPlayers,
           (left, right) =>
             right.comebackPlaces - left.comebackPlaces || right.comebackPointsGained - left.comebackPointsGained
         ),
-        mostRoundsLed: selectBest(playerStats, (left, right) => right.roundsLed - left.roundsLed),
-        longestStreak: selectBest(playerStats, (left, right) => right.bestStreak - left.bestStreak),
+        mostRoundsLed: selectBest(finalizedPlayers, (left, right) => right.roundsLed - left.roundsLed),
+        longestStreak: selectBest(finalizedPlayers, (left, right) => right.bestStreak - left.bestStreak),
         mostSuccessfulZeroBids: selectBest(
-          playerStats,
+          finalizedPlayers,
           (left, right) => right.successfulZeroBidCount - left.successfulZeroBidCount
         )
       },

@@ -71,6 +71,30 @@ assert.equal(result.roundCount, 4);
 assert.deepEqual(result.specialCards, { bombs: 2, clouds: 2 });
 
 const [anna, ben, clara] = result.players;
+const publicPlayerStatisticFields = [
+  "accuracy",
+  "averagePoints",
+  "bestRound",
+  "bestStreak",
+  "comebackPlaces",
+  "comebackPointsGained",
+  "finalRank",
+  "hitCount",
+  "originalIndex",
+  "player",
+  "roundsLed",
+  "successfulZeroBidCount",
+  "totalPoints",
+  "worstRank",
+  "worstRound",
+  "zeroBidAccuracy",
+  "zeroBidCount"
+];
+result.players.forEach((playerStats) => {
+  assert.deepEqual(Object.keys(playerStats).sort(), publicPlayerStatisticFields);
+  assert.equal("currentStreak" in playerStats, false);
+  assert.equal("standings" in playerStats, false);
+});
 assert.deepEqual(
   {
     totalPoints: anna.totalPoints,
