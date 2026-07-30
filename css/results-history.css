@@ -294,3 +294,34 @@
   color: var(--danger);
   font-weight: 800;
 }
+
+@media (max-width: 620px) {
+  .history-scroll {
+    overflow-x: visible;
+  }
+
+  .history-table {
+    min-width: 0;
+    table-layout: fixed;
+    font-size: clamp(0.66rem, 2.7vw, 0.78rem);
+  }
+
+  .history-table th,
+  .history-table td {
+    min-width: 0;
+    padding: 7px 2px;
+  }
+
+  .history-table th:first-child,
+  .history-table td:first-child {
+    width: 34px;
+    padding-inline: 2px;
+    font-size: 0.66rem;
+  }
+
+  .history-table thead th[data-player-color] {
+    overflow-wrap: anywhere;
+    white-space: normal;
+    line-height: 1.15;
+  }
+}

@@ -590,6 +590,12 @@ def main() -> None:
         first_player_header_box = history_headers.nth(1).bounding_box()
         assert round_header_box and first_player_header_box
         assert round_header_box["width"] < first_player_header_box["width"]
+        assert page.locator("#final-score-history").evaluate(
+            "(container) => container.scrollWidth === container.clientWidth"
+        )
+        assert page.locator("#final-score-history .history-table").evaluate(
+            "(table) => table.getBoundingClientRect().width <= table.parentElement.getBoundingClientRect().width"
+        )
         assert page.locator("#final-score-history .history-table th, #final-score-history .history-table td").evaluate_all(
             "(cells) => cells.every((cell) => getComputedStyle(cell).textAlign === 'center')"
         )
