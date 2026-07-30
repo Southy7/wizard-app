@@ -89,6 +89,32 @@ try {
 
   const timestamp = new Date(2026, 6, 21, 9, 5, 7);
   assert.equal(FileUtils.formatFileTimestamp(timestamp), "2026-07-21-090507");
+
+  const stateForExport = {
+    gameId: "game-1",
+    players: [{ id: "anna", name: "Anna" }]
+  };
+  const gameExport = FileUtils.createGameExport(stateForExport, { exportedAt: timestamp });
+  assert.deepEqual(gameExport, {
+    payload: {
+      exportFormat: "wizard-scoreboard-game",
+      exportVersion: 1,
+      exportedAt: timestamp.toISOString(),
+      gameState: stateForExport
+    },
+    filename: "wizard-game-2026-07-21-090507.json"
+  });
+  assert.notEqual(gameExport.payload.gameState, stateForExport);
+  assert.notEqual(gameExport.payload.gameState.players, stateForExport.players);
+  stateForExport.players[0].name = "Changed";
+  assert.equal(gameExport.payload.gameState.players[0].name, "Anna");
+
+  const recoveryExport = FileUtils.createGameExport(stateForExport, {
+    exportedAt: timestamp,
+    recoveryReason: "storage-conflict"
+  });
+  assert.equal(recoveryExport.payload.recoveryReason, "storage-conflict");
+  assert.equal(recoveryExport.filename, gameExport.filename);
 } finally {
   for (const [name, value] of Object.entries(originalGlobals)) {
     if (value === undefined) delete global[name];

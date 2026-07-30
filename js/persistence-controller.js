@@ -199,18 +199,9 @@
       const state = getState();
       if (!state || (!storageConflict && !hasUnsavedChanges)) return;
 
-      const exportedAt = new Date();
       const recoveryReason = storageConflict ? "storage-conflict" : "unsaved-changes";
-      FileUtils.downloadJson(
-        {
-          exportFormat: "wizard-scoreboard-game",
-          exportVersion: 1,
-          exportedAt: exportedAt.toISOString(),
-          recoveryReason,
-          gameState: JSON.parse(JSON.stringify(state))
-        },
-        `wizard-recovery-${FileUtils.formatFileTimestamp(exportedAt)}.json`
-      );
+      const gameExport = FileUtils.createGameExport(state, { recoveryReason });
+      FileUtils.downloadJson(gameExport.payload, gameExport.filename);
     }
 
     async function requestPersistentStorage() {

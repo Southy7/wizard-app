@@ -752,16 +752,8 @@
   function exportCompletedGame() {
     if (state?.status !== "completed") return;
 
-    const exportedAt = new Date();
-    FileUtils.downloadJson(
-      {
-        exportFormat: "wizard-scoreboard-game",
-        exportVersion: 1,
-        exportedAt: exportedAt.toISOString(),
-        gameState: JSON.parse(JSON.stringify(state))
-      },
-      `wizard-game-${FileUtils.formatFileTimestamp(exportedAt)}.json`
-    );
+    const gameExport = FileUtils.createGameExport(state);
+    FileUtils.downloadJson(gameExport.payload, gameExport.filename);
     showToast("The completed game was exported.");
   }
 

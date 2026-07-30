@@ -198,15 +198,8 @@
     function exportSelected() {
       if (!selectedArchivedGame) return;
 
-      FileUtils.downloadJson(
-        {
-          exportFormat: "wizard-scoreboard-game",
-          exportVersion: 1,
-          exportedAt: new Date().toISOString(),
-          gameState: selectedArchivedGame
-        },
-        `wizard-game-${FileUtils.formatFileTimestamp(new Date())}.json`
-      );
+      const gameExport = FileUtils.createGameExport(selectedArchivedGame);
+      FileUtils.downloadJson(gameExport.payload, gameExport.filename);
       showToast("The game was exported.");
     }
 

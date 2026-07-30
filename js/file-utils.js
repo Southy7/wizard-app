@@ -9,6 +9,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : window, function createFileUtils(root) {
   "use strict";
 
+  const EXPORT_VERSION = 1;
+
   function downloadJson(payload, filename) {
     downloadText(JSON.stringify(payload, null, 2), filename);
   }
@@ -33,7 +35,23 @@
     );
   }
 
+  function createGameExport(gameState, options = {}) {
+    const exportedAt = options.exportedAt ?? new Date();
+
+    return {
+      payload: {
+        exportFormat: "wizard-scoreboard-game",
+        exportVersion: EXPORT_VERSION,
+        exportedAt: exportedAt.toISOString(),
+        ...(options.recoveryReason ? { recoveryReason: options.recoveryReason } : {}),
+        gameState: root.structuredClone(gameState)
+      },
+      filename: `wizard-game-${formatFileTimestamp(exportedAt)}.json`
+    };
+  }
+
   return Object.freeze({
+    createGameExport,
     downloadJson,
     downloadText,
     formatFileTimestamp
