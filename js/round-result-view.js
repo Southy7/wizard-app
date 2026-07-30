@@ -13,6 +13,9 @@
     getPlayerDisplayNameById,
     formatNumber,
     formatSigned,
+    createScorePlayerRow,
+    createScoreBidCell,
+    createScoreTotalCell,
     onEditRound,
     onNextRound,
     onFinishGame
@@ -38,35 +41,29 @@
       const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
       order.forEach((player) => {
         const result = round.playerResults[player.id];
-        const row = document.createElement("div");
-        row.className = "score-row";
-        row.dataset.playerColor = String(getPlayerColorIndex(player.id));
-
-        const name = document.createElement("span");
-        name.className = "score-player";
-        const nameStrong = document.createElement("strong");
-        nameStrong.textContent = getPlayerDisplayNameById(player.id);
-        name.append(nameStrong);
         const isLeader = totals[player.id] === leadingTotal;
-        if (isLeader) {
-          const crown = document.createElement("span");
-          crown.className = "leader-crown";
-          crown.textContent = "👑";
-          crown.setAttribute("aria-label", "Current leader");
-          name.append(crown);
-        }
-
-        const bid = numberCell(
-          result.currentBid,
-          `bid-value${result.currentBid !== result.originalBid ? " changed-bid" : ""}`
-        );
+        const row = createScorePlayerRow({
+          name: getPlayerDisplayNameById(player.id),
+          colorIndex: getPlayerColorIndex(player.id),
+          isLeader,
+          playerCellTag: "span"
+        });
+        const bid = createScoreBidCell({
+          currentBid: result.currentBid,
+          originalBid: result.originalBid,
+          extraClass: "bid-value"
+        });
         const tricks = numberCell(result.tricks, "tricks-value");
         const points = numberCell(
           formatSigned(result.roundPoints),
           `round-points ${result.roundPoints >= 0 ? "positive" : "negative"}`
         );
-        const total = numberCell(formatNumber(totals[player.id]), `total-points${isLeader ? " leader-points" : ""}`);
-        row.append(name, bid, tricks, points, total);
+        const total = createScoreTotalCell({
+          points: totals[player.id],
+          formattedPoints: formatNumber(totals[player.id]),
+          isLeader
+        });
+        row.append(bid, tricks, points, total);
         table.append(row);
       });
       tableWrap.append(table);

@@ -9,7 +9,10 @@
     getCurrentRound,
     getPlayerColorIndex,
     getPlayerDisplayNameById,
-    formatNumber
+    formatNumber,
+    createScorePlayerRow,
+    createScoreBidCell,
+    createScoreTotalCell
   }) {
     function renderRoundOverview(phase) {
       const overviewPanel = elements["game-round-overview"];
@@ -68,44 +71,24 @@
       const order = Logic.getPlayersFromStartingPlayer(state.players, round.startingPlayerId);
       order.forEach((player) => {
         const result = round.playerResults[player.id];
-        const row = document.createElement("div");
-        row.className = "score-row";
-        row.dataset.playerColor = String(getPlayerColorIndex(player.id));
-
-        const nameCell = document.createElement("div");
-        nameCell.className = "score-player-with-badge";
-
-        const name = document.createElement("span");
-        name.className = "score-player-name";
-        name.textContent = getPlayerDisplayNameById(player.id);
-        nameCell.append(name);
-
         const isLeader = showLeaders && totals[player.id] === leadingTotal;
-        if (isLeader) {
-          const crown = document.createElement("span");
-          crown.className = "leader-crown";
-          crown.textContent = "👑";
-          crown.setAttribute("aria-label", "Current leader");
-          nameCell.append(crown);
-        }
+        const row = createScorePlayerRow({
+          name: getPlayerDisplayNameById(player.id),
+          colorIndex: getPlayerColorIndex(player.id),
+          isLeader,
+          badge: player.id === round.startingPlayerId ? createSeatRoleBadge("Starting Player", "starter") : null
+        });
+        const bid = createScoreBidCell({
+          currentBid: result.currentBid,
+          originalBid: result.originalBid
+        });
+        const total = createScoreTotalCell({
+          points: totals[player.id],
+          formattedPoints: formatNumber(totals[player.id]),
+          isLeader
+        });
 
-        if (player.id === round.startingPlayerId) {
-          nameCell.append(createSeatRoleBadge("Starting Player", "starter"));
-        }
-
-        const bid = document.createElement("span");
-        bid.className = `number${result.currentBid !== result.originalBid ? " changed-bid" : ""}`;
-        bid.textContent = String(result.currentBid);
-        if (result.currentBid !== result.originalBid) {
-          bid.title = `Originally ${result.originalBid}`;
-        }
-
-        const total = document.createElement("span");
-        total.className = `number total-points${isLeader ? " leader-points" : ""}`;
-        total.textContent = formatNumber(totals[player.id]);
-        total.setAttribute("aria-label", `${totals[player.id]} total points`);
-
-        row.append(nameCell, bid, total);
+        row.append(bid, total);
         table.append(row);
       });
 

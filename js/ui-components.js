@@ -149,6 +149,50 @@
     return cell;
   }
 
+  function createScorePlayerCell({ name, isLeader = false, badge = null, tagName = "div" }) {
+    const cell = document.createElement(tagName);
+    cell.className = "score-player score-player-with-badge";
+
+    const nameElement = document.createElement("strong");
+    nameElement.className = "score-player-name";
+    nameElement.textContent = name;
+    nameElement.title = name;
+    cell.append(nameElement);
+
+    if (isLeader) {
+      const crown = document.createElement("span");
+      crown.className = "leader-crown";
+      crown.textContent = "👑";
+      crown.setAttribute("aria-label", "Current leader");
+      cell.append(crown);
+    }
+
+    if (badge) cell.append(badge);
+    return cell;
+  }
+
+  function createScorePlayerRow({ name, colorIndex, isLeader = false, badge = null, playerCellTag = "div" }) {
+    const row = document.createElement("div");
+    row.className = "score-row";
+    row.dataset.playerColor = String(colorIndex);
+    row.append(createScorePlayerCell({ name, isLeader, badge, tagName: playerCellTag }));
+    return row;
+  }
+
+  function createScoreBidCell({ currentBid, originalBid, extraClass = "" }) {
+    const changed = currentBid !== originalBid;
+    const classNames = [extraClass, changed ? "changed-bid" : ""].filter(Boolean).join(" ");
+    const cell = numberCell(currentBid, classNames);
+    if (changed) cell.title = `Originally ${originalBid}`;
+    return cell;
+  }
+
+  function createScoreTotalCell({ points, formattedPoints, isLeader = false }) {
+    const cell = numberCell(formattedPoints, `total-points${isLeader ? " leader-points" : ""}`);
+    cell.setAttribute("aria-label", `${points} total points`);
+    return cell;
+  }
+
   function openDialog(dialog) {
     if (!dialog) return;
     if (typeof dialog.showModal === "function") {
@@ -175,6 +219,10 @@
     createSpecialButton,
     createButton,
     numberCell,
+    createScorePlayerCell,
+    createScorePlayerRow,
+    createScoreBidCell,
+    createScoreTotalCell,
     openDialog,
     closeDialog
   });

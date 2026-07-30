@@ -81,6 +81,9 @@
     createSpecialButton,
     createButton,
     numberCell,
+    createScorePlayerRow,
+    createScoreBidCell,
+    createScoreTotalCell,
     openDialog,
     closeDialog
   } = Ui ?? {};
@@ -189,7 +192,10 @@
       getCurrentRound,
       getPlayerColorIndex,
       getPlayerDisplayNameById,
-      formatNumber
+      formatNumber,
+      createScorePlayerRow,
+      createScoreBidCell,
+      createScoreTotalCell
     });
     roundResultView = RoundResultViewModule.createRoundResultView({
       Logic,
@@ -203,6 +209,9 @@
       getPlayerDisplayNameById,
       formatNumber,
       formatSigned,
+      createScorePlayerRow,
+      createScoreBidCell,
+      createScoreTotalCell,
       onEditRound: () => roundController.openEditRoundDialog(),
       onNextRound: () => roundController.goToNextRound(),
       onFinishGame: finishGame
