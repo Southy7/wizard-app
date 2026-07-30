@@ -217,6 +217,9 @@
 .history-table {
   width: 100%;
   min-width: 520px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   border-collapse: separate;
   border-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -224,8 +227,7 @@
 
 .history-table th,
 .history-table td {
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border: 0;
   padding: 10px 12px;
   text-align: center;
   white-space: nowrap;
@@ -234,13 +236,24 @@
 .history-table th:first-child,
 .history-table td:first-child {
   width: 1%;
-  border-left: 1px solid var(--border);
   padding-inline: 8px;
   text-align: center;
 }
 
+.history-table thead tr,
+.history-table tfoot tr {
+  background: var(--surface-strong);
+}
+
 .history-table thead th {
-  border-top: 1px solid var(--border);
+  background: transparent;
+}
+
+.history-table tbody tr:nth-child(odd) {
+  background: var(--surface);
+}
+
+.history-table tbody tr:nth-child(even) {
   background: var(--surface-soft);
 }
 
@@ -269,12 +282,26 @@
 
 .history-table tfoot th,
 .history-table tfoot td {
-  background: var(--surface-soft);
+  background: transparent;
   font-weight: 950;
 }
 
 .history-table tfoot .leader-total {
   color: var(--gold-light);
+}
+
+.history-score-number {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+}
+
+.history-score-sign {
+  text-align: left;
+}
+
+.history-score-sign-placeholder {
+  visibility: hidden;
 }
 
 .history-table tfoot th:first-child {
@@ -316,6 +343,15 @@
   .history-table td:first-child {
     width: 34px;
     padding-inline: 2px;
+    font-size: 0.66rem;
+  }
+
+  .history-table thead th:first-child {
+    font-size: 0;
+  }
+
+  .history-table thead th:first-child::after {
+    content: "Rd.";
     font-size: 0.66rem;
   }
 

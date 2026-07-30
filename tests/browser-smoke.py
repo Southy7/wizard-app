@@ -585,11 +585,29 @@ def main() -> None:
         assert page.locator("#final-score-history .history-table tbody td[data-player-color]").evaluate_all(
             "(cells) => cells.every((cell) => getComputedStyle(cell).backgroundColor === 'rgba(0, 0, 0, 0)')"
         )
+        assert page.locator("#final-score-history .history-table").evaluate(
+            """(table) => {
+              const body = table.tBodies[0];
+              const clone = body.rows[0].cloneNode(true);
+              body.append(clone);
+              const firstBackground = getComputedStyle(body.rows[0]).backgroundColor;
+              const secondBackground = getComputedStyle(body.rows[1]).backgroundColor;
+              clone.remove();
+              return firstBackground !== secondBackground
+                && [...table.querySelectorAll("th, td")].every(
+                  (cell) => getComputedStyle(cell).borderStyle === "none"
+                );
+            }"""
+        )
         history_headers = page.locator("#final-score-history .history-table thead th")
         round_header_box = history_headers.first.bounding_box()
         first_player_header_box = history_headers.nth(1).bounding_box()
         assert round_header_box and first_player_header_box
         assert round_header_box["width"] < first_player_header_box["width"]
+        assert history_headers.first.text_content() == "Round"
+        assert history_headers.first.evaluate(
+            "(header) => getComputedStyle(header, '::after').content"
+        ) == '"Rd."'
         assert page.locator("#final-score-history").evaluate(
             "(container) => container.scrollWidth === container.clientWidth"
         )
@@ -602,6 +620,28 @@ def main() -> None:
         assert page.locator("#final-score-history .history-table tfoot .leader-total").count() == page.locator(
             "#final-ranking .ranking-row[data-rank='1']"
         ).count()
+        assert page.locator(
+            "#final-score-history .history-table tfoot .history-score-sign-placeholder"
+        ).count() > 0
+        assert page.locator("#final-score-history .history-table").evaluate(
+            """(table) => {
+              const positiveRound = [...table.querySelectorAll("tbody td.positive")].find((cell) => {
+                const total = table.tFoot.rows[0].cells[cell.cellIndex];
+                return total.querySelector(".history-score-sign-placeholder");
+              });
+              if (!positiveRound) return false;
+              const column = positiveRound.cellIndex;
+              const total = table.tFoot.rows[0].cells[column];
+              const roundMagnitude = positiveRound.querySelector(".history-score-number > span:last-child");
+              const totalMagnitude = total.querySelector(".history-score-number > span:last-child");
+              const totalSign = total.querySelector(".history-score-sign");
+              return getComputedStyle(totalSign).visibility === "hidden"
+                && Math.abs(
+                  roundMagnitude.getBoundingClientRect().left
+                    - totalMagnitude.getBoundingClientRect().left
+                ) < 0.1;
+            }"""
+        )
 
         page.click("#btn-finished-go-home")
         assert page.locator("#screen-home").is_visible()

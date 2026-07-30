@@ -75,8 +75,8 @@
         const points = Number(round.playerResults?.[player.id]?.roundPoints) || 0;
         const cell = document.createElement("td");
         cell.dataset.playerColor = String(originalIndex + 1);
-        cell.textContent = Formatters.formatSigned(points);
         cell.className = points >= 0 ? "positive" : "negative";
+        cell.append(createHistoryScoreNumber(points, true));
         row.append(cell);
       });
       body.append(row);
@@ -92,7 +92,7 @@
     rankedPlayers.forEach(({ originalIndex, points }) => {
       const cell = document.createElement("td");
       cell.dataset.playerColor = String(originalIndex + 1);
-      cell.textContent = Formatters.formatNumber(points);
+      cell.append(createHistoryScoreNumber(points, false));
       if (points === leadingTotal) cell.classList.add("leader-total");
       totalRow.append(cell);
     });
@@ -100,6 +100,31 @@
 
     table.append(head, body, foot);
     container.append(table);
+  }
+
+  function createHistoryScoreNumber(value, showPositiveSign) {
+    const number = Number(value) || 0;
+    const wrapper = document.createElement("span");
+    wrapper.className = "history-score-number";
+    wrapper.setAttribute(
+      "aria-label",
+      showPositiveSign ? Formatters.formatSigned(number) : Formatters.formatNumber(number)
+    );
+
+    const sign = document.createElement("span");
+    sign.className = "history-score-sign";
+    sign.setAttribute("aria-hidden", "true");
+    sign.textContent = number < 0 ? "\u2212" : "+";
+    if (number === 0 || (!showPositiveSign && number > 0)) {
+      sign.classList.add("history-score-sign-placeholder");
+    }
+
+    const magnitude = document.createElement("span");
+    magnitude.setAttribute("aria-hidden", "true");
+    magnitude.textContent = String(Math.abs(number));
+
+    wrapper.append(sign, magnitude);
+    return wrapper;
   }
 
   function getRankedPlayers(gameState, totals) {
