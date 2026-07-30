@@ -58,6 +58,7 @@
   const Storage = window.WizardStorage;
   const FileUtils = window.WizardFileUtils;
   const Formatters = window.WizardFormatters;
+  const GameStatistics = window.WizardGameStatistics;
   const ResultView = window.WizardResultView;
   const HistoryControllerModule = window.WizardHistoryController;
   const ImportControllerModule = window.WizardImportController;
@@ -90,6 +91,7 @@
     !Storage ||
     !FileUtils ||
     !Formatters ||
+    !GameStatistics ||
     !ResultView ||
     !ImportControllerModule ||
     !PersistenceControllerModule ||
@@ -330,6 +332,8 @@
       "btn-history-export-damaged",
       "btn-history-reset-damaged",
       "final-ranking",
+      "final-game-highlights",
+      "final-player-statistics",
       "final-score-history",
       "final-score-progress",
       "btn-review-last-round",
@@ -609,6 +613,12 @@
     const totals = Logic.calculateTotalPoints(completedRounds, state.players);
 
     ResultView.renderRanking(elements["final-ranking"], state, totals);
+    ResultView.renderGameStatistics(
+      elements["final-game-highlights"],
+      elements["final-player-statistics"],
+      completedRounds,
+      state
+    );
     ResultView.renderScoreHistory(elements["final-score-history"], completedRounds, totals, state);
     ResultView.renderScoreProgress(elements["final-score-progress"], completedRounds, state);
   }

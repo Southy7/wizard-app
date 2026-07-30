@@ -167,6 +167,175 @@
   font-size: 1.35rem;
 }
 
+.game-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(42px, 0.58fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.game-highlight-card {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 12px 10px 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.game-highlight-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--player-color, var(--gold-light));
+  content: "";
+}
+
+.game-highlight-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.game-highlight-result {
+  min-width: 0;
+  display: flex;
+  align-self: center;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.game-highlight-player {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--player-color);
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-highlight-separator {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.game-highlight-card strong {
+  flex: 0 0 auto;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.game-highlight-card-special {
+  min-height: 60px;
+  align-self: center;
+  grid-template-rows: auto 1fr;
+  padding-inline: 7px;
+  text-align: center;
+}
+
+.game-highlight-card-special::before {
+  background: #ffffff;
+}
+
+.game-highlight-card-special strong {
+  align-self: center;
+  color: #ffffff;
+  font-size: 1.15rem;
+}
+
+.player-statistics-section {
+  padding-block: 0;
+}
+
+.player-statistics-section summary {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: clamp(16px, 4vw, 24px);
+  font-size: 1.08rem;
+  font-weight: 850;
+  cursor: pointer;
+  list-style: none;
+}
+
+.player-statistics-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.player-statistics-section summary::after {
+  color: var(--muted);
+  content: "\2304";
+  font-size: 1.2rem;
+  transition: transform 160ms ease;
+}
+
+.player-statistics-section[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.player-statistics-grid {
+  display: grid;
+  gap: 12px;
+  padding-bottom: clamp(16px, 4vw, 24px);
+}
+
+.player-statistics-card {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--player-color);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.player-statistics-card h4 {
+  margin: 0 0 11px;
+  color: var(--text);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.player-statistics-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 12px;
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.player-statistics-list dt {
+  min-width: 0;
+  color: var(--muted);
+}
+
+.player-statistics-list dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 400;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.player-statistics-list dd.player-statistics-best {
+  color: var(--gold-light);
+}
+
 .ranking-row {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) auto;
@@ -445,5 +614,66 @@
 
   .score-progress-legend-item {
     font-size: 0.72rem;
+  }
+
+  .game-highlights-grid {
+    gap: 7px;
+  }
+
+  .game-highlight-card {
+    min-height: 62px;
+    gap: 2px;
+    padding: 10px 6px 7px;
+  }
+
+  .game-highlight-label {
+    font-size: 0;
+  }
+
+  .game-highlight-label::after {
+    content: attr(data-short-label);
+    font-size: 0.61rem;
+    line-height: 1.15;
+  }
+
+  .game-highlight-player {
+    font-size: 0.62rem;
+  }
+
+  .game-highlight-result {
+    gap: 3px;
+  }
+
+  .game-highlight-separator {
+    font-size: 0.66rem;
+  }
+
+  .game-highlight-result strong {
+    font-size: 0;
+  }
+
+  .game-highlight-result strong::after {
+    content: attr(data-short-value);
+    font-size: 0.66rem;
+  }
+
+  .game-highlight-card-special {
+    min-height: 50px;
+    padding-inline: 4px;
+    text-align: center;
+  }
+
+  .game-highlight-card-special .game-highlight-label::after {
+    font-size: 0.58rem;
+  }
+
+  .game-highlight-card-special strong {
+    font-size: 0.92rem;
+  }
+}
+
+@media (min-width: 680px) {
+  .player-statistics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

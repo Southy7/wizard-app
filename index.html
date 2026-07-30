@@ -46,6 +46,7 @@
     <script defer src="js/ui-components.js"></script>
     <script defer src="js/file-utils.js"></script>
     <script defer src="js/formatters.js"></script>
+    <script defer src="js/game-statistics.js"></script>
     <script defer src="js/result-view.js"></script>
     <script defer src="js/persistence-controller.js"></script>
     <script defer src="js/setup-controller.js"></script>
@@ -314,6 +315,16 @@
             <h2 id="finished-title" tabindex="-1">Final Result</h2>
             <div id="final-ranking" class="ranking-list" aria-label="Final standings"></div>
           </section>
+
+          <section class="panel" aria-labelledby="game-highlights-title">
+            <h3 id="game-highlights-title">Game Highlights</h3>
+            <div id="final-game-highlights" class="game-highlights-grid"></div>
+          </section>
+
+          <details class="panel player-statistics-section">
+            <summary>Player Statistics</summary>
+            <div id="final-player-statistics" class="player-statistics-grid"></div>
+          </details>
 
           <section class="panel" aria-labelledby="history-title">
             <h3 id="history-title">Score History</h3>

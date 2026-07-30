@@ -2,6 +2,7 @@
   "use strict";
 
   const Formatters = root.WizardFormatters;
+  const Statistics = root.WizardGameStatistics;
   const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
   function renderRanking(container, gameState, totals) {
@@ -257,6 +258,195 @@
     container.append(svg, legend);
   }
 
+  function renderGameStatistics(highlightsContainer, playersContainer, completedRounds, gameState) {
+    const statistics = Statistics.calculate(completedRounds, gameState.players);
+    const { highlights } = statistics;
+
+    highlightsContainer.replaceChildren(
+      createHighlightCard(
+        "Best Bid Accuracy",
+        "Accuracy",
+        formatPercentage(highlights.bestAccuracy.accuracy),
+        formatPercentage(highlights.bestAccuracy.accuracy),
+        gameState,
+        highlights.bestAccuracy
+      ),
+      createHighlightCard(
+        "Best Round",
+        "Best Round",
+        Formatters.formatSigned(highlights.bestRound.bestRound.points),
+        Formatters.formatSigned(highlights.bestRound.bestRound.points),
+        gameState,
+        highlights.bestRound
+      ),
+      createHighlightCard(
+        "Biggest Comeback",
+        "Comeback",
+        `+${highlights.biggestComeback.comebackPlaces} ${pluralize(
+          highlights.biggestComeback.comebackPlaces,
+          "Place"
+        )}`,
+        `+${highlights.biggestComeback.comebackPlaces}`,
+        gameState,
+        highlights.biggestComeback
+      ),
+      createHighlightCard("Bomb", "Bomb", String(statistics.specialCards.bombs), String(statistics.specialCards.bombs)),
+      createHighlightCard(
+        "Most Rounds Led",
+        "Most Led",
+        `${highlights.mostRoundsLed.roundsLed} ${pluralize(highlights.mostRoundsLed.roundsLed, "Round")}`,
+        String(highlights.mostRoundsLed.roundsLed),
+        gameState,
+        highlights.mostRoundsLed
+      ),
+      createHighlightCard(
+        "Longest Streak",
+        "Streak",
+        `${highlights.longestStreak.bestStreak} ${pluralize(highlights.longestStreak.bestStreak, "Round")}`,
+        String(highlights.longestStreak.bestStreak),
+        gameState,
+        highlights.longestStreak
+      ),
+      createHighlightCard(
+        "Successful Zero Bids",
+        "Successful Zero Bids",
+        String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
+        String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
+        gameState,
+        highlights.mostSuccessfulZeroBids
+      ),
+      createHighlightCard(
+        "Cloud",
+        "Cloud",
+        String(statistics.specialCards.clouds),
+        String(statistics.specialCards.clouds)
+      )
+    );
+
+    playersContainer.replaceChildren();
+    const categoryLeaders = {
+      accuracy: highlights.bestAccuracy.player.id,
+      bestRound: highlights.bestRound.player.id,
+      worstRound: getCategoryLeader(statistics.players, (playerStats) => playerStats.worstRound.points).player.id,
+      averagePoints: getCategoryLeader(statistics.players, (playerStats) => playerStats.averagePoints).player.id,
+      bestStreak: highlights.longestStreak.player.id
+    };
+    const rankedPlayerStatistics = [...statistics.players].sort(
+      (left, right) => left.finalRank - right.finalRank || left.originalIndex - right.originalIndex
+    );
+    rankedPlayerStatistics.forEach((playerStats) => {
+      const card = document.createElement("article");
+      card.className = "player-statistics-card";
+      card.dataset.playerColor = String(playerStats.originalIndex + 1);
+
+      const title = document.createElement("h4");
+      title.textContent = getStatsPlayerName(gameState, playerStats);
+      const list = document.createElement("dl");
+      list.className = "player-statistics-list";
+      appendStatistic(
+        list,
+        "Bid Accuracy",
+        `${playerStats.hitCount}/${statistics.roundCount} \u00b7 ${formatPercentage(playerStats.accuracy)}`,
+        playerStats.player.id === categoryLeaders.accuracy
+      );
+      appendStatistic(
+        list,
+        "Best Round",
+        `Round ${playerStats.bestRound.roundNumber} \u00b7 ${Formatters.formatSigned(playerStats.bestRound.points)}`,
+        playerStats.player.id === categoryLeaders.bestRound
+      );
+      appendStatistic(
+        list,
+        "Worst Round",
+        `Round ${playerStats.worstRound.roundNumber} \u00b7 ${Formatters.formatSigned(playerStats.worstRound.points)}`,
+        playerStats.player.id === categoryLeaders.worstRound
+      );
+      appendStatistic(
+        list,
+        "Avg Points/Round",
+        Formatters.formatSigned(Math.round(playerStats.averagePoints)),
+        playerStats.player.id === categoryLeaders.averagePoints
+      );
+      appendStatistic(
+        list,
+        "Best Streak",
+        `${playerStats.bestStreak} ${pluralize(playerStats.bestStreak, "Round")}`,
+        playerStats.player.id === categoryLeaders.bestStreak
+      );
+      card.append(title, list);
+      playersContainer.append(card);
+    });
+  }
+
+  function createHighlightCard(label, shortLabel, value, shortValue, gameState, playerStats) {
+    const card = document.createElement("article");
+    card.className = "game-highlight-card";
+    if (playerStats) {
+      card.dataset.playerColor = String(playerStats.originalIndex + 1);
+    } else {
+      card.classList.add("game-highlight-card-special");
+    }
+
+    const caption = document.createElement("span");
+    caption.className = "game-highlight-label";
+    caption.textContent = label;
+    caption.dataset.shortLabel = shortLabel;
+
+    if (playerStats) {
+      const result = document.createElement("div");
+      result.className = "game-highlight-result";
+
+      const player = document.createElement("span");
+      player.className = "game-highlight-player";
+      player.textContent = getStatsPlayerName(gameState, playerStats);
+      player.title = player.textContent;
+
+      const separator = document.createElement("span");
+      separator.className = "game-highlight-separator";
+      separator.setAttribute("aria-hidden", "true");
+      separator.textContent = "\u00b7";
+
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      strong.dataset.shortValue = shortValue;
+
+      result.append(player, separator, strong);
+      card.append(caption, result);
+    } else {
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      card.append(caption, strong);
+    }
+    return card;
+  }
+
+  function appendStatistic(list, label, value, isCategoryBest = false) {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const description = document.createElement("dd");
+    description.textContent = value;
+    description.classList.toggle("player-statistics-best", isCategoryBest);
+    list.append(term, description);
+  }
+
+  function getCategoryLeader(playerStatistics, getValue) {
+    return playerStatistics.reduce((leader, playerStats) =>
+      getValue(playerStats) > getValue(leader) ? playerStats : leader
+    );
+  }
+
+  function getStatsPlayerName(gameState, playerStats) {
+    return Formatters.getPlayerDisplayName(gameState, playerStats.player.id, playerStats.originalIndex);
+  }
+
+  function formatPercentage(value) {
+    return `${Math.round(value)} %`;
+  }
+
+  function pluralize(value, word) {
+    return value === 1 ? word : `${word}s`;
+  }
+
   function getScoreProgressScale(values) {
     const rawMinimum = Math.min(0, ...values);
     const rawMaximum = Math.max(0, ...values);
@@ -298,6 +488,7 @@
   root.WizardResultView = Object.freeze({
     renderRanking,
     renderScoreHistory,
-    renderScoreProgress
+    renderScoreProgress,
+    renderGameStatistics
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);

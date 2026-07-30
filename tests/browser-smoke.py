@@ -50,6 +50,7 @@ def build_inline_document() -> str:
         '<script defer src="js/ui-components.js"></script>',
         '<script defer src="js/file-utils.js"></script>',
         '<script defer src="js/formatters.js"></script>',
+        '<script defer src="js/game-statistics.js"></script>',
         '<script defer src="js/result-view.js"></script>',
         '<script defer src="js/persistence-controller.js"></script>',
         '<script defer src="js/setup-controller.js"></script>',
@@ -74,6 +75,7 @@ def main() -> None:
         (ROOT / "js/ui-components.js").read_text(encoding="utf-8"),
         (ROOT / "js/file-utils.js").read_text(encoding="utf-8"),
         (ROOT / "js/formatters.js").read_text(encoding="utf-8"),
+        (ROOT / "js/game-statistics.js").read_text(encoding="utf-8"),
         (ROOT / "js/result-view.js").read_text(encoding="utf-8"),
         (ROOT / "js/persistence-controller.js").read_text(encoding="utf-8"),
         (ROOT / "js/setup-controller.js").read_text(encoding="utf-8"),
@@ -560,6 +562,87 @@ def main() -> None:
         ).evaluate_all(
             "(elements) => elements.every((element) => getComputedStyle(element).color === 'rgb(251, 217, 109)')"
         )
+        assert page.locator("#final-game-highlights .game-highlight-card").count() == 8
+        assert page.locator("#final-game-highlights .game-highlight-label").all_text_contents() == [
+            "Best Bid Accuracy",
+            "Best Round",
+            "Biggest Comeback",
+            "Bomb",
+            "Most Rounds Led",
+            "Longest Streak",
+            "Successful Zero Bids",
+            "Cloud",
+        ]
+        assert page.locator("#final-game-highlights").evaluate(
+            """(grid) => {
+              const cards = [...grid.children];
+              const firstRowTop = cards[0].getBoundingClientRect().top;
+              const secondRowTop = cards[4].getBoundingClientRect().top;
+              return cards.slice(0, 3).every((card) => card.getBoundingClientRect().top === firstRowTop)
+                && cards.slice(4, 7).every((card) => card.getBoundingClientRect().top === secondRowTop)
+                && cards[3].getBoundingClientRect().top >= firstRowTop
+                && cards[3].getBoundingClientRect().bottom <= cards[0].getBoundingClientRect().bottom
+                && cards[7].getBoundingClientRect().top >= secondRowTop
+                && cards[7].getBoundingClientRect().bottom <= cards[4].getBoundingClientRect().bottom
+                && secondRowTop > firstRowTop;
+            }"""
+        )
+        assert page.locator("#final-game-highlights .game-highlight-card[data-player-color]").count() == 6
+        assert page.locator("#final-game-highlights").evaluate(
+            """(grid) => {
+              const cards = [...grid.children].map((card) => card.getBoundingClientRect());
+              const sameWidth = (indexes) =>
+                indexes.every((index) => Math.abs(cards[index].width - cards[indexes[0]].width) < 1);
+              return sameWidth([0, 1, 2, 4, 5, 6])
+                && cards[3].width < cards[0].width
+                && Math.abs(cards[3].width - cards[7].width) < 1;
+            }"""
+        )
+        assert page.locator("#final-game-highlights .game-highlight-result").evaluate_all(
+            "(results) => results.every((result) => getComputedStyle(result).whiteSpace === 'nowrap')"
+        )
+        player_statistics = page.locator(".player-statistics-section")
+        assert player_statistics.get_attribute("open") is None
+        player_statistics.locator("summary").click()
+        assert player_statistics.get_attribute("open") is not None
+        assert page.locator("#final-player-statistics .player-statistics-card").count() == 3
+        assert page.locator("#final-player-statistics .player-statistics-card h4").all_text_contents() == (
+            page.locator("#final-ranking .ranking-name").all_text_contents()
+        )
+        assert page.locator("#final-player-statistics .player-statistics-card").evaluate_all(
+            """(cards) => cards.every((card) => {
+              const labels = [...card.querySelectorAll("dt")].map((term) => term.textContent);
+              const values = [...card.querySelectorAll("dd")];
+              return labels.join("|") === "Bid Accuracy|Best Round|Worst Round|Avg Points/Round|Best Streak"
+                && values.length === 5
+                && /^\\d+\\/\\d+ · \\d+ %$/.test(values[0].textContent)
+                && /^Round \\d+ · [+\u2212]?\\d+$/.test(values[1].textContent)
+                && /^Round \\d+ · [+\u2212]?\\d+$/.test(values[2].textContent)
+                && /^[+\u2212]?\\d+$/.test(values[3].textContent)
+                && getComputedStyle(values[0]).fontWeight === "400";
+            })"""
+        )
+        assert page.locator("#final-player-statistics").evaluate(
+            """(container) => [0, 1, 2, 3, 4].every((metricIndex) => {
+              const values = [...container.querySelectorAll(".player-statistics-card")]
+                .map((card) => card.querySelectorAll("dd")[metricIndex]);
+              return values.filter(
+                (value) => getComputedStyle(value).color === "rgb(251, 217, 109)"
+              ).length === 1;
+            })"""
+        )
+        special_card_counts = page.evaluate(
+            """(() => {
+              const state = WizardStorage.loadGame();
+              const rounds = state.rounds.filter((round) => round.completed);
+              return WizardGameStatistics.calculate(rounds, state.players).specialCards;
+            })()"""
+        )
+        assert page.locator("#final-game-highlights .game-highlight-card-special > strong").all_text_contents() == [
+            str(special_card_counts["bombs"]),
+            str(special_card_counts["clouds"]),
+        ]
+        assert page.evaluate("document.documentElement.scrollWidth") == 390
         assert page.locator("#btn-finished-home").count() == 0
         assert page.locator(".final-ranking-panel > #finished-title").text_content().strip() == "Final Result"
         assert page.locator("#btn-finished-export-game").text_content().strip() == "Export Game"
