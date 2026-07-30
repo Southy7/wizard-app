@@ -187,6 +187,7 @@
     });
     roundResultView = RoundResultViewModule.createRoundResultView({
       Logic,
+      ResultView,
       elements,
       createPanel,
       createButton,

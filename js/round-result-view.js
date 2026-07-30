@@ -3,6 +3,7 @@
 
   function createRoundResultView({
     Logic,
+    ResultView,
     elements,
     createPanel,
     createButton,
@@ -83,7 +84,28 @@
         )
       );
 
-      panel.append(tableWrap, actions);
+      panel.append(tableWrap);
+      if (round.number >= 2) {
+        const progressSection = document.createElement("section");
+        progressSection.className = "round-result-progress";
+        progressSection.setAttribute("aria-labelledby", "round-result-score-progress-title");
+
+        const progressTitle = document.createElement("h4");
+        progressTitle.id = "round-result-score-progress-title";
+        progressTitle.textContent = "Score Progress";
+
+        const progressChart = document.createElement("div");
+        progressChart.id = "round-result-score-progress";
+        progressChart.className = "score-progress-chart";
+        const completedRounds = state.rounds
+          .filter((completedRound) => completedRound.completed && completedRound.number <= round.number)
+          .sort((left, right) => left.number - right.number);
+        ResultView.renderScoreProgress(progressChart, completedRounds, state);
+
+        progressSection.append(progressTitle, progressChart);
+        panel.append(progressSection);
+      }
+      panel.append(actions);
       elements["game-content"].replaceChildren(panel);
     }
 

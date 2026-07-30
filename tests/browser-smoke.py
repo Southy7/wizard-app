@@ -524,6 +524,7 @@ def main() -> None:
         assert "Edit Round" in page.locator("#game-help-dialog").text_content()
         page.click("#btn-close-game-help-dialog")
         assert page.locator("#game-content h3").all_text_contents() == ["Round Result"]
+        assert page.locator("#round-result-score-progress").count() == 0
         assert page.locator(".round-result-panel .leader-crown").count() >= 1
         assert page.locator(".round-result-panel .leader-points").count() == page.locator(
             ".round-result-panel .leader-crown"

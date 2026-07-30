@@ -22,11 +22,19 @@ def main():
         start_game(page, rounds=2)
 
         complete_round(page, (1, 0, 0))
+        assert page.locator("#round-result-score-progress").count() == 0
         page.get_by_role("button", name="Next Round").click()
         assert_persisted(page)
         assert page.locator("#game-title").text_content() == "Round 2 of 2"
 
         complete_round(page, (2, 0, 0))
+        assert page.locator("#round-result-score-progress .score-progress-line").count() == 3
+        assert page.locator("#round-result-score-progress .score-progress-line").evaluate_all(
+            "(lines) => lines.every((line) => line.getAttribute('points').split(' ').length === 3)"
+        )
+        assert page.locator("#round-result-score-progress").evaluate(
+            "(chart) => chart.scrollWidth === chart.clientWidth"
+        )
         page.get_by_role("button", name="Edit Round").click()
         page.click("#btn-edit-tricks")
         assert_persisted(page)
@@ -39,6 +47,8 @@ def main():
         assert_persisted(page)
         page.get_by_role("button", name="Complete Round").click()
         assert_persisted(page)
+        assert page.locator("#round-result-score-progress").count() == 1
+        assert page.locator("#round-result-score-progress .score-progress-line").count() == 3
 
         saved = page.evaluate(
             """
