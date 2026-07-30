@@ -319,6 +319,8 @@
       "history-detail-view",
       "btn-history-list-back",
       "history-detail-ranking",
+      "history-game-highlights",
+      "history-player-statistics",
       "history-score-content",
       "history-score-progress",
       "btn-history-export-all",

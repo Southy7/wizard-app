@@ -120,8 +120,19 @@
       const totals = Logic.calculateTotalPoints(completedRounds, gameState.players);
 
       ResultView.renderRanking(elements["history-detail-ranking"], gameState, totals);
+      ResultView.renderGameStatistics(
+        elements["history-game-highlights"],
+        elements["history-player-statistics"],
+        completedRounds,
+        gameState
+      );
       ResultView.renderScoreHistory(elements["history-score-content"], completedRounds, totals, gameState);
       ResultView.renderScoreProgress(elements["history-score-progress"], completedRounds, gameState);
+      [
+        elements["history-player-statistics"],
+        elements["history-score-content"],
+        elements["history-score-progress"]
+      ].forEach((container) => container.closest("details")?.removeAttribute("open"));
       elements["history-list-view"].hidden = true;
       elements["history-detail-view"].hidden = false;
       elements["history-recovery-view"].hidden = true;

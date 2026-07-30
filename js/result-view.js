@@ -309,7 +309,7 @@
       ),
       createHighlightCard(
         "Successful Zero Bids",
-        "Successful Zero Bids",
+        "Zero Bids",
         String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
         String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
         gameState,

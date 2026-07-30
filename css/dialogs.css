@@ -120,6 +120,14 @@
   background: var(--surface-soft);
 }
 
+.special-card-reference.wizard-reference {
+  --card-accent: #4f8fe8;
+}
+
+.special-card-reference.fool-reference {
+  --card-accent: #9aa6b2;
+}
+
 .special-card-reference.shapeshifter-reference {
   --card-accent: #a782d4;
 }

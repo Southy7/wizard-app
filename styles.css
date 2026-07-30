@@ -107,12 +107,12 @@ select:focus-visible {
 }
 
 [data-player-color="4"] {
-  --player-color: #d89a00;
-  --player-color-contrast: #17211f;
+  --player-color: #8458cf;
 }
 
 [data-player-color="5"] {
-  --player-color: #8458cf;
+  --player-color: #a8c936;
+  --player-color-contrast: #17211f;
 }
 
 [data-player-color="6"] {

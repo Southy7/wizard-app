@@ -303,10 +303,27 @@ def main() -> None:
             title.strip()
             for title in page.locator(".special-card-reference h3").all_text_contents()
         ] == [
-            "Shapeshifter", "Dragon", "Fairy", "Bomb", "Werewolf",
-            "Juggler", "Cloud", "Witch", "Vampire", "The Dark Eye"
+            "Wizard", "Fool", "Shapeshifter", "Dragon", "Fairy", "Bomb",
+            "Werewolf", "Juggler", "Cloud", "Witch", "Vampire", "The Dark Eye"
         ]
         assert page.locator(".special-card-reference", has_text="Tip").count() == 0
+        wizard_text = " ".join(page.locator(".wizard-reference").text_content().split())
+        fool_text = " ".join(page.locator(".fool-reference").text_content().split())
+        assert "a suit card played later does not create a follow-suit requirement" in wizard_text
+        assert "the first suit card played afterwards determines the suit" in fool_text
+        for card_class in [
+            "dragon-reference",
+            "fairy-reference",
+            "bomb-reference",
+            "witch-reference",
+            "vampire-reference",
+            "dark-eye-reference",
+        ]:
+            assert page.locator(f".{card_class}", has_text="Leading a trick").count() == 0
+        assert page.locator(".juggler-reference", has_text="Leading a trick").count() == 1
+        assert page.locator(".cloud-reference", has_text="Leading a trick").count() == 1
+        vampire_reference_text = " ".join(page.locator(".vampire-reference").text_content().split())
+        assert "becomes the new trump card" in vampire_reference_text
         page.click("#btn-close-special-cards-dialog")
         assert page.locator("#special-cards-dialog").is_hidden()
 
@@ -573,6 +590,9 @@ def main() -> None:
             "Successful Zero Bids",
             "Cloud",
         ]
+        assert page.locator("#final-game-highlights .game-highlight-label").nth(6).get_attribute(
+            "data-short-label"
+        ) == "Zero Bids"
         assert page.locator("#final-game-highlights").evaluate(
             """(grid) => {
               const cards = [...grid.children];
@@ -809,6 +829,25 @@ def main() -> None:
         ).evaluate_all(
             "(elements) => elements.every((element) => getComputedStyle(element).color === 'rgb(251, 217, 109)')"
         )
+        assert page.locator("#history-game-highlights .game-highlight-card").count() == 8
+        assert page.locator("#history-game-highlights").text_content() == page.locator(
+            "#final-game-highlights"
+        ).text_content()
+        history_player_statistics = page.locator(".history-player-statistics-section")
+        history_score_details = page.locator(".history-score-history-section")
+        history_progress_details = page.locator(".history-score-progress-section")
+        assert history_player_statistics.get_attribute("open") is None
+        assert history_score_details.get_attribute("open") is None
+        assert history_progress_details.get_attribute("open") is None
+        history_player_statistics.locator("summary").click()
+        history_score_details.locator("summary").click()
+        history_progress_details.locator("summary").click()
+        assert page.locator("#history-player-statistics .player-statistics-card h4").all_text_contents() == (
+            page.locator("#history-detail-ranking .ranking-name").all_text_contents()
+        )
+        assert page.locator("#history-player-statistics").text_content() == page.locator(
+            "#final-player-statistics"
+        ).text_content()
         detail_action_boxes = page.locator(".history-detail-actions .button").evaluate_all(
             "(buttons) => buttons.map((button) => button.getBoundingClientRect().toJSON())"
         )

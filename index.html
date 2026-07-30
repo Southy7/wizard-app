@@ -290,15 +290,25 @@
               <div id="history-detail-ranking" class="ranking-list" aria-label="Final standings"></div>
             </section>
 
-            <section class="panel" aria-labelledby="history-score-title">
-              <h3 id="history-score-title">Score History</h3>
-              <div id="history-score-content" class="history-scroll"></div>
+            <section class="panel" aria-labelledby="history-game-highlights-title">
+              <h3 id="history-game-highlights-title">Game Highlights</h3>
+              <div id="history-game-highlights" class="game-highlights-grid"></div>
             </section>
 
-            <section class="panel" aria-labelledby="history-score-progress-title">
-              <h3 id="history-score-progress-title">Score Progress</h3>
-              <div id="history-score-progress" class="score-progress-chart"></div>
-            </section>
+            <details class="panel final-result-details-section history-player-statistics-section">
+              <summary>Player Statistics</summary>
+              <div id="history-player-statistics" class="player-statistics-grid"></div>
+            </details>
+
+            <details class="panel final-result-details-section history-score-history-section">
+              <summary>Score History</summary>
+              <div id="history-score-content" class="history-scroll final-result-details-content"></div>
+            </details>
+
+            <details class="panel final-result-details-section history-score-progress-section">
+              <summary>Score Progress</summary>
+              <div id="history-score-progress" class="score-progress-chart final-result-details-content"></div>
+            </details>
 
             <div class="round-actions history-detail-actions">
               <button id="btn-history-export-game" class="button button-secondary" type="button">Export Game</button>
@@ -388,6 +398,63 @@
         </p>
 
         <div class="special-card-reference-list">
+          <article class="special-card-reference wizard-reference" aria-labelledby="wizard-reference-title">
+            <h3 id="wizard-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m12 3 1.3 5.7L19 10l-5.7 1.3L12 17l-1.3-5.7L5 10l5.7-1.3L12 3Z" />
+                  <path d="m18 16 .6 2.4L21 19l-2.4.6L18 22l-.6-2.4L15 19l2.4-.6L18 16Z" />
+                </svg>
+              </span>
+              Wizard
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>A Wizard wins the trick. If several Wizards are played, the first one wins.</dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>
+                  No suit is led. Every following player may play any card, and a suit card played later does not create
+                  a follow-suit requirement. The first Wizard wins the trick.
+                </dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>The dealer chooses the trump suit.</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="special-card-reference fool-reference" aria-labelledby="fool-reference-title">
+            <h3 id="fool-reference-title">
+              <span class="special-card-reference-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 16h14l-2-8-5 4-5-4-2 8Z" />
+                  <path d="M7 8 5 4m10 4 2-4M5 4h3m8 0h3M6 19h12" />
+                </svg>
+              </span>
+              Fool
+            </h3>
+            <dl>
+              <div>
+                <dt>Effect</dt>
+                <dd>A Fool normally loses the trick. If only Fools are played, the first Fool wins.</dd>
+              </div>
+              <div>
+                <dt>Leading a trick</dt>
+                <dd>
+                  If a Fool leads, the first suit card played afterwards determines the suit that must be followed.
+                </dd>
+              </div>
+              <div>
+                <dt>Trump revealed</dt>
+                <dd>There is no trump suit this round.</dd>
+              </div>
+            </dl>
+          </article>
+
           <article class="special-card-reference shapeshifter-reference" aria-labelledby="shapeshifter-reference-title">
             <h3 id="shapeshifter-reference-title">
               <span class="special-card-reference-icon" aria-hidden="true">
@@ -430,10 +497,6 @@
                 </dd>
               </div>
               <div>
-                <dt>Leading a trick</dt>
-                <dd>Use the same follow-suit rules as for a Wizard.</dd>
-              </div>
-              <div>
                 <dt>Trump revealed</dt>
                 <dd>The dealer chooses the trump suit.</dd>
               </div>
@@ -456,10 +519,6 @@
                 <dd>The lowest card, below a Fool. If the Fairy and Dragon share a trick, the Fairy wins it.</dd>
               </div>
               <div>
-                <dt>Leading a trick</dt>
-                <dd>Use the same follow-suit rules as for a Fool.</dd>
-              </div>
-              <div>
                 <dt>Trump revealed</dt>
                 <dd>There is no trump suit this round.</dd>
               </div>
@@ -480,10 +539,6 @@
               <div>
                 <dt>Effect</dt>
                 <dd>Nobody wins the trick and it counts toward no bid. Whoever would have won leads the next trick.</dd>
-              </div>
-              <div>
-                <dt>Leading a trick</dt>
-                <dd>Use the same follow-suit rules as for a Fool.</dd>
               </div>
               <div>
                 <dt>Trump revealed</dt>
@@ -594,10 +649,6 @@
                 </dd>
               </div>
               <div>
-                <dt>Leading a trick</dt>
-                <dd>Use the same follow-suit rules as for a Fool.</dd>
-              </div>
-              <div>
                 <dt>Trump revealed</dt>
                 <dd>There is no trump suit this round.</dd>
               </div>
@@ -618,13 +669,10 @@
               <div>
                 <dt>Effect</dt>
                 <dd>
-                  Copies the revealed trump card and all its effects. If that card is the Werewolf, reveal another card
-                  and copy that instead.
+                  Copies the revealed trump card and all its effects. If that card is the Werewolf, reveal another card.
+                  The Vampire copies the newly revealed card and all its effects, and that card becomes the new trump
+                  card.
                 </dd>
-              </div>
-              <div>
-                <dt>Leading a trick</dt>
-                <dd>Use the follow-suit rules of the copied card.</dd>
               </div>
               <div>
                 <dt>Trump revealed</dt>
@@ -648,10 +696,6 @@
               <div>
                 <dt>Effect</dt>
                 <dd>Set it aside, draw three cards, choose one to play, and return the other two face down.</dd>
-              </div>
-              <div>
-                <dt>Leading a trick</dt>
-                <dd>The chosen card becomes the lead card and follows its normal rules.</dd>
               </div>
               <div>
                 <dt>Trump revealed</dt>
