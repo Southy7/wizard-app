@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 
 require("../js/import-controller.js");
 const ImportController = global.WizardImportController;
+const Constants = require("../js/constants.js");
 
 function createHarness(overrides = {}) {
   const listeners = {};
@@ -64,6 +65,7 @@ function createHarness(overrides = {}) {
     ...overrides.Logic
   };
   const controller = ImportController.createImportController({
+    Constants,
     Storage,
     Logic,
     elements,

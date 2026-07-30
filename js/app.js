@@ -53,6 +53,7 @@
     }
   });
 
+  const Constants = window.WizardConstants;
   const Logic = window.WizardGameLogic;
   const StateManager = window.WizardStateManager;
   const Storage = window.WizardStorage;
@@ -71,6 +72,8 @@
   const Ui = window.WizardUiComponents;
   const cloneState = StateManager?.cloneState;
   const normalizeSpecialDependencies = StateManager?.normalizeSpecialDependencies;
+  const GAME_STATUS = Constants?.GAME_STATUS;
+  const ROUND_PHASE = Constants?.ROUND_PHASE;
   const formatNumber = Formatters?.formatNumber;
   const formatSigned = Formatters?.formatSigned;
   const {
@@ -89,6 +92,7 @@
   } = Ui ?? {};
 
   if (
+    !Constants ||
     !Logic ||
     !StateManager ||
     !Storage ||
@@ -145,6 +149,7 @@
     historyController = historyAvailable
       ? HistoryControllerModule.createHistoryController({
           Storage,
+          Constants,
           Logic,
           StateManager,
           ResultView,
@@ -160,6 +165,7 @@
       : createUnavailableHistoryController();
     importController = ImportControllerModule.createImportController({
       Storage,
+      Constants,
       Logic,
       elements: importElements,
       historyController,
@@ -173,6 +179,7 @@
     });
     setupController = SetupControllerModule.createSetupController({
       Logic,
+      Constants,
       elements: setupElements,
       createSeatRoleBadge,
       getState: () => state,
@@ -193,6 +200,7 @@
       getPlayerColorIndex,
       getPlayerDisplayNameById,
       formatNumber,
+      ROUND_PHASE,
       createScorePlayerRow,
       createScoreBidCell,
       createScoreTotalCell
@@ -224,6 +232,7 @@
     });
     const controllerServices = Object.freeze({
       Logic,
+      Constants,
       persistence: Object.freeze({ persistState })
     });
     roundController = RoundControllerModule.createRoundController({
@@ -369,7 +378,7 @@
       if (!shouldReplace) return;
     }
 
-    if (hasUnsavedMemoryGame && state?.status === "completed") {
+    if (hasUnsavedMemoryGame && state?.status === GAME_STATUS.COMPLETED) {
       updateStorageWarning(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
       showToast(UNARCHIVED_GAME_REPLACEMENT_MESSAGE);
       return;
@@ -414,14 +423,14 @@
       stateIsPersisted = persistState();
     }
 
-    if (state.status === "completed") {
+    if (state.status === GAME_STATUS.COMPLETED) {
       if (stateIsPersisted) ensureCompletedGameArchived(state);
       renderFinished();
       showScreen("finished");
       return;
     }
 
-    if (state.status === "running") {
+    if (state.status === GAME_STATUS.RUNNING) {
       renderGame();
       showScreen("game");
       maybeShowRoundOneHint();
@@ -539,17 +548,17 @@
     elements["game-title"].textContent = `Round ${round.number} of ${state.totalRounds}`;
 
     const labels = {
-      bids: "Bids",
-      play: "Special Cards",
-      tricks: "Tricks",
-      result: "Round Result"
+      [ROUND_PHASE.BIDS]: "Bids",
+      [ROUND_PHASE.SPECIAL_CARDS]: "Special Cards",
+      [ROUND_PHASE.TRICKS]: "Tricks",
+      [ROUND_PHASE.RESULT]: "Round Result"
     };
     elements["game-phase-label"].textContent = labels[round.phase] ?? "Active Game";
     gameView.renderRoundOverview(round.phase);
 
-    if (round.phase === "bids") roundController.renderBids(round);
-    else if (round.phase === "play") specialCardsController.render(round);
-    else if (round.phase === "tricks") roundController.renderTricks(round);
+    if (round.phase === ROUND_PHASE.BIDS) roundController.renderBids(round);
+    else if (round.phase === ROUND_PHASE.SPECIAL_CARDS) specialCardsController.render(round);
+    else if (round.phase === ROUND_PHASE.TRICKS) roundController.renderTricks(round);
     else roundResultView.render(round);
     persistenceController.refreshConflictMode();
   }
@@ -558,7 +567,7 @@
     const round = getCurrentRound();
     if (!round?.completed || round.number < state.totalRounds) return;
 
-    state.status = "completed";
+    state.status = GAME_STATUS.COMPLETED;
     const stateIsPersisted = persistState();
     if (!stateIsPersisted) return;
 
@@ -586,7 +595,7 @@
   function reviewLastRound() {
     state.currentRound = state.totalRounds;
     const round = getCurrentRound();
-    if (round) round.phase = "result";
+    if (round) round.phase = ROUND_PHASE.RESULT;
     persistState();
     renderGame();
     showScreen("game");
@@ -594,7 +603,7 @@
 
   function maybeShowRoundOneHint() {
     const round = getCurrentRound();
-    if (round?.number === 1 && round.phase === "bids" && !state.roundOneHintConfirmed) {
+    if (round?.number === 1 && round.phase === ROUND_PHASE.BIDS && !state.roundOneHintConfirmed) {
       requestAnimationFrame(() => openDialog(elements["round-one-dialog"]));
     }
   }
@@ -653,11 +662,11 @@
 
     const storedState = Storage.loadGame();
     const storedGameMatches =
-      storedState?.status === "completed" &&
+      storedState?.status === GAME_STATUS.COMPLETED &&
       typeof storedState.gameId === "string" &&
       deletedIds.has(storedState.gameId);
     const memoryGameMatches =
-      state?.status === "completed" && typeof state.gameId === "string" && deletedIds.has(state.gameId);
+      state?.status === GAME_STATUS.COMPLETED && typeof state.gameId === "string" && deletedIds.has(state.gameId);
 
     if (!storedGameMatches && !memoryGameMatches) return true;
 
@@ -675,7 +684,7 @@
   }
 
   function archiveCompletedGame(gameState) {
-    if (gameState?.status !== "completed") return true;
+    if (gameState?.status !== GAME_STATUS.COMPLETED) return true;
 
     const archived = Storage.saveCompletedGame(gameState);
     if (!archived) {
@@ -691,7 +700,7 @@
   }
 
   function ensureCompletedGameArchived(gameState) {
-    if (gameState?.status !== "completed") return true;
+    if (gameState?.status !== GAME_STATUS.COMPLETED) return true;
 
     const candidate = serializeComparableCompletedGame(gameState);
     const matchingEntryExists = Storage.loadGameHistory().some(
@@ -707,7 +716,7 @@
   }
 
   function exportCompletedGame() {
-    if (state?.status !== "completed") return;
+    if (state?.status !== GAME_STATUS.COMPLETED) return;
 
     const gameExport = FileUtils.createGameExport(state);
     FileUtils.downloadJson(gameExport.payload, gameExport.filename);

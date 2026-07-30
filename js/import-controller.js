@@ -24,6 +24,10 @@
  * }} ImportLogic
  *
  * @typedef {{
+ *   Constants: {
+ *     EXPORT_FORMAT: { GAME: string, HISTORY: string },
+ *     GAME_STATUS: { COMPLETED: string }
+ *   },
  *   Storage: ImportStorage,
  *   Logic: ImportLogic,
  *   elements: Record<string, HTMLElement>,
@@ -64,6 +68,7 @@
    * @param {ImportControllerDependencies} dependencies
    */
   function createImportController({
+    Constants,
     Storage,
     Logic,
     elements,
@@ -109,7 +114,7 @@
      * @param {number} fileSize
      */
     function importPayload(parsed, fileSize) {
-      if (parsed?.exportFormat === "wizard-scoreboard-history") {
+      if (parsed?.exportFormat === Constants.EXPORT_FORMAT.HISTORY) {
         historyController.importArchive(parsed);
         return;
       }
@@ -125,9 +130,9 @@
         throw new Error("The individual game state is unusually large and was rejected.");
       }
 
-      const candidate = parsed?.exportFormat === "wizard-scoreboard-game" ? parsed.gameState : parsed;
+      const candidate = parsed?.exportFormat === Constants.EXPORT_FORMAT.GAME ? parsed.gameState : parsed;
       const isRecoveryExport =
-        parsed?.exportFormat === "wizard-scoreboard-game" && RECOVERY_REASONS.has(parsed?.recoveryReason);
+        parsed?.exportFormat === Constants.EXPORT_FORMAT.GAME && RECOVERY_REASONS.has(parsed?.recoveryReason);
       const validationErrors = isRecoveryExport
         ? Logic.validatePersistableGameState(candidate)
         : Logic.validateImportedGameState(candidate);
@@ -154,7 +159,7 @@
       ) {
         throw new Error("The imported game could not be saved locally.");
       }
-      if (importedState.status === "completed") {
+      if (importedState.status === Constants.GAME_STATUS.COMPLETED) {
         archiveCompletedGame(importedState);
       }
 

@@ -10,6 +10,7 @@
     getPlayerColorIndex,
     getPlayerDisplayNameById,
     formatNumber,
+    ROUND_PHASE,
     createScorePlayerRow,
     createScoreBidCell,
     createScoreTotalCell
@@ -18,7 +19,7 @@
       const overviewPanel = elements["game-round-overview"];
       const container = elements["game-total-points"];
       container.replaceChildren();
-      overviewPanel.hidden = phase !== "bids";
+      overviewPanel.hidden = phase !== ROUND_PHASE.BIDS;
       if (overviewPanel.hidden) return;
 
       container.append(createTotalPointsGrid());

@@ -1,14 +1,16 @@
 (function attachGameValidation(root, factory) {
-  const api = factory();
+  const constants = typeof module === "object" && module.exports ? require("./constants.js") : root.WizardConstants;
+  const api = factory(constants);
 
   if (typeof module === "object" && module.exports) {
     module.exports = api;
   }
 
   root.WizardGameValidation = api;
-})(typeof globalThis !== "undefined" ? globalThis : window, function createGameValidationModule() {
+})(typeof globalThis !== "undefined" ? globalThis : window, function createGameValidationModule(Constants) {
   "use strict";
 
+  const { GAME_STATUS, ROUND_PHASE } = Constants;
   const MAX_FUTURE_TIMESTAMP_SKEW_MS = 24 * 60 * 60 * 1000;
 
   function createGameValidation({
@@ -52,8 +54,8 @@
 
     function validateGameState(candidate, options) {
       const errors = [];
-      const allowedStatuses = new Set(["setup", "running", "completed"]);
-      const allowedPhases = new Set(["bids", "play", "tricks", "result"]);
+      const allowedStatuses = new Set(Object.values(GAME_STATUS));
+      const allowedPhases = new Set(Object.values(ROUND_PHASE));
 
       if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
         return ["The file does not contain a valid game state."];
@@ -95,7 +97,7 @@
         if (
           typeof player?.name !== "string" ||
           player.name.length > 30 ||
-          (candidate.status !== "setup" && !player.name.trim())
+          (candidate.status !== GAME_STATUS.SETUP && !player.name.trim())
         ) {
           errors.push(`Player ${index + 1} does not have a valid name.`);
         }
@@ -153,7 +155,7 @@
         errors.push("The dealer-selection status is missing or invalid.");
       }
 
-      if (candidate.status !== "setup" && candidate.setupDealerRandomized !== true) {
+      if (candidate.status !== GAME_STATUS.SETUP && candidate.setupDealerRandomized !== true) {
         errors.push("A dealer must be set for a started game.");
       }
 
@@ -228,7 +230,10 @@
           specialCards
         };
 
-        if (["play", "tricks", "result"].includes(rawRound.phase) && !isBidSumValid(normalizedRound)) {
+        if (
+          [ROUND_PHASE.SPECIAL_CARDS, ROUND_PHASE.TRICKS, ROUND_PHASE.RESULT].includes(rawRound.phase) &&
+          !isBidSumValid(normalizedRound)
+        ) {
           errors.push(`The bid total in round ${roundNumber} is invalid.`);
         }
 
@@ -245,7 +250,7 @@
         }
 
         if (rawRound.completed) {
-          if (rawRound.phase !== "result") {
+          if (rawRound.phase !== ROUND_PHASE.RESULT) {
             errors.push(`Completed round ${roundNumber} must be in the result phase.`);
           }
           if (!isValidDateString(rawRound.completedAt)) {
@@ -262,7 +267,7 @@
             }
           }
         } else {
-          if (rawRound.phase === "result") {
+          if (rawRound.phase === ROUND_PHASE.RESULT) {
             errors.push(`Open round ${roundNumber} must not be in the result phase.`);
           }
           if (rawRound.completedAt != null) {
@@ -425,21 +430,21 @@
     function validateImportedRoundSequence(candidate, rounds, errors) {
       const sorted = [...rounds].sort((a, b) => a.number - b.number);
 
-      if (candidate.status === "setup") {
+      if (candidate.status === GAME_STATUS.SETUP) {
         if (sorted.length > 0 || candidate.currentRound !== 1) {
           errors.push("A game that has not started must not contain any rounds.");
         }
         return;
       }
 
-      const expectedCount = candidate.status === "completed" ? candidate.totalRounds : candidate.currentRound;
+      const expectedCount = candidate.status === GAME_STATUS.COMPLETED ? candidate.totalRounds : candidate.currentRound;
 
       if (sorted.length !== expectedCount || sorted.some((round, index) => round.number !== index + 1)) {
         errors.push("Rounds must be complete, unique, and consecutive.");
         return;
       }
 
-      if (candidate.status === "completed") {
+      if (candidate.status === GAME_STATUS.COMPLETED) {
         if (candidate.currentRound !== candidate.totalRounds || sorted.some((round) => !round.completed)) {
           errors.push("A completed game must contain every round as completed.");
         }

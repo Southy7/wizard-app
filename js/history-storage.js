@@ -12,6 +12,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : window, function createHistoryStorage(root, Errors, Logic) {
   "use strict";
 
+  const Constants = typeof module === "object" && module.exports ? require("./constants.js") : root.WizardConstants;
   const HISTORY_KEY = "wizard-scoreboard:game-history:v1";
   const HISTORY_STORAGE_FORMAT = "wizard-scoreboard-history-storage";
   const HISTORY_STORAGE_VERSION = 1;
@@ -288,7 +289,7 @@
   function hasCompleteRoundSequence(state) {
     if (
       !state ||
-      state.status !== "completed" ||
+      state.status !== Constants.GAME_STATUS.COMPLETED ||
       !Number.isInteger(state.totalRounds) ||
       state.totalRounds < 1 ||
       state.currentRound !== state.totalRounds ||

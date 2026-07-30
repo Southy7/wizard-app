@@ -23,7 +23,8 @@
   }
 
   function createRoundController({ services = {}, state = {}, ui = {} } = {}) {
-    const { Logic, persistence = {} } = services;
+    const { Logic, Constants, persistence = {} } = services;
+    const { GAME_STATUS, ROUND_PHASE } = Constants ?? {};
     const { persistState } = persistence;
     const { getState, getRound, getCurrentRound, replaceRound } = state;
     const {
@@ -130,7 +131,7 @@
         return;
       }
 
-      round.phase = "play";
+      round.phase = ROUND_PHASE.SPECIAL_CARDS;
       replaceRound(round);
       persistState();
       renderGame();
@@ -141,12 +142,12 @@
       const round = getCurrentRound();
       if (!round) return;
 
-      if (phase === "bids" && round.specialCards.witch.active && !round.specialCards.witch.secondEffect) {
+      if (phase === ROUND_PHASE.BIDS && round.specialCards.witch.active && !round.specialCards.witch.secondEffect) {
         showToast("Choose the Witch's second special card first or remove the Witch.");
         return;
       }
 
-      if (phase === "tricks") {
+      if (phase === ROUND_PHASE.TRICKS) {
         const errors = Logic.getSpecialCardErrors(round, state.players);
         if (errors.length > 0) {
           showToast(errors[0]);
@@ -158,7 +159,7 @@
       round.completed = false;
       round.completedAt = null;
       clearRoundPoints(round);
-      state.status = "running";
+      state.status = GAME_STATUS.RUNNING;
       replaceRound(Logic.recalculateCurrentBids(round, state.players));
       persistState();
       renderGame();
@@ -216,7 +217,7 @@
       const actions = document.createElement("div");
       actions.className = "round-actions tricks-actions";
       const backToSpecialsButton = createButton("<", "button-secondary special-back-button", () =>
-        setRoundPhase("play")
+        setRoundPhase(ROUND_PHASE.SPECIAL_CARDS)
       );
       backToSpecialsButton.setAttribute("aria-label", "Back to Special Cards");
       backToSpecialsButton.title = "Back to Special Cards";
@@ -261,7 +262,7 @@
       round = Logic.calculateRoundPoints(round, state.players);
       round.completed = true;
       round.completedAt = new Date().toISOString();
-      round.phase = "result";
+      round.phase = ROUND_PHASE.RESULT;
       replaceRound(round);
       persistState();
       renderGame();
@@ -282,7 +283,7 @@
       round.completedAt = null;
       round.phase = phase;
       clearRoundPoints(round);
-      state.status = "running";
+      state.status = GAME_STATUS.RUNNING;
       replaceRound(Logic.recalculateCurrentBids(round, state.players));
       persistState();
       renderGame();
@@ -311,7 +312,7 @@
         state.rounds.sort((a, b) => a.number - b.number);
       }
 
-      state.status = "running";
+      state.status = GAME_STATUS.RUNNING;
       persistState();
       renderGame();
       window.scrollTo({ top: 0, behavior: "auto" });

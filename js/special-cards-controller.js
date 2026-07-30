@@ -25,7 +25,8 @@
   }
 
   function createSpecialCardsController({ services = {}, state = {}, ui = {} } = {}) {
-    const { Logic, persistence = {}, normalizeSpecialDependencies, cloneState } = services;
+    const { Logic, Constants, persistence = {}, normalizeSpecialDependencies, cloneState } = services;
+    const { ROUND_PHASE } = Constants ?? {};
     const { persistState } = persistence;
     const { getState, getCurrentRound, replaceRound } = state;
     const {
@@ -79,12 +80,14 @@
       const errors = Logic.getSpecialCardErrors(round, state.players);
       const actions = document.createElement("div");
       actions.className = "round-actions special-actions";
-      const editBidsButton = createButton("<", "button-secondary special-back-button", () => setRoundPhase("bids"));
+      const editBidsButton = createButton("<", "button-secondary special-back-button", () =>
+        setRoundPhase(ROUND_PHASE.BIDS)
+      );
       editBidsButton.setAttribute("aria-label", "Edit Bids");
       editBidsButton.title = "Edit Bids";
       actions.append(
         editBidsButton,
-        createButton("Enter Tricks", "button-primary", () => setRoundPhase("tricks"), errors.length > 0)
+        createButton("Enter Tricks", "button-primary", () => setRoundPhase(ROUND_PHASE.TRICKS), errors.length > 0)
       );
       specialPanel.append(actions);
       elements["game-content"].replaceChildren(bidsPanel, specialPanel);

@@ -39,6 +39,7 @@
   function createHistoryController(options) {
     const {
       Storage,
+      Constants,
       Logic,
       StateManager,
       ResultView,
@@ -220,7 +221,7 @@
 
       FileUtils.downloadJson(
         {
-          exportFormat: "wizard-scoreboard-history",
+          exportFormat: Constants.EXPORT_FORMAT.HISTORY,
           exportVersion: 1,
           exportedAt: new Date().toISOString(),
           games

@@ -1,7 +1,28 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const Constants = require("../js/constants.js");
 const Formatters = require("../js/formatters.js");
+
+assert.ok(Object.isFrozen(Constants));
+assert.ok(Object.isFrozen(Constants.EXPORT_FORMAT));
+assert.ok(Object.isFrozen(Constants.GAME_STATUS));
+assert.ok(Object.isFrozen(Constants.ROUND_PHASE));
+assert.deepEqual(Constants.EXPORT_FORMAT, {
+  GAME: "wizard-scoreboard-game",
+  HISTORY: "wizard-scoreboard-history"
+});
+assert.deepEqual(Constants.GAME_STATUS, {
+  SETUP: "setup",
+  RUNNING: "running",
+  COMPLETED: "completed"
+});
+assert.deepEqual(Constants.ROUND_PHASE, {
+  BIDS: "bids",
+  SPECIAL_CARDS: "play",
+  TRICKS: "tricks",
+  RESULT: "result"
+});
 
 assert.equal(Formatters.formatNumber(12), "12");
 assert.equal(Formatters.formatNumber(-12), "\u221212");

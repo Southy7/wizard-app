@@ -1,14 +1,16 @@
 (function attachFileUtils(root, factory) {
-  const api = factory(root);
+  const constants = typeof module === "object" && module.exports ? require("./constants.js") : root.WizardConstants;
+  const api = factory(root, constants);
 
   if (typeof module === "object" && module.exports) {
     module.exports = api;
   }
 
   root.WizardFileUtils = api;
-})(typeof globalThis !== "undefined" ? globalThis : window, function createFileUtils(root) {
+})(typeof globalThis !== "undefined" ? globalThis : window, function createFileUtils(root, Constants) {
   "use strict";
 
+  const { EXPORT_FORMAT } = Constants;
   const EXPORT_VERSION = 1;
 
   function downloadJson(payload, filename) {
@@ -40,7 +42,7 @@
 
     return {
       payload: {
-        exportFormat: "wizard-scoreboard-game",
+        exportFormat: EXPORT_FORMAT.GAME,
         exportVersion: EXPORT_VERSION,
         exportedAt: exportedAt.toISOString(),
         ...(options.recoveryReason ? { recoveryReason: options.recoveryReason } : {}),

@@ -1,16 +1,18 @@
 (function attachGameLogic(root, factory) {
   const validationModule =
     typeof module === "object" && module.exports ? require("./game-validation.js") : root.WizardGameValidation;
-  const api = factory(validationModule);
+  const constants = typeof module === "object" && module.exports ? require("./constants.js") : root.WizardConstants;
+  const api = factory(validationModule, constants);
 
   if (typeof module === "object" && module.exports) {
     module.exports = api;
   }
 
   root.WizardGameLogic = api;
-})(typeof globalThis !== "undefined" ? globalThis : window, function createGameLogic(ValidationModule) {
+})(typeof globalThis !== "undefined" ? globalThis : window, function createGameLogic(ValidationModule, Constants) {
   "use strict";
 
+  const { GAME_STATUS, ROUND_PHASE } = Constants;
   const MIN_PLAYERS = 3;
   const MAX_PLAYERS = 6;
   const TOTAL_CARDS = 70;
@@ -178,7 +180,7 @@
       number: roundNumber,
       dealerId: dealer?.id ?? null,
       startingPlayerId: starter?.id ?? null,
-      phase: "bids",
+      phase: ROUND_PHASE.BIDS,
       playerResults,
       specialCards: {
         cloud: {
@@ -302,7 +304,7 @@
     if (
       cards.witch?.active &&
       !cards.witch?.secondEffect &&
-      !(options.allowIncompleteWitchSelection && round?.phase === "play")
+      !(options.allowIncompleteWitchSelection && round?.phase === ROUND_PHASE.SPECIAL_CARDS)
     ) {
       errors.push("Select a second Cloud or Bomb for the Witch.");
     }
@@ -414,7 +416,7 @@
       version: "1.0",
       schemaVersion: 4,
       gameId: createId("game"),
-      status: "setup",
+      status: GAME_STATUS.SETUP,
       totalCards: TOTAL_CARDS,
       players,
       firstDealerId: players[0].id,

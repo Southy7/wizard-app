@@ -37,6 +37,7 @@
 
   function createSetupController({
     Logic,
+    Constants,
     elements,
     createSeatRoleBadge,
     getState,
@@ -324,7 +325,7 @@
         focusFirstInvalidField();
         return;
       }
-      state.status = "running";
+      state.status = Constants.GAME_STATUS.RUNNING;
       state.currentRound = 1;
       state.roundOneHintConfirmed = false;
       state.rounds = [Logic.createRound(state.players, state.firstDealerId, 1)];
