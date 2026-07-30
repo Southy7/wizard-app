@@ -157,13 +157,15 @@
     svg.classList.add("score-progress-svg");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-labelledby", "score-progress-svg-title score-progress-svg-description");
+    const titleId = `${container.id}-svg-title`;
+    const descriptionId = `${container.id}-svg-description`;
+    svg.setAttribute("aria-labelledby", `${titleId} ${descriptionId}`);
 
     const title = createSvgElement("title");
-    title.id = "score-progress-svg-title";
+    title.id = titleId;
     title.textContent = "Score progression by round";
     const description = createSvgElement("desc");
-    description.id = "score-progress-svg-description";
+    description.id = descriptionId;
     description.textContent = "Cumulative scores for every player, starting at zero before the first round.";
     svg.append(title, description);
 

@@ -734,6 +734,24 @@ def main() -> None:
         assert page.locator("#history-score-content .history-table thead th[data-player-color]").all_text_contents() == (
             page.locator("#history-detail-ranking .ranking-name").all_text_contents()
         )
+        assert page.locator("#history-score-progress").evaluate(
+            "(container) => container.parentElement.previousElementSibling.querySelector('#history-score-content') !== null"
+        )
+        assert page.locator("#history-score-content #history-score-progress").count() == 0
+        assert page.locator("#history-score-progress .score-progress-line").count() == 3
+        assert page.locator("#history-score-progress .score-progress-legend-item").count() == 3
+        assert page.locator("#history-score-progress").evaluate(
+            """(container) => {
+              const chart = container.querySelector("svg").getBoundingClientRect();
+              const bounds = container.getBoundingClientRect();
+              return container.scrollWidth === container.clientWidth
+                && chart.left >= bounds.left
+                && chart.right <= bounds.right;
+            }"""
+        )
+        assert page.locator("[id='final-score-progress-svg-title']").count() == 1
+        assert page.locator("[id='history-score-progress-svg-title']").count() == 1
+        assert page.evaluate("document.documentElement.scrollWidth") == 390
 
         with page.expect_download() as single_download_info:
             page.click("#btn-history-export-game")

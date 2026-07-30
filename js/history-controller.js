@@ -121,6 +121,7 @@
 
       ResultView.renderRanking(elements["history-detail-ranking"], gameState, totals);
       ResultView.renderScoreHistory(elements["history-score-content"], completedRounds, totals, gameState);
+      ResultView.renderScoreProgress(elements["history-score-progress"], completedRounds, gameState);
       elements["history-list-view"].hidden = true;
       elements["history-detail-view"].hidden = false;
       elements["history-recovery-view"].hidden = true;

@@ -318,6 +318,7 @@
       "btn-history-list-back",
       "history-detail-ranking",
       "history-score-content",
+      "history-score-progress",
       "btn-history-export-all",
       "btn-history-import",
       "history-storage-status",
