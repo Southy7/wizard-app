@@ -46,6 +46,9 @@ def build_inline_document() -> str:
     for script in (
         '<script defer src="js/game-validation.js"></script>',
         '<script defer src="js/game-logic.js"></script>',
+        '<script defer src="js/storage-errors.js"></script>',
+        '<script defer src="js/active-game-storage.js"></script>',
+        '<script defer src="js/history-storage.js"></script>',
         '<script defer src="js/state-manager.js"></script>',
         '<script defer src="js/storage.js"></script>',
         '<script defer src="js/ui-components.js"></script>',
@@ -72,6 +75,9 @@ def main() -> None:
     scripts = [
         (ROOT / "js/game-validation.js").read_text(encoding="utf-8"),
         (ROOT / "js/game-logic.js").read_text(encoding="utf-8"),
+        (ROOT / "js/storage-errors.js").read_text(encoding="utf-8"),
+        (ROOT / "js/active-game-storage.js").read_text(encoding="utf-8"),
+        (ROOT / "js/history-storage.js").read_text(encoding="utf-8"),
         (ROOT / "js/state-manager.js").read_text(encoding="utf-8"),
         (ROOT / "js/storage.js").read_text(encoding="utf-8"),
         (ROOT / "js/ui-components.js").read_text(encoding="utf-8"),

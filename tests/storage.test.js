@@ -62,6 +62,11 @@ const Logic = global.WizardGameLogic;
 require("../js/storage.js");
 const Storage = global.WizardStorage;
 
+assert.ok(Object.isFrozen(global.WizardStorageErrors));
+assert.ok(Object.isFrozen(global.WizardActiveGameStorage));
+assert.ok(Object.isFrozen(global.WizardHistoryStorage));
+assert.equal("HISTORY_KEY" in global.WizardActiveGameStorage, false);
+assert.equal("STORAGE_KEY" in global.WizardHistoryStorage, false);
 assert.equal(Storage.isStorageAvailable(), true);
 assert.equal(Storage.loadGame(), null);
 assert.equal(Storage.hasStoredData(), false);
