@@ -35,7 +35,11 @@ def main():
     with serve_app() as url, sync_playwright() as playwright:
         browser = launch_browser(playwright)
 
-        idle_context = browser.new_context()
+        # Service-worker lifecycle behavior is covered by browser-offline.py. Blocking workers here keeps
+        # storage-event scenarios isolated from background controller changes and page reloads.
+        context_options = {"service_workers": "block"}
+
+        idle_context = browser.new_context(**context_options)
         idle = open_clean_page(idle_context, url)
         active = idle_context.new_page()
         active.goto(url)
@@ -49,7 +53,7 @@ def main():
         assert idle.locator("#screen-setup").is_visible()
         idle_context.close()
 
-        context = browser.new_context()
+        context = browser.new_context(**context_options)
         first = open_clean_page(context, url)
         first.click("#btn-new-game")
         second = context.new_page()
@@ -64,7 +68,7 @@ def main():
         assert second.locator("#btn-reload-after-conflict").is_visible()
         context.close()
 
-        stale_finish_context = browser.new_context()
+        stale_finish_context = browser.new_context(**context_options)
         stale_finish = open_clean_page(stale_finish_context, url)
         start_game(stale_finish, rounds=1)
         set_values(stale_finish, ".bid-panel", (0, 0, 0))
@@ -98,7 +102,7 @@ def main():
         ) == "Name from another tab"
         stale_finish_context.close()
 
-        quota_context = browser.new_context()
+        quota_context = browser.new_context(**context_options)
         quota_context.add_init_script(FAIL_WRITES_SCRIPT)
         quota = open_clean_page(quota_context, url)
         quota.evaluate("window.__failGameWrites = true")
@@ -126,7 +130,7 @@ def main():
         ) == "Recovered"
         quota_context.close()
 
-        blocked_context = browser.new_context()
+        blocked_context = browser.new_context(**context_options)
         blocked_context.add_init_script(BLOCK_STORAGE_SCRIPT)
         blocked = blocked_context.new_page()
         blocked.goto(url)
