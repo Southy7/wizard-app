@@ -124,10 +124,16 @@
 
   function init() {
     cacheElements();
+    const persistenceElements = PersistenceControllerModule.getRequiredElements(document);
+    const historyElements = historyAvailable ? HistoryControllerModule.getRequiredElements(document) : null;
+    const importElements = ImportControllerModule.getRequiredElements(document);
+    const setupElements = SetupControllerModule.getRequiredElements(document);
+    const roundElements = RoundControllerModule.getRequiredElements(document);
+    const specialCardsElements = SpecialCardsControllerModule.getRequiredElements(document);
     persistenceController = PersistenceControllerModule.createPersistenceController({
       Storage,
       FileUtils,
-      elements,
+      elements: persistenceElements,
       getState: () => state,
       showToast,
       refreshHomeScreen,
@@ -141,7 +147,7 @@
           ResultView,
           FileUtils,
           Formatters,
-          elements,
+          elements: historyElements,
           showScreen,
           showToast,
           refreshHomeScreen,
@@ -152,7 +158,7 @@
     importController = ImportControllerModule.createImportController({
       Storage,
       Logic,
-      elements,
+      elements: importElements,
       historyController,
       persistenceController,
       setState: (nextState) => {
@@ -164,7 +170,7 @@
     });
     setupController = SetupControllerModule.createSetupController({
       Logic,
-      elements,
+      elements: setupElements,
       createSeatRoleBadge,
       getState: () => state,
       ensureState,
@@ -215,7 +221,7 @@
       services: controllerServices,
       state: gameSession,
       ui: {
-        elements,
+        elements: roundElements,
         createPanel,
         createValueEntry,
         createStatusCard,
@@ -237,7 +243,7 @@
       },
       state: gameSession,
       ui: {
-        elements,
+        elements: specialCardsElements,
         createPanel,
         createSpecialButton,
         createButton,
@@ -289,32 +295,7 @@
       "btn-new-game",
       "btn-continue-game",
       "btn-history",
-      "btn-import-game",
-      "import-file-input",
-      "storage-warning",
-      "storage-conflict-actions",
-      "btn-export-conflict-state",
-      "btn-reload-after-conflict",
       "btn-setup-home",
-      "setup-form",
-      "player-list",
-      "player-count-badge",
-      "btn-add-player",
-      "round-mode-toggle",
-      "btn-round-mode-full",
-      "btn-round-mode-individual",
-      "full-game-rounds",
-      "custom-round-controls",
-      "btn-rounds-minus",
-      "rounds-input",
-      "btn-rounds-plus",
-      "rounds-message",
-      "summary-player-count",
-      "summary-round-count",
-      "summary-seat-order",
-      "btn-summary-back",
-      "btn-summary-start",
-      "form-errors",
       "btn-game-help",
       "btn-game-cards",
       "btn-game-home",
@@ -324,25 +305,6 @@
       "game-total-points",
       "game-content",
       "btn-history-home",
-      "history-list-view",
-      "history-game-list",
-      "history-detail-view",
-      "btn-history-list-back",
-      "history-detail-ranking",
-      "history-game-highlights",
-      "history-player-statistics",
-      "history-score-content",
-      "history-score-progress",
-      "btn-history-export-all",
-      "btn-history-import",
-      "history-storage-status",
-      "btn-history-clear",
-      "btn-history-export-game",
-      "btn-history-delete-game",
-      "history-recovery-view",
-      "history-recovery-message",
-      "btn-history-export-damaged",
-      "btn-history-reset-damaged",
       "final-ranking",
       "final-game-highlights",
       "final-player-statistics",
@@ -360,18 +322,6 @@
       "btn-close-game-help-dialog",
       "special-cards-dialog",
       "btn-close-special-cards-dialog",
-      "cloud-dialog",
-      "cloud-dialog-kicker",
-      "cloud-player-options",
-      "cloud-change-options",
-      "btn-cloud-minus",
-      "btn-cloud-plus",
-      "btn-close-cloud-dialog",
-      "edit-round-dialog",
-      "btn-close-edit-dialog",
-      "btn-edit-bids",
-      "btn-edit-specials",
-      "btn-edit-tricks",
       "toast"
     ];
 
@@ -556,18 +506,7 @@
 
   function createUnavailableHistoryController() {
     const disableControls = () => {
-      [
-        "btn-history",
-        "btn-history-export-all",
-        "btn-history-import",
-        "btn-history-clear",
-        "btn-history-export-game",
-        "btn-history-delete-game",
-        "btn-history-export-damaged",
-        "btn-history-reset-damaged"
-      ].forEach((id) => {
-        if (elements[id]) elements[id].disabled = true;
-      });
+      elements["btn-history"].disabled = true;
     };
 
     disableControls();

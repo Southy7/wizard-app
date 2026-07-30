@@ -1,6 +1,25 @@
 (function attachPersistenceController(root) {
   "use strict";
 
+  const REQUIRED_ELEMENT_IDS = Object.freeze([
+    "storage-warning",
+    "storage-conflict-actions",
+    "btn-export-conflict-state",
+    "btn-reload-after-conflict"
+  ]);
+
+  function getRequiredElements(documentRoot) {
+    return Object.freeze(
+      Object.fromEntries(
+        REQUIRED_ELEMENT_IDS.map((id) => {
+          const element = documentRoot.getElementById(id);
+          if (!element) throw new Error(`Required persistence element #${id} was not found.`);
+          return [id, element];
+        })
+      )
+    );
+  }
+
   function createPersistenceController({
     Storage,
     FileUtils,
@@ -227,6 +246,7 @@
   }
 
   root.WizardPersistenceController = Object.freeze({
-    createPersistenceController
+    createPersistenceController,
+    getRequiredElements
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);

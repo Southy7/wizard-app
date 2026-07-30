@@ -1,6 +1,41 @@
 (function attachHistoryController(root) {
   "use strict";
 
+  const REQUIRED_ELEMENT_IDS = Object.freeze([
+    "history-list-view",
+    "history-game-list",
+    "history-detail-view",
+    "btn-history-list-back",
+    "history-detail-ranking",
+    "history-game-highlights",
+    "history-player-statistics",
+    "history-score-content",
+    "history-score-progress",
+    "btn-history-export-all",
+    "btn-history-import",
+    "import-file-input",
+    "history-storage-status",
+    "btn-history-clear",
+    "btn-history-export-game",
+    "btn-history-delete-game",
+    "history-recovery-view",
+    "history-recovery-message",
+    "btn-history-export-damaged",
+    "btn-history-reset-damaged"
+  ]);
+
+  function getRequiredElements(documentRoot) {
+    return Object.freeze(
+      Object.fromEntries(
+        REQUIRED_ELEMENT_IDS.map((id) => {
+          const element = documentRoot.getElementById(id);
+          if (!element) throw new Error(`Required history element #${id} was not found.`);
+          return [id, element];
+        })
+      )
+    );
+  }
+
   function createHistoryController(options) {
     const {
       Storage,
@@ -367,5 +402,5 @@
     });
   }
 
-  root.WizardHistoryController = Object.freeze({ createHistoryController });
+  root.WizardHistoryController = Object.freeze({ createHistoryController, getRequiredElements });
 })(typeof globalThis !== "undefined" ? globalThis : window);

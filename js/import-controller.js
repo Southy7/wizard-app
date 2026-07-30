@@ -43,6 +43,22 @@
   const MAX_ARCHIVE_IMPORT_BYTES = 10_000_000;
   const MAX_GAME_IMPORT_BYTES = 2_000_000;
   const RECOVERY_REASONS = new Set(["storage-conflict", "unsaved-changes"]);
+  const REQUIRED_ELEMENT_IDS = Object.freeze(["btn-import-game", "import-file-input"]);
+
+  /**
+   * @param {Document} documentRoot
+   */
+  function getRequiredElements(documentRoot) {
+    return Object.freeze(
+      Object.fromEntries(
+        REQUIRED_ELEMENT_IDS.map((id) => {
+          const element = documentRoot.getElementById(id);
+          if (!element) throw new Error(`Required import element #${id} was not found.`);
+          return [id, element];
+        })
+      )
+    );
+  }
 
   /**
    * @param {ImportControllerDependencies} dependencies
@@ -153,5 +169,5 @@
     });
   }
 
-  root.WizardImportController = Object.freeze({ createImportController });
+  root.WizardImportController = Object.freeze({ createImportController, getRequiredElements });
 })(typeof globalThis !== "undefined" ? globalThis : window);

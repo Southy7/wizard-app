@@ -1,6 +1,40 @@
 (function attachSetupController(root) {
   "use strict";
 
+  const REQUIRED_ELEMENT_IDS = Object.freeze([
+    "setup-form",
+    "player-list",
+    "player-count-badge",
+    "btn-add-player",
+    "round-mode-toggle",
+    "btn-round-mode-full",
+    "btn-round-mode-individual",
+    "full-game-rounds",
+    "custom-round-controls",
+    "btn-rounds-minus",
+    "rounds-input",
+    "btn-rounds-plus",
+    "rounds-message",
+    "summary-player-count",
+    "summary-round-count",
+    "summary-seat-order",
+    "btn-summary-back",
+    "btn-summary-start",
+    "form-errors"
+  ]);
+
+  function getRequiredElements(documentRoot) {
+    return Object.freeze(
+      Object.fromEntries(
+        REQUIRED_ELEMENT_IDS.map((id) => {
+          const element = documentRoot.getElementById(id);
+          if (!element) throw new Error(`Required setup element #${id} was not found.`);
+          return [id, element];
+        })
+      )
+    );
+  }
+
   function createSetupController({
     Logic,
     elements,
@@ -330,6 +364,7 @@
   }
 
   root.WizardSetupController = Object.freeze({
-    createSetupController
+    createSetupController,
+    getRequiredElements
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);

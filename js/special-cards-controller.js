@@ -1,6 +1,29 @@
 (function attachSpecialCardsController(root) {
   "use strict";
 
+  const REQUIRED_ELEMENT_IDS = Object.freeze([
+    "game-content",
+    "cloud-dialog",
+    "cloud-dialog-kicker",
+    "cloud-player-options",
+    "cloud-change-options",
+    "btn-cloud-minus",
+    "btn-cloud-plus",
+    "btn-close-cloud-dialog"
+  ]);
+
+  function getRequiredElements(documentRoot) {
+    return Object.freeze(
+      Object.fromEntries(
+        REQUIRED_ELEMENT_IDS.map((id) => {
+          const element = documentRoot.getElementById(id);
+          if (!element) throw new Error(`Required special-card element #${id} was not found.`);
+          return [id, element];
+        })
+      )
+    );
+  }
+
   function createSpecialCardsController({ services = {}, state = {}, ui = {} } = {}) {
     const { Logic, persistence = {}, normalizeSpecialDependencies, cloneState } = services;
     const { persistState } = persistence;
@@ -260,5 +283,5 @@
     return Object.freeze({ bindEvents, render });
   }
 
-  root.WizardSpecialCardsController = Object.freeze({ createSpecialCardsController });
+  root.WizardSpecialCardsController = Object.freeze({ createSpecialCardsController, getRequiredElements });
 })(window);

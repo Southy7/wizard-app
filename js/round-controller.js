@@ -1,6 +1,27 @@
 (function attachRoundController(root) {
   "use strict";
 
+  const REQUIRED_ELEMENT_IDS = Object.freeze([
+    "game-content",
+    "edit-round-dialog",
+    "btn-close-edit-dialog",
+    "btn-edit-bids",
+    "btn-edit-specials",
+    "btn-edit-tricks"
+  ]);
+
+  function getRequiredElements(documentRoot) {
+    return Object.freeze(
+      Object.fromEntries(
+        REQUIRED_ELEMENT_IDS.map((id) => {
+          const element = documentRoot.getElementById(id);
+          if (!element) throw new Error(`Required round element #${id} was not found.`);
+          return [id, element];
+        })
+      )
+    );
+  }
+
   function createRoundController({ services = {}, state = {}, ui = {} } = {}) {
     const { Logic, persistence = {} } = services;
     const { persistState } = persistence;
@@ -306,5 +327,5 @@
     });
   }
 
-  root.WizardRoundController = Object.freeze({ createRoundController });
+  root.WizardRoundController = Object.freeze({ createRoundController, getRequiredElements });
 })(window);
