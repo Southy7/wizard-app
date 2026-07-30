@@ -322,6 +322,83 @@
   font-weight: 800;
 }
 
+.score-progress-chart {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.score-progress-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.score-progress-grid-line {
+  stroke: var(--border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.score-progress-axis-label {
+  fill: var(--muted);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.score-progress-y-label {
+  text-anchor: start;
+  dominant-baseline: middle;
+}
+
+.score-progress-x-label {
+  text-anchor: middle;
+}
+
+.score-progress-line {
+  fill: none;
+  stroke: var(--player-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.score-progress-endpoint {
+  fill: var(--player-color);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.score-progress-legend {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.score-progress-legend-item {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.score-progress-legend-marker {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--player-color);
+}
+
 @media (max-width: 620px) {
   .history-scroll {
     overflow-x: visible;
@@ -359,5 +436,17 @@
     overflow-wrap: anywhere;
     white-space: normal;
     line-height: 1.15;
+  }
+
+  .score-progress-axis-label {
+    font-size: 16px;
+  }
+
+  .score-progress-legend {
+    gap: 7px 11px;
+  }
+
+  .score-progress-legend-item {
+    font-size: 0.72rem;
   }
 }

@@ -642,6 +642,63 @@ def main() -> None:
                 ) < 0.1;
             }"""
         )
+        assert page.locator("#final-score-progress").evaluate(
+            "(container) => container.parentElement.previousElementSibling.querySelector('#final-score-history') !== null"
+        )
+        assert page.locator("#final-score-history #final-score-progress").count() == 0
+        assert page.locator("#final-score-progress .score-progress-line").count() == 3
+        assert page.locator("#final-score-progress .score-progress-line").evaluate_all(
+            """(lines) => lines.map((line) => line.dataset.playerColor)"""
+        ) == ["1", "2", "3"]
+        assert page.locator("#final-score-progress").evaluate(
+            """(container) => {
+              const lines = [...container.querySelectorAll(".score-progress-line")];
+              const markers = [...container.querySelectorAll(".score-progress-legend-marker")];
+              const strokes = lines.map((line) => getComputedStyle(line).stroke);
+              return new Set(strokes).size === lines.length
+                && strokes.every((stroke, index) => stroke === getComputedStyle(markers[index]).backgroundColor);
+            }"""
+        )
+        assert page.locator("#final-score-progress .score-progress-line").evaluate_all(
+            """(lines) => {
+              const startingPoints = lines.map((line) => line.getAttribute("points").split(" ")[0]);
+              return new Set(startingPoints).size === 1
+                && lines.every((line) => line.getAttribute("points").split(" ").length === 2);
+            }"""
+        )
+        assert page.locator("#final-score-progress .score-progress-endpoint").count() == 3
+        assert page.locator("#final-score-progress .score-progress-legend-item").count() == 3
+        assert page.locator("#final-score-progress .score-progress-y-magnitude").evaluate_all(
+            "(labels) => new Set(labels.map((label) => label.getAttribute('x'))).size === 1"
+        )
+        assert page.locator("#final-score-progress").evaluate(
+            """(container) => {
+              const probe = document.createElement("div");
+              const state = { players: [{ id: "negative", name: "Negative" }] };
+              const rounds = [{
+                number: 1,
+                playerResults: { negative: { roundPoints: -20 } }
+              }];
+              WizardResultView.renderScoreProgress(probe, rounds, state);
+              const label = [...probe.querySelectorAll(".score-progress-y-label")]
+                .find((entry) => entry.getAttribute("aria-label") === "\u221220");
+              const sign = label?.querySelector(".score-progress-y-sign");
+              const magnitude = label?.querySelector(".score-progress-y-magnitude");
+              return sign?.textContent === "\u2212"
+                && magnitude?.textContent === "20"
+                && Number(sign.getAttribute("x")) < Number(magnitude.getAttribute("x"));
+            }"""
+        )
+        assert page.locator("#final-score-progress").evaluate(
+            """(container) => {
+              const chart = container.querySelector("svg").getBoundingClientRect();
+              const bounds = container.getBoundingClientRect();
+              return container.scrollWidth === container.clientWidth
+                && chart.left >= bounds.left
+                && chart.right <= bounds.right;
+            }"""
+        )
+        assert page.evaluate("document.documentElement.scrollWidth") == 390
 
         page.click("#btn-finished-go-home")
         assert page.locator("#screen-home").is_visible()

@@ -330,6 +330,7 @@
       "btn-history-reset-damaged",
       "final-ranking",
       "final-score-history",
+      "final-score-progress",
       "btn-review-last-round",
       "btn-finished-export-game",
       "btn-finished-go-home",
@@ -608,6 +609,7 @@
 
     ResultView.renderRanking(elements["final-ranking"], state, totals);
     ResultView.renderScoreHistory(elements["final-score-history"], completedRounds, totals, state);
+    ResultView.renderScoreProgress(elements["final-score-progress"], completedRounds, state);
   }
 
   function reviewLastRound() {
