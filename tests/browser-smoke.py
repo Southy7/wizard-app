@@ -624,6 +624,9 @@ def main() -> None:
             }"""
         )
         assert page.locator("#final-game-highlights .game-highlight-card[data-player-color]").count() == 6
+        assert page.locator("#final-game-highlights .game-highlight-player").evaluate_all(
+            "(names) => names.every((name) => getComputedStyle(name).color === 'rgb(255, 255, 255)')"
+        )
         assert page.locator("#final-game-highlights").evaluate(
             """(grid) => {
               const cards = [...grid.children].map((card) => card.getBoundingClientRect());

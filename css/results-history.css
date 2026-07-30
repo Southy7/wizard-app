@@ -216,7 +216,7 @@
 .game-highlight-player {
   min-width: 0;
   overflow: hidden;
-  color: var(--player-color);
+  color: #ffffff;
   font-size: 0.76rem;
   font-weight: 850;
   line-height: 1.2;
