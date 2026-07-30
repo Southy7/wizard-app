@@ -262,66 +262,58 @@
     const statistics = Statistics.calculate(completedRounds, gameState.players);
     const { highlights } = statistics;
 
-    highlightsContainer.replaceChildren(
-      createHighlightCard(
-        "Best Bid Accuracy",
-        "Accuracy",
-        formatPercentage(highlights.bestAccuracy.accuracy),
-        formatPercentage(highlights.bestAccuracy.accuracy),
-        gameState,
-        highlights.bestAccuracy
-      ),
-      createHighlightCard(
-        "Best Round",
-        "Best Round",
-        Formatters.formatSigned(highlights.bestRound.bestRound.points),
-        Formatters.formatSigned(highlights.bestRound.bestRound.points),
-        gameState,
-        highlights.bestRound
-      ),
-      createHighlightCard(
-        "Biggest Comeback",
-        "Comeback",
-        `+${highlights.biggestComeback.comebackPlaces} ${pluralize(
+    const cards = [
+      {
+        label: "Best Bid Accuracy",
+        shortLabel: "Accuracy",
+        value: formatPercentage(highlights.bestAccuracy.accuracy),
+        playerStats: highlights.bestAccuracy
+      },
+      {
+        label: "Best Round",
+        value: Formatters.formatSigned(highlights.bestRound.bestRound.points),
+        playerStats: highlights.bestRound
+      },
+      {
+        label: "Biggest Comeback",
+        shortLabel: "Comeback",
+        value: `+${highlights.biggestComeback.comebackPlaces} ${pluralize(
           highlights.biggestComeback.comebackPlaces,
           "Place"
         )}`,
-        `+${highlights.biggestComeback.comebackPlaces}`,
-        gameState,
-        highlights.biggestComeback
-      ),
-      createHighlightCard("Bomb", "Bomb", String(statistics.specialCards.bombs), String(statistics.specialCards.bombs)),
-      createHighlightCard(
-        "Most Rounds Led",
-        "Most Led",
-        `${highlights.mostRoundsLed.roundsLed} ${pluralize(highlights.mostRoundsLed.roundsLed, "Round")}`,
-        String(highlights.mostRoundsLed.roundsLed),
-        gameState,
-        highlights.mostRoundsLed
-      ),
-      createHighlightCard(
-        "Longest Streak",
-        "Streak",
-        `${highlights.longestStreak.bestStreak} ${pluralize(highlights.longestStreak.bestStreak, "Round")}`,
-        String(highlights.longestStreak.bestStreak),
-        gameState,
-        highlights.longestStreak
-      ),
-      createHighlightCard(
-        "Successful Zero Bids",
-        "Zero Bids",
-        String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
-        String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
-        gameState,
-        highlights.mostSuccessfulZeroBids
-      ),
-      createHighlightCard(
-        "Cloud",
-        "Cloud",
-        String(statistics.specialCards.clouds),
-        String(statistics.specialCards.clouds)
-      )
-    );
+        shortValue: `+${highlights.biggestComeback.comebackPlaces}`,
+        playerStats: highlights.biggestComeback
+      },
+      {
+        label: "Bomb",
+        value: String(statistics.specialCards.bombs)
+      },
+      {
+        label: "Most Rounds Led",
+        shortLabel: "Most Led",
+        value: `${highlights.mostRoundsLed.roundsLed} ${pluralize(highlights.mostRoundsLed.roundsLed, "Round")}`,
+        shortValue: String(highlights.mostRoundsLed.roundsLed),
+        playerStats: highlights.mostRoundsLed
+      },
+      {
+        label: "Longest Streak",
+        shortLabel: "Streak",
+        value: `${highlights.longestStreak.bestStreak} ${pluralize(highlights.longestStreak.bestStreak, "Round")}`,
+        shortValue: String(highlights.longestStreak.bestStreak),
+        playerStats: highlights.longestStreak
+      },
+      {
+        label: "Successful Zero Bids",
+        shortLabel: "Zero Bids",
+        value: String(highlights.mostSuccessfulZeroBids.successfulZeroBidCount),
+        playerStats: highlights.mostSuccessfulZeroBids
+      },
+      {
+        label: "Cloud",
+        value: String(statistics.specialCards.clouds)
+      }
+    ];
+    highlightsContainer.replaceChildren(...cards.map((card) => createHighlightCard(card, gameState)));
 
     playersContainer.replaceChildren();
     const categoryLeaders = {
@@ -378,7 +370,7 @@
     });
   }
 
-  function createHighlightCard(label, shortLabel, value, shortValue, gameState, playerStats) {
+  function createHighlightCard({ label, shortLabel = label, value, shortValue = value, playerStats }, gameState) {
     const card = document.createElement("article");
     card.className = "game-highlight-card";
     if (playerStats) {
