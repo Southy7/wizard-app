@@ -631,6 +631,14 @@ def main() -> None:
               ).length === 1;
             })"""
         )
+        score_history_details = page.locator(".final-score-history-section")
+        score_progress_details = page.locator(".final-score-progress-section")
+        assert score_history_details.get_attribute("open") is None
+        assert score_progress_details.get_attribute("open") is None
+        score_history_details.locator("summary").click()
+        score_progress_details.locator("summary").click()
+        assert score_history_details.get_attribute("open") is not None
+        assert score_progress_details.get_attribute("open") is not None
         special_card_counts = page.evaluate(
             """(() => {
               const state = WizardStorage.loadGame();

@@ -257,11 +257,11 @@
   font-size: 1.15rem;
 }
 
-.player-statistics-section {
+.final-result-details-section {
   padding-block: 0;
 }
 
-.player-statistics-section summary {
+.final-result-details-section summary {
   min-height: var(--touch-target);
   display: flex;
   align-items: center;
@@ -274,19 +274,27 @@
   list-style: none;
 }
 
-.player-statistics-section summary::-webkit-details-marker {
+.final-result-details-section summary::-webkit-details-marker {
   display: none;
 }
 
-.player-statistics-section summary::after {
+.final-result-details-section summary::after {
   color: var(--muted);
   content: "\2304";
   font-size: 1.2rem;
   transition: transform 160ms ease;
 }
 
-.player-statistics-section[open] summary::after {
+.final-result-details-section[open] summary::after {
   transform: rotate(180deg);
+}
+
+.final-result-details-content {
+  padding-bottom: clamp(16px, 4vw, 24px);
+}
+
+.final-result-details-section .score-progress-chart {
+  margin-top: 0;
 }
 
 .player-statistics-grid {
