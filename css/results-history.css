@@ -291,17 +291,14 @@
 }
 
 .history-score-number {
-  display: inline-grid;
-  grid-template-columns: auto auto;
-  align-items: baseline;
+  position: relative;
+  display: inline-block;
 }
 
 .history-score-sign {
-  text-align: left;
-}
-
-.history-score-sign-placeholder {
-  visibility: hidden;
+  position: absolute;
+  top: 0;
+  right: 100%;
 }
 
 .history-table tfoot th:first-child {

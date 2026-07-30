@@ -620,22 +620,20 @@ def main() -> None:
         assert page.locator("#final-score-history .history-table tfoot .leader-total").count() == page.locator(
             "#final-ranking .ranking-row[data-rank='1']"
         ).count()
-        assert page.locator(
-            "#final-score-history .history-table tfoot .history-score-sign-placeholder"
-        ).count() > 0
         assert page.locator("#final-score-history .history-table").evaluate(
             """(table) => {
               const positiveRound = [...table.querySelectorAll("tbody td.positive")].find((cell) => {
                 const total = table.tFoot.rows[0].cells[cell.cellIndex];
-                return total.querySelector(".history-score-sign-placeholder");
+                return !total.querySelector(".history-score-sign");
               });
               if (!positiveRound) return false;
               const column = positiveRound.cellIndex;
               const total = table.tFoot.rows[0].cells[column];
-              const roundMagnitude = positiveRound.querySelector(".history-score-number > span:last-child");
-              const totalMagnitude = total.querySelector(".history-score-number > span:last-child");
-              const totalSign = total.querySelector(".history-score-sign");
-              return getComputedStyle(totalSign).visibility === "hidden"
+              const roundMagnitude = positiveRound.querySelector(".history-score-magnitude");
+              const totalMagnitude = total.querySelector(".history-score-magnitude");
+              const roundSign = positiveRound.querySelector(".history-score-sign");
+              return roundSign?.textContent === "+"
+                && Math.abs(roundSign.getBoundingClientRect().right - roundMagnitude.getBoundingClientRect().left) < 0.1
                 && Math.abs(
                   roundMagnitude.getBoundingClientRect().left
                     - totalMagnitude.getBoundingClientRect().left

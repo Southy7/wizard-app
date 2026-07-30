@@ -112,19 +112,20 @@
       showPositiveSign ? Formatters.formatSigned(number) : Formatters.formatNumber(number)
     );
 
-    const sign = document.createElement("span");
-    sign.className = "history-score-sign";
-    sign.setAttribute("aria-hidden", "true");
-    sign.textContent = number < 0 ? "\u2212" : "+";
-    if (number === 0 || (!showPositiveSign && number > 0)) {
-      sign.classList.add("history-score-sign-placeholder");
-    }
-
     const magnitude = document.createElement("span");
+    magnitude.className = "history-score-magnitude";
     magnitude.setAttribute("aria-hidden", "true");
     magnitude.textContent = String(Math.abs(number));
 
-    wrapper.append(sign, magnitude);
+    const hasVisibleSign = number < 0 || (showPositiveSign && number > 0);
+    if (hasVisibleSign) {
+      const sign = document.createElement("span");
+      sign.className = "history-score-sign";
+      sign.setAttribute("aria-hidden", "true");
+      sign.textContent = number < 0 ? "\u2212" : "+";
+      wrapper.append(sign);
+    }
+    wrapper.append(magnitude);
     return wrapper;
   }
 
