@@ -201,46 +201,55 @@
       onNextRound: () => roundController.goToNextRound(),
       onFinishGame: finishGame
     });
-    roundController = RoundControllerModule.createRoundController({
-      Logic,
-      elements,
-      createPanel,
-      createValueEntry,
-      createStatusCard,
-      createButton,
-      openDialog,
-      closeDialog,
+    const gameSession = Object.freeze({
       getState: () => state,
       getRound,
       getCurrentRound,
-      replaceRound,
-      persistState,
-      renderGame,
-      getPlayerDisplayNameById,
-      getPlayerColorIndex,
-      showToast,
-      finishGame
+      replaceRound
+    });
+    const controllerServices = Object.freeze({
+      Logic,
+      persistence: Object.freeze({ persistState })
+    });
+    roundController = RoundControllerModule.createRoundController({
+      services: controllerServices,
+      state: gameSession,
+      ui: {
+        elements,
+        createPanel,
+        createValueEntry,
+        createStatusCard,
+        createButton,
+        openDialog,
+        closeDialog,
+        renderGame,
+        getPlayerDisplayNameById,
+        getPlayerColorIndex,
+        showToast,
+        finishGame
+      }
     });
     specialCardsController = SpecialCardsControllerModule.createSpecialCardsController({
-      Logic,
-      elements,
-      normalizeSpecialDependencies,
-      createPanel,
-      createSpecialButton,
-      createButton,
-      openDialog,
-      closeDialog,
-      getState: () => state,
-      getCurrentRound,
-      replaceRound,
-      persistState,
-      renderGame,
-      setRoundPhase: (phase) => roundController.setRoundPhase(phase),
-      createBidOverview: (round) => gameView.createBidOverview(round),
-      getPlayerDisplayNameById,
-      getPlayerColorIndex,
-      cloneState,
-      showToast
+      services: {
+        ...controllerServices,
+        normalizeSpecialDependencies,
+        cloneState
+      },
+      state: gameSession,
+      ui: {
+        elements,
+        createPanel,
+        createSpecialButton,
+        createButton,
+        openDialog,
+        closeDialog,
+        renderGame,
+        setRoundPhase: (phase) => roundController.setRoundPhase(phase),
+        createBidOverview: (round) => gameView.createBidOverview(round),
+        getPlayerDisplayNameById,
+        getPlayerColorIndex,
+        showToast
+      }
     });
     bindEvents();
     importController.bindEvents();

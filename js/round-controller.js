@@ -1,26 +1,24 @@
 (function attachRoundController(root) {
   "use strict";
 
-  function createRoundController({
-    Logic,
-    elements,
-    createPanel,
-    createValueEntry,
-    createStatusCard,
-    createButton,
-    openDialog,
-    closeDialog,
-    getState,
-    getRound,
-    getCurrentRound,
-    replaceRound,
-    persistState,
-    renderGame,
-    getPlayerDisplayNameById,
-    getPlayerColorIndex,
-    showToast,
-    finishGame
-  }) {
+  function createRoundController({ services = {}, state = {}, ui = {} } = {}) {
+    const { Logic, persistence = {} } = services;
+    const { persistState } = persistence;
+    const { getState, getRound, getCurrentRound, replaceRound } = state;
+    const {
+      elements,
+      createPanel,
+      createValueEntry,
+      createStatusCard,
+      createButton,
+      openDialog,
+      closeDialog,
+      renderGame,
+      getPlayerDisplayNameById,
+      getPlayerColorIndex,
+      showToast,
+      finishGame
+    } = ui;
     function bindEvents() {
       elements["btn-close-edit-dialog"].addEventListener("click", () => closeDialog(elements["edit-round-dialog"]));
       elements["btn-edit-bids"].addEventListener("click", () => beginRoundEdit("bids"));

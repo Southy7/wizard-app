@@ -1,27 +1,24 @@
 (function attachSpecialCardsController(root) {
   "use strict";
 
-  function createSpecialCardsController({
-    Logic,
-    elements,
-    normalizeSpecialDependencies,
-    createPanel,
-    createSpecialButton,
-    createButton,
-    openDialog,
-    closeDialog,
-    getState,
-    getCurrentRound,
-    replaceRound,
-    persistState,
-    renderGame,
-    setRoundPhase,
-    createBidOverview,
-    getPlayerDisplayNameById,
-    getPlayerColorIndex,
-    cloneState,
-    showToast
-  }) {
+  function createSpecialCardsController({ services = {}, state = {}, ui = {} } = {}) {
+    const { Logic, persistence = {}, normalizeSpecialDependencies, cloneState } = services;
+    const { persistState } = persistence;
+    const { getState, getCurrentRound, replaceRound } = state;
+    const {
+      elements,
+      createPanel,
+      createSpecialButton,
+      createButton,
+      openDialog,
+      closeDialog,
+      renderGame,
+      setRoundPhase,
+      createBidOverview,
+      getPlayerDisplayNameById,
+      getPlayerColorIndex,
+      showToast
+    } = ui;
     let cloudDialogContext = null;
 
     function bindEvents() {
