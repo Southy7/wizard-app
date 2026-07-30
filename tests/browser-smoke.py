@@ -44,6 +44,7 @@ def build_inline_document() -> str:
         html = html.replace(f'<link rel="stylesheet" href="{path}">', "")
     html = html.replace("</head>", f"<style>{css}</style>\n</head>")
     for script in (
+        '<script defer src="js/game-validation.js"></script>',
         '<script defer src="js/game-logic.js"></script>',
         '<script defer src="js/state-manager.js"></script>',
         '<script defer src="js/storage.js"></script>',
@@ -69,6 +70,7 @@ def build_inline_document() -> str:
 def main() -> None:
     html = build_inline_document()
     scripts = [
+        (ROOT / "js/game-validation.js").read_text(encoding="utf-8"),
         (ROOT / "js/game-logic.js").read_text(encoding="utf-8"),
         (ROOT / "js/state-manager.js").read_text(encoding="utf-8"),
         (ROOT / "js/storage.js").read_text(encoding="utf-8"),
